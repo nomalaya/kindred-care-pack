@@ -85,7 +85,7 @@ const DonationBasket = ({ items, amount, progressPercent }: Props) => {
   return (
     <TooltipProvider delayDuration={200}>
       <motion.div
-        animate={flash ? { backgroundColor: ["hsl(var(--card))", "hsl(160 60% 30% / 0.05)", "hsl(var(--card))"] } : {}}
+        animate={flash ? { backgroundColor: ["hsl(var(--card))", "hsl(157 68% 33% / 0.05)", "hsl(var(--card))"] } : {}}
         transition={{ duration: 0.6 }}
         className="bg-card rounded-2xl p-6 border shadow-card"
       >
