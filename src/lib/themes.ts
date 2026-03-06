@@ -180,7 +180,7 @@ export const themes: ThemeDefinition[] = [
       "--muted-foreground": "0 2% 60%",
       "--border": "0 2% 86%",
       "--input": "0 2% 86%",
-      "--ring": "31 66% 51%",
+      "--ring": "272 40% 30%",
     },
   },
   {
