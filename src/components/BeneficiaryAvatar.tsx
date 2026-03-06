@@ -59,7 +59,7 @@ const BeneficiaryAvatar = ({ gender, ageRange, skinTone, hairType, size = "md", 
       <circle cx="42" cy="40" r="2.5" fill="#333" />
       <circle cx="58" cy="40" r="2.5" fill="#333" />
       <path d="M42 48 Q50 55 58 48" fill="none" stroke="#333" strokeWidth="1.5" strokeLinecap="round" />
-      <ellipse cx="50" cy="82" rx="22" ry="18" fill="hsl(160, 60%, 30%)" />
+      <ellipse cx="50" cy="82" rx="22" ry="18" fill="hsl(157, 68%, 33%)" />
       {isElderly && (
         <>
           <line x1="36" y1="44" x2="40" y2="44" stroke="#999" strokeWidth="0.5" />
