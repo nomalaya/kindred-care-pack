@@ -162,7 +162,7 @@ export const themes: ThemeDefinition[] = [
     name: "Palette 7",
     swatches: ["#D48A2E", "#7B4FA2", "#D4A84E"],
     colors: {
-      "--primary": "31 66% 51%",
+      "--primary": "272 40% 30%",
       "--primary-foreground": "0 0% 100%",
       "--secondary": "272 35% 47%",
       "--secondary-foreground": "0 0% 100%",
