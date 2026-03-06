@@ -135,11 +135,11 @@ export const themes: ThemeDefinition[] = [
   },
   {
     name: "Palette 6",
-    swatches: ["#EF97BF", "#FAC80C", "#07B185"],
+    swatches: ["#07B185", "#EF97BF", "#FAC80C"],
     colors: {
-      "--primary": "330 78% 77%",
-      "--primary-foreground": "0 0% 5%",
-      "--secondary": "48 96% 51%",
+      "--primary": "162 93% 36%",
+      "--primary-foreground": "0 0% 100%",
+      "--secondary": "330 78% 77%",
       "--secondary-foreground": "0 0% 5%",
       "--cta": "162 93% 36%",
       "--cta-foreground": "0 0% 100%",
