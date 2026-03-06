@@ -37,6 +37,7 @@ const BeneficiarySelection = () => {
   const { situationId } = useParams();
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [loading, setLoading] = useState(true);
+  const donorRegion = getDonorRegion();
 
   useEffect(() => {
     // Use the ranked RPC for fair rotation
