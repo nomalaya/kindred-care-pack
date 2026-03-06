@@ -91,8 +91,8 @@ const ThemeShowcase = () => {
                 Don transparent & centré sur l'humain
               </div>
               <h2 className="text-3xl md:text-5xl font-bold text-foreground leading-tight mb-4">
-                Donnez à une <span className="text-gradient-primary">vraie personne</span>,
-                <br />pas juste à une cause.
+                Choisissez qui vous voulez{" "}
+                <span className="text-gradient-primary">aider concrètement.</span>
               </h2>
               <p className="text-lg text-muted-foreground mb-8 max-w-xl">
                 Choisissez une cause, découvrez quelqu'un qui a besoin d'aide, et financez un colis personnalisé.
