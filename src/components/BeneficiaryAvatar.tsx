@@ -48,7 +48,7 @@ const BeneficiaryAvatar = ({ gender, ageRange, skinTone, hairType, size = "md", 
 
   return (
     <svg width={dim} height={dim} viewBox="0 0 100 100" className="rounded-full" aria-label={`Avatar de ${name}`}>
-      <circle cx="50" cy="50" r="50" fill="hsl(157, 68%, 93%)" />
+      <circle cx="50" cy="50" r="50" fill="hsl(160, 44%, 93%)" />
       <circle cx="50" cy="40" r="22" fill={skin} />
       {hairType !== "bald" && hairType !== "covered" && (
         <ellipse cx="50" cy="28" rx={hairType === "curly" || hairType === "coily" ? 24 : 22} ry={hairType === "curly" || hairType === "coily" ? 16 : 12} fill={hair} />
@@ -59,7 +59,7 @@ const BeneficiaryAvatar = ({ gender, ageRange, skinTone, hairType, size = "md", 
       <circle cx="42" cy="40" r="2.5" fill="#333" />
       <circle cx="58" cy="40" r="2.5" fill="#333" />
       <path d="M42 48 Q50 55 58 48" fill="none" stroke="#333" strokeWidth="1.5" strokeLinecap="round" />
-      <ellipse cx="50" cy="82" rx="22" ry="18" fill="hsl(157, 68%, 33%)" />
+      <ellipse cx="50" cy="82" rx="22" ry="18" fill="hsl(160, 60%, 30%)" />
       {isElderly && (
         <>
           <line x1="36" y1="44" x2="40" y2="44" stroke="#999" strokeWidth="0.5" />
