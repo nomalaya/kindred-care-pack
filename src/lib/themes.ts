@@ -164,7 +164,7 @@ export const themes: ThemeDefinition[] = [
     colors: {
       "--primary": "272 40% 30%",
       "--primary-foreground": "0 0% 100%",
-      "--secondary": "272 35% 47%",
+      "--secondary": "350 38% 55%",
       "--secondary-foreground": "0 0% 100%",
       "--cta": "31 66% 51%",
       "--cta-foreground": "0 0% 100%",
