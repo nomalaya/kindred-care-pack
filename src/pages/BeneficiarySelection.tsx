@@ -39,12 +39,12 @@ const BeneficiarySelection = () => {
     <Layout>
       <div className="container mx-auto px-4 py-12">
         <button onClick={() => window.history.back()} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back
+          <ArrowLeft className="h-4 w-4 mr-1" /> Retour
         </button>
 
         <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Meet who you can help</h1>
-          <p className="text-lg text-muted-foreground">Each person has a unique story. Choose someone to support.</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Découvrez qui vous pouvez aider</h1>
+          <p className="text-lg text-muted-foreground">Chaque personne a une histoire unique. Choisissez quelqu'un à soutenir.</p>
         </div>
 
         {loading ? (
@@ -55,8 +55,8 @@ const BeneficiarySelection = () => {
           </div>
         ) : beneficiaries.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
-            <p>No beneficiaries available for this situation yet.</p>
-            <Link to="/causes" className="text-primary underline mt-2 inline-block">Explore other causes</Link>
+            <p>Aucun bénéficiaire disponible pour cette situation pour le moment.</p>
+            <Link to="/causes" className="text-primary underline mt-2 inline-block">Découvrir d'autres causes</Link>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -79,19 +79,19 @@ const BeneficiarySelection = () => {
                   />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground">
-                  {b.alias_first_name} – {b.approx_age}
+                  {b.alias_first_name} – {b.approx_age} ans
                 </h3>
                 <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mt-1 mb-3">
-                  <MapPin className="h-3 w-3" /> {b.region} region
+                  <MapPin className="h-3 w-3" /> Région {b.region}
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">{b.short_story}</p>
                 <div className="flex items-start gap-2 text-sm italic text-primary/80 justify-center mb-6">
                   <Quote className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  "{b.emotional_sentence}"
+                  « {b.emotional_sentence} »
                 </div>
                 <Link to={`/donate/${b.id}`}>
                   <Button className="w-full bg-cta hover:bg-cta/90 text-cta-foreground">
-                    Help {b.alias_first_name}
+                    Aider {b.alias_first_name}
                   </Button>
                 </Link>
               </motion.div>

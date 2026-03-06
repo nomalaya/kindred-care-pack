@@ -5,15 +5,15 @@ import { Heart, Users, Package, ArrowRight, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
 const steps = [
-  { icon: Heart, title: "Choose a cause", desc: "Pick a cause close to your heart from 6 categories." },
-  { icon: Users, title: "Discover real people", desc: "Meet a real person in need through their story and emotions." },
-  { icon: Package, title: "Fund a care package", desc: "Build a personalized basket of essential products." },
+  { icon: Heart, title: "Choisissez une cause", desc: "Sélectionnez une cause qui vous tient à cœur parmi 6 catégories." },
+  { icon: Users, title: "Découvrez une personne", desc: "Rencontrez une vraie personne dans le besoin à travers son histoire." },
+  { icon: Package, title: "Financez un colis", desc: "Composez un colis personnalisé de produits essentiels." },
 ];
 
 const stats = [
-  { value: "100%", label: "Goes to beneficiaries" },
-  { value: "48h", label: "Average delivery time" },
-  { value: "6", label: "Causes to support" },
+  { value: "100%", label: "Reversé aux bénéficiaires" },
+  { value: "48h", label: "Délai moyen de livraison" },
+  { value: "6", label: "Causes à soutenir" },
 ];
 
 const Index = () => {
@@ -31,25 +31,25 @@ const Index = () => {
           >
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
               <ShieldCheck className="h-4 w-4" />
-              Transparent & human-centered giving
+              Don transparent & centré sur l'humain
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight mb-6">
-              Give to a <span className="text-gradient-primary">real person</span>,
-              <br />not just a cause.
+              Donnez à une <span className="text-gradient-primary">vraie personne</span>,
+              <br />pas juste à une cause.
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Choose a cause, discover someone who needs help, and fund a personalized care package. 
-              Feel the connection. See the impact.
+              Choisissez une cause, découvrez quelqu'un qui a besoin d'aide, et financez un colis personnalisé.
+              Ressentez la connexion. Voyez l'impact.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/causes">
                 <Button size="lg" className="bg-cta hover:bg-cta/90 text-cta-foreground text-lg px-8 py-6 shadow-warm-lg">
-                  Start helping <ArrowRight className="ml-2 h-5 w-5" />
+                  Je donne <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link to="/how-it-works">
                 <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                  How it works
+                  Comment ça marche
                 </Button>
               </Link>
             </div>
@@ -60,7 +60,7 @@ const Index = () => {
       {/* How it works */}
       <section className="py-20 bg-card">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12 text-foreground">Three simple steps to change a life</h2>
+          <h2 className="text-3xl font-bold text-center mb-12 text-foreground">Trois étapes simples pour changer une vie</h2>
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             {steps.map((step, i) => (
               <motion.div
@@ -74,7 +74,7 @@ const Index = () => {
                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <step.icon className="h-8 w-8 text-primary" />
                 </div>
-                <div className="text-sm font-semibold text-primary mb-2">Step {i + 1}</div>
+                <div className="text-sm font-semibold text-primary mb-2">Étape {i + 1}</div>
                 <h3 className="text-xl font-semibold text-foreground mb-2">{step.title}</h3>
                 <p className="text-muted-foreground">{step.desc}</p>
               </motion.div>
@@ -107,14 +107,14 @@ const Index = () => {
             className="bg-gradient-to-br from-primary to-secondary rounded-3xl p-12 text-center max-w-3xl mx-auto shadow-warm-lg"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
-              Ready to make a difference?
+              Prêt à faire la différence ?
             </h2>
             <p className="text-primary-foreground/80 text-lg mb-8">
-              Starting from 32€, you can provide essential items to someone who truly needs them.
+              À partir de 32€, offrez des produits essentiels à quelqu'un qui en a vraiment besoin.
             </p>
             <Link to="/causes">
               <Button size="lg" className="bg-cta hover:bg-cta/90 text-cta-foreground text-lg px-8 py-6">
-                Choose a cause <ArrowRight className="ml-2 h-5 w-5" />
+                Choisir une cause <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
           </motion.div>

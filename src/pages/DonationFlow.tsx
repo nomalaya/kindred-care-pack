@@ -57,7 +57,7 @@ const DonationFlow = () => {
 
   const handleDonate = async () => {
     if (!user) {
-      toast.error("Please sign in to donate");
+      toast.error("Veuillez vous connecter pour faire un don");
       navigate("/auth");
       return;
     }
@@ -74,10 +74,10 @@ const DonationFlow = () => {
 
       if (error) throw error;
 
-      toast.success(`Thank you! Your ${currentTier.amount}€ donation has been confirmed.`);
+      toast.success(`Merci ! Votre don de ${currentTier.amount}€ a été confirmé.`);
       navigate("/dashboard");
     } catch (err: any) {
-      toast.error("Something went wrong: " + err.message);
+      toast.error("Une erreur est survenue : " + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -97,7 +97,7 @@ const DonationFlow = () => {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 text-center">
-          <p className="text-muted-foreground">Beneficiary not found.</p>
+          <p className="text-muted-foreground">Bénéficiaire introuvable.</p>
         </div>
       </Layout>
     );
@@ -107,7 +107,7 @@ const DonationFlow = () => {
     <Layout>
       <div className="container mx-auto px-4 py-12">
         <button onClick={() => window.history.back()} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back
+          <ArrowLeft className="h-4 w-4 mr-1" /> Retour
         </button>
 
         <div className="max-w-4xl mx-auto grid md:grid-cols-5 gap-8">
@@ -125,7 +125,7 @@ const DonationFlow = () => {
                 />
               </div>
               <h2 className="text-xl font-semibold text-foreground text-center">
-                {beneficiary.alias_first_name} – {beneficiary.approx_age}
+                {beneficiary.alias_first_name} – {beneficiary.approx_age} ans
               </h2>
               <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mt-1 mb-3">
                 <MapPin className="h-3 w-3" /> {beneficiary.region}
@@ -133,7 +133,7 @@ const DonationFlow = () => {
               <p className="text-sm text-muted-foreground mb-4">{beneficiary.short_story}</p>
               <div className="flex items-start gap-2 text-sm italic text-primary/80">
                 <Quote className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                "{beneficiary.emotional_sentence}"
+                « {beneficiary.emotional_sentence} »
               </div>
             </div>
           </div>
@@ -141,8 +141,8 @@ const DonationFlow = () => {
           {/* Donation options */}
           <div className="md:col-span-3 space-y-8">
             <div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Choose your donation</h2>
-              <p className="text-muted-foreground">Select an amount to build {beneficiary.alias_first_name}'s care package.</p>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Choisissez votre don</h2>
+              <p className="text-muted-foreground">Sélectionnez un montant pour composer le colis de {beneficiary.alias_first_name}.</p>
             </div>
 
             {/* Tier selector */}
@@ -168,7 +168,7 @@ const DonationFlow = () => {
             <div className="bg-card rounded-2xl p-6 border shadow-card">
               <div className="flex items-center gap-2 mb-4">
                 <Package className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold text-foreground">Care package contents</h3>
+                <h3 className="text-lg font-semibold text-foreground">Contenu du colis</h3>
               </div>
 
               <div className="space-y-2">
@@ -190,7 +190,7 @@ const DonationFlow = () => {
               </div>
 
               <div className="mt-4 pt-4 border-t flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">{includedProducts.length} items</span>
+                <span className="text-sm text-muted-foreground">{includedProducts.length} articles</span>
                 <span className="text-xl font-bold text-primary">{currentTier.amount}€</span>
               </div>
             </div>
@@ -203,17 +203,17 @@ const DonationFlow = () => {
               size="lg"
             >
               {submitting ? (
-                "Processing..."
+                "Traitement en cours..."
               ) : (
                 <>
                   <Heart className="h-5 w-5 mr-2" />
-                  Donate {currentTier.amount}€ to {beneficiary.alias_first_name}
+                  Donner {currentTier.amount}€ à {beneficiary.alias_first_name}
                 </>
               )}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
-              Secure payment. Your donation is 100% used for the care package.
+              Paiement sécurisé. Votre don est utilisé à 100% pour le colis.
             </p>
           </div>
         </div>
