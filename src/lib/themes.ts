@@ -191,7 +191,7 @@ export const themes: ThemeDefinition[] = [
       "--primary-foreground": "0 0% 100%",
       "--secondary": "107 45% 53%",
       "--secondary-foreground": "0 0% 100%",
-      "--cta": "330 46% 70%",
+      "--cta": "330 65% 52%",
       "--cta-foreground": "0 0% 100%",
       "--accent": "44 100% 42%",
       "--accent-foreground": "0 0% 100%",
