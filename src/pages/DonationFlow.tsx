@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,8 @@ import EmergencyUpsell from "@/components/EmergencyUpsell";
 import DonationImpact from "@/components/DonationImpact";
 import SocialProof from "@/components/SocialProof";
 import { Button } from "@/components/ui/button";
-import { DONATION_TIERS, MIN_DONATION, MAX_DONATION, type EmergencyPack } from "@/lib/constants";
+import { MIN_DONATION, MAX_DONATION, CAUSE_KEY_MAP, type EmergencyPack } from "@/lib/constants";
+import { composeBasket, type ProductRecord, type ProfileMapping } from "@/lib/basketEngine";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { ArrowLeft, Heart, MapPin, Quote } from "lucide-react";
@@ -29,52 +30,108 @@ interface Beneficiary {
   avatar_hair_type: string;
   avatar_skin_tone: string;
   avatar_url?: string;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  tier: number;
+  profile_type?: string;
+  diet_tags?: string[];
+  culture_tags?: string[];
+  situation_id?: string;
 }
 
 const DonationFlow = () => {
   const { beneficiaryId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+
   const [beneficiary, setBeneficiary] = useState<Beneficiary | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductRecord[]>([]);
+  const [profileMapping, setProfileMapping] = useState<ProfileMapping | null>(null);
+  const [causeKey, setCauseKey] = useState<string>("");
   const [donationAmount, setDonationAmount] = useState(MIN_DONATION);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [emergencyPack, setEmergencyPack] = useState<EmergencyPack | null>(null);
 
-  const currentTierIndex = DONATION_TIERS.reduce((acc, tier, i) => donationAmount >= tier.amount ? i : acc, 0);
-  const currentTier = DONATION_TIERS[currentTierIndex];
-  const includedProducts = products.filter(p => p.tier <= currentTier.tier);
   const totalAmount = donationAmount + (emergencyPack?.amount || 0);
+  const progressPercent = ((donationAmount - MIN_DONATION) / (MAX_DONATION - MIN_DONATION)) * 100;
+  const isHighTier = donationAmount >= 45;
 
-  const getProductQuantity = (product: Product) => {
-    if (product.tier === 1 && donationAmount >= 45) return 2;
-    return 1;
-  };
+  // ── Data Loading ─────────────────────────────────────────
 
   useEffect(() => {
-    Promise.all([
-      supabase.from("beneficiaries_public").select("*").eq("id", beneficiaryId).single(),
-      supabase.from("products").select("*").order("tier").order("name"),
-    ]).then(([bRes, pRes]) => {
-      setBeneficiary(bRes.data as unknown as Beneficiary);
-      setProducts((pRes.data as unknown as Product[]) || []);
-      setLoading(false);
-    });
+    const load = async () => {
+      const [bRes, pRes] = await Promise.all([
+        supabase.from("beneficiaries_public").select("*").eq("id", beneficiaryId).single(),
+        supabase.from("products").select("*").order("price"),
+      ]);
 
+      const b = bRes.data as unknown as Beneficiary;
+      setBeneficiary(b);
+      setProducts((pRes.data as unknown as ProductRecord[]) || []);
+
+      // Load profile mapping if beneficiary has a profile_type
+      if (b?.profile_type) {
+        const { data: mapping } = await supabase
+          .from("profile_mappings" as any)
+          .select("*")
+          .eq("profile_type", b.profile_type)
+          .single();
+        if (mapping) setProfileMapping(mapping as unknown as ProfileMapping);
+      }
+
+      // Resolve cause key from situation → cause
+      if (b?.situation_id) {
+        const { data: sit } = await supabase
+          .from("situations")
+          .select("cause_id")
+          .eq("id", b.situation_id)
+          .single();
+        if (sit?.cause_id) {
+          const { data: cause } = await supabase
+            .from("causes")
+            .select("title")
+            .eq("id", sit.cause_id)
+            .single();
+          if (cause?.title) {
+            setCauseKey(CAUSE_KEY_MAP[cause.title] || "");
+          }
+        }
+      }
+
+      setLoading(false);
+    };
+
+    load();
     supabase.functions.invoke("track-profile-view", {
       body: { beneficiary_id: beneficiaryId, event_type: "view" },
     });
   }, [beneficiaryId]);
+
+  // ── Basket Computation ───────────────────────────────────
+
+  const basket = useMemo(() => {
+    if (!profileMapping || !causeKey || products.length === 0) {
+      // Fallback: tier-based filtering for beneficiaries without profile_type
+      const tierIndex = donationAmount >= 75 ? 3 : donationAmount >= 60 ? 2 : donationAmount >= 45 ? 1 : 0;
+      const tierValue = [1, 2, 3, 4][tierIndex];
+      return products
+        .filter((p) => p.tier <= tierValue)
+        .slice(0, 12)
+        .map((p) => ({
+          product: p,
+          quantity: p.tier === 1 && donationAmount >= 45 ? 2 : 1,
+        }));
+    }
+
+    return composeBasket({
+      products,
+      profileMapping,
+      causeKey,
+      donationAmount,
+      dietaryFilters: beneficiary?.diet_tags || [],
+    });
+  }, [products, profileMapping, causeKey, donationAmount, beneficiary?.diet_tags]);
+
+  // ── Donate Handler ───────────────────────────────────────
 
   const handleDonate = async () => {
     if (!user) {
@@ -86,7 +143,7 @@ const DonationFlow = () => {
 
     try {
       const productsSent = [
-        ...includedProducts.map(p => ({ id: p.id, name: p.name, qty: getProductQuantity(p) })),
+        ...basket.map((item) => ({ id: item.product.id, name: item.product.name, qty: item.quantity })),
         ...(emergencyPack ? [{ id: `emergency_${emergencyPack.id}`, name: emergencyPack.name, qty: 1 }] : []),
       ];
 
@@ -106,6 +163,8 @@ const DonationFlow = () => {
       setSubmitting(false);
     }
   };
+
+  // ── Render States ────────────────────────────────────────
 
   if (loading) {
     return (
@@ -134,7 +193,7 @@ const DonationFlow = () => {
           <DonationConfirmation
             beneficiaryName={beneficiary.alias_first_name}
             amount={totalAmount}
-            products={includedProducts.map(p => ({ id: p.id, name: p.name }))}
+            products={basket.map((i) => ({ id: i.product.id, name: i.product.name }))}
             emergencyPack={emergencyPack}
             beneficiaryId={beneficiary.id}
           />
@@ -143,8 +202,7 @@ const DonationFlow = () => {
     );
   }
 
-  const progressPercent = ((donationAmount - MIN_DONATION) / (MAX_DONATION - MIN_DONATION)) * 100;
-  const isHighTier = donationAmount >= 45;
+  // ── Main UI ──────────────────────────────────────────────
 
   return (
     <Layout>
@@ -200,15 +258,13 @@ const DonationFlow = () => {
             />
 
             <DonationBasket
-              products={includedProducts}
-              getProductQuantity={getProductQuantity}
+              items={basket}
               amount={donationAmount}
               progressPercent={progressPercent}
             />
 
             <EmergencyUpsell selectedPack={emergencyPack} onSelectPack={setEmergencyPack} />
 
-            {/* Social proof near CTA */}
             <SocialProof
               variant="donation"
               beneficiaryName={beneficiary.alias_first_name}
