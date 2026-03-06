@@ -3,11 +3,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
+import DonationConfirmation from "@/components/DonationConfirmation";
+import DonationSlider from "@/components/DonationSlider";
+import TaxDeduction from "@/components/TaxDeduction";
+import DonationBasket from "@/components/DonationBasket";
 import { Button } from "@/components/ui/button";
-import { DONATION_TIERS } from "@/lib/constants";
+import { DONATION_TIERS, MIN_DONATION, MAX_DONATION } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Package, Heart, MapPin, Quote } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowLeft, Heart, MapPin, Quote } from "lucide-react";
 import { toast } from "sonner";
 
 interface Beneficiary {
@@ -21,6 +25,7 @@ interface Beneficiary {
   avatar_age_range: string;
   avatar_hair_type: string;
   avatar_skin_tone: string;
+  avatar_url?: string;
 }
 
 interface Product {
@@ -37,12 +42,21 @@ const DonationFlow = () => {
   const { user } = useAuth();
   const [beneficiary, setBeneficiary] = useState<Beneficiary | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedTierIndex, setSelectedTierIndex] = useState(0);
+  const [donationAmount, setDonationAmount] = useState(MIN_DONATION);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
-  const currentTier = DONATION_TIERS[selectedTierIndex];
+  // Find the current tier based on amount
+  const currentTierIndex = DONATION_TIERS.reduce((acc, tier, i) => donationAmount >= tier.amount ? i : acc, 0);
+  const currentTier = DONATION_TIERS[currentTierIndex];
   const includedProducts = products.filter(p => p.tier <= currentTier.tier);
+
+  // Compute product quantities (tier 1 products get ×2 when amount >= 45)
+  const getProductQuantity = (product: Product) => {
+    if (product.tier === 1 && donationAmount >= 45) return 2;
+    return 1;
+  };
 
   useEffect(() => {
     Promise.all([
@@ -52,6 +66,11 @@ const DonationFlow = () => {
       setBeneficiary(bRes.data as unknown as Beneficiary);
       setProducts((pRes.data as unknown as Product[]) || []);
       setLoading(false);
+    });
+
+    // Track profile view
+    supabase.functions.invoke("track-profile-view", {
+      body: { beneficiary_id: beneficiaryId, event_type: "view" },
     });
   }, [beneficiaryId]);
 
@@ -67,15 +86,13 @@ const DonationFlow = () => {
       const { error } = await supabase.from("donations").insert({
         donor_id: user.id,
         beneficiary_id: beneficiaryId,
-        amount: currentTier.amount,
-        products_sent: includedProducts.map(p => ({ id: p.id, name: p.name })),
+        amount: donationAmount,
+        products_sent: includedProducts.map(p => ({ id: p.id, name: p.name, qty: getProductQuantity(p) })),
         delivery_status: "confirmed",
       } as any);
 
       if (error) throw error;
-
-      toast.success(`Merci ! Votre don de ${currentTier.amount}€ a été confirmé.`);
-      navigate("/dashboard");
+      setConfirmed(true);
     } catch (err: any) {
       toast.error("Une erreur est survenue : " + err.message);
     } finally {
@@ -103,6 +120,22 @@ const DonationFlow = () => {
     );
   }
 
+  if (confirmed) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12">
+          <DonationConfirmation
+            beneficiaryName={beneficiary.alias_first_name}
+            amount={donationAmount}
+            products={includedProducts.map(p => ({ id: p.id, name: p.name }))}
+          />
+        </div>
+      </Layout>
+    );
+  }
+
+  const progressPercent = ((donationAmount - MIN_DONATION) / (MAX_DONATION - MIN_DONATION)) * 100;
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -121,6 +154,7 @@ const DonationFlow = () => {
                   ageRange={beneficiary.avatar_age_range}
                   hairType={beneficiary.avatar_hair_type}
                   skinTone={beneficiary.avatar_skin_tone}
+                  avatarUrl={beneficiary.avatar_url}
                   size="lg"
                 />
               </div>
@@ -139,78 +173,48 @@ const DonationFlow = () => {
           </div>
 
           {/* Donation options */}
-          <div className="md:col-span-3 space-y-8">
+          <div className="md:col-span-3 space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-foreground mb-2">Choisissez votre don</h2>
-              <p className="text-muted-foreground">Sélectionnez un montant pour composer le colis de {beneficiary.alias_first_name}.</p>
+              <p className="text-muted-foreground">Ajustez le montant pour composer le colis de {beneficiary.alias_first_name}.</p>
             </div>
 
-            {/* Tier selector */}
-            <div className="grid grid-cols-2 gap-3">
-              {DONATION_TIERS.map((tier, i) => (
-                <button
-                  key={tier.amount}
-                  onClick={() => setSelectedTierIndex(i)}
-                  className={`rounded-xl p-4 border-2 transition-all text-left ${
-                    selectedTierIndex === i
-                      ? "border-primary bg-primary/5 shadow-warm"
-                      : "border-border hover:border-primary/30"
-                  }`}
-                >
-                  <div className="text-2xl font-bold text-foreground">{tier.amount}€</div>
-                  <div className="text-sm font-medium text-primary">{tier.label}</div>
-                  <div className="text-xs text-muted-foreground">{tier.description}</div>
-                </button>
-              ))}
-            </div>
+            {/* Slider */}
+            <DonationSlider
+              value={donationAmount}
+              onChange={setDonationAmount}
+              progressPercent={progressPercent}
+            />
+
+            {/* Tax deduction */}
+            <TaxDeduction amount={donationAmount} />
 
             {/* Basket */}
-            <div className="bg-card rounded-2xl p-6 border shadow-card">
-              <div className="flex items-center gap-2 mb-4">
-                <Package className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold text-foreground">Contenu du colis</h3>
-              </div>
-
-              <div className="space-y-2">
-                <AnimatePresence mode="popLayout">
-                  {includedProducts.map((product) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="flex items-center gap-3 py-2 px-3 rounded-lg bg-background"
-                    >
-                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                      <span className="text-sm text-foreground flex-1">{product.name}</span>
-                      <span className="text-xs text-muted-foreground capitalize">{product.category}</span>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-
-              <div className="mt-4 pt-4 border-t flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">{includedProducts.length} articles</span>
-                <span className="text-xl font-bold text-primary">{currentTier.amount}€</span>
-              </div>
-            </div>
+            <DonationBasket
+              products={includedProducts}
+              getProductQuantity={getProductQuantity}
+              amount={donationAmount}
+              progressPercent={progressPercent}
+            />
 
             {/* Donate button */}
-            <Button
-              onClick={handleDonate}
-              disabled={submitting}
-              className="w-full bg-cta hover:bg-cta/90 text-cta-foreground text-lg py-6 shadow-warm-lg"
-              size="lg"
-            >
-              {submitting ? (
-                "Traitement en cours..."
-              ) : (
-                <>
-                  <Heart className="h-5 w-5 mr-2" />
-                  Donner {currentTier.amount}€ à {beneficiary.alias_first_name}
-                </>
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                onClick={handleDonate}
+                disabled={submitting}
+                className="w-full bg-cta hover:bg-cta/90 text-cta-foreground text-lg py-6 shadow-warm-lg"
+                size="lg"
+              >
+                {submitting ? (
+                  "Traitement en cours..."
+                ) : (
+                  <>
+                    <Heart className="h-5 w-5 mr-2" />
+                    Donner {donationAmount}€ à {beneficiary.alias_first_name}
+                  </>
+                )}
+              </Button>
+            </motion.div>
 
             <p className="text-xs text-center text-muted-foreground">
               Paiement sécurisé. Votre don est utilisé à 100% pour le colis.

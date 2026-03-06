@@ -392,14 +392,21 @@ export type Database = {
           avatar_gender: string | null
           avatar_hair_type: string | null
           avatar_skin_tone: string | null
+          avatar_url: string | null
           culture_tags: string[] | null
           diet_tags: string[] | null
+          emotional_score: number | null
           emotional_sentence: string | null
           id: string | null
           is_active: boolean | null
+          last_donation_date: string | null
+          profile_views: number | null
           region: string | null
+          rotation_score: number | null
           short_story: string | null
           situation_id: string | null
+          total_donations_received: number | null
+          urgency_level: number | null
         }
         Insert: {
           alias_first_name?: string | null
@@ -408,14 +415,21 @@ export type Database = {
           avatar_gender?: string | null
           avatar_hair_type?: string | null
           avatar_skin_tone?: string | null
+          avatar_url?: string | null
           culture_tags?: string[] | null
           diet_tags?: string[] | null
+          emotional_score?: number | null
           emotional_sentence?: string | null
           id?: string | null
           is_active?: boolean | null
+          last_donation_date?: string | null
+          profile_views?: number | null
           region?: string | null
+          rotation_score?: number | null
           short_story?: string | null
           situation_id?: string | null
+          total_donations_received?: number | null
+          urgency_level?: number | null
         }
         Update: {
           alias_first_name?: string | null
@@ -424,14 +438,21 @@ export type Database = {
           avatar_gender?: string | null
           avatar_hair_type?: string | null
           avatar_skin_tone?: string | null
+          avatar_url?: string | null
           culture_tags?: string[] | null
           diet_tags?: string[] | null
+          emotional_score?: number | null
           emotional_sentence?: string | null
           id?: string | null
           is_active?: boolean | null
+          last_donation_date?: string | null
+          profile_views?: number | null
           region?: string | null
+          rotation_score?: number | null
           short_story?: string | null
           situation_id?: string | null
+          total_donations_received?: number | null
+          urgency_level?: number | null
         }
         Relationships: [
           {
@@ -445,6 +466,29 @@ export type Database = {
       }
     }
     Functions: {
+      compute_rotation_scores: {
+        Args: { p_situation_id: string }
+        Returns: undefined
+      }
+      get_ranked_beneficiaries: {
+        Args: { p_limit?: number; p_situation_id: string }
+        Returns: {
+          alias_first_name: string
+          approx_age: number
+          avatar_age_range: string
+          avatar_gender: string
+          avatar_hair_type: string
+          avatar_skin_tone: string
+          avatar_url: string
+          emotional_score: number
+          emotional_sentence: string
+          id: string
+          region: string
+          rotation_score: number
+          short_story: string
+          urgency_level: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -4,8 +4,9 @@ import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Quote } from "lucide-react";
+import { ArrowLeft, MapPin, Quote, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface Beneficiary {
   id: string;
@@ -18,6 +19,8 @@ interface Beneficiary {
   avatar_age_range: string;
   avatar_hair_type: string;
   avatar_skin_tone: string;
+  avatar_url?: string;
+  urgency_level?: number;
 }
 
 const BeneficiarySelection = () => {
@@ -26,14 +29,34 @@ const BeneficiarySelection = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from("beneficiaries_public")
-      .select("*")
-      .eq("situation_id", situationId)
-      .then(({ data }) => {
-        setBeneficiaries((data as unknown as Beneficiary[]) || []);
+    // Use the ranked RPC for fair rotation
+    supabase.rpc("get_ranked_beneficiaries", {
+      p_situation_id: situationId,
+      p_limit: 4,
+    }).then(({ data, error }) => {
+      if (error || !data) {
+        // Fallback to simple query
+        supabase.from("beneficiaries_public")
+          .select("*")
+          .eq("situation_id", situationId)
+          .limit(4)
+          .then(({ data: fallbackData }) => {
+            setBeneficiaries((fallbackData as unknown as Beneficiary[]) || []);
+            setLoading(false);
+          });
+      } else {
+        setBeneficiaries(data as unknown as Beneficiary[]);
         setLoading(false);
-      });
+      }
+    });
   }, [situationId]);
+
+  const handleClickAider = (beneficiaryId: string) => {
+    // Track donation click
+    supabase.functions.invoke("track-profile-view", {
+      body: { beneficiary_id: beneficiaryId, event_type: "click" },
+    });
+  };
 
   return (
     <Layout>
@@ -66,8 +89,19 @@ const BeneficiarySelection = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border text-center"
+                whileHover={{ scale: 1.03, boxShadow: "0 0 0 2px hsl(var(--primary) / 0.3)" }}
+                className="bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border text-center relative"
               >
+                {/* Urgency badge */}
+                {b.urgency_level === 2 && (
+                  <div className="absolute top-4 right-4">
+                    <Badge variant="outline" className="border-amber-400 text-amber-600 bg-amber-50 text-xs">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Besoin urgent
+                    </Badge>
+                  </div>
+                )}
+
                 <div className="flex justify-center mb-4">
                   <BeneficiaryAvatar
                     name={b.alias_first_name}
@@ -75,6 +109,7 @@ const BeneficiarySelection = () => {
                     ageRange={b.avatar_age_range}
                     hairType={b.avatar_hair_type}
                     skinTone={b.avatar_skin_tone}
+                    avatarUrl={b.avatar_url}
                     size="lg"
                   />
                 </div>
@@ -89,7 +124,7 @@ const BeneficiarySelection = () => {
                   <Quote className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   « {b.emotional_sentence} »
                 </div>
-                <Link to={`/donate/${b.id}`}>
+                <Link to={`/donate/${b.id}`} onClick={() => handleClickAider(b.id)}>
                   <Button className="w-full bg-cta hover:bg-cta/90 text-cta-foreground">
                     Aider {b.alias_first_name}
                   </Button>
