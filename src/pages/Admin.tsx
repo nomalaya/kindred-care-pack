@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { DELIVERY_STATUSES } from "@/lib/constants";
 import { toast } from "sonner";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
+import { Camera, AlertTriangle, Loader2 } from "lucide-react";
 
 const Admin = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -18,6 +20,7 @@ const Admin = () => {
   const [beneficiaries, setBeneficiaries] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generatingAvatar, setGeneratingAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -55,6 +58,36 @@ const Admin = () => {
     else {
       toast.success("Stock mis à jour");
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock_quantity: quantity } : p));
+    }
+  };
+
+  const updateUrgencyLevel = async (beneficiaryId: string, level: string) => {
+    const { error } = await supabase
+      .from("beneficiaries")
+      .update({ urgency_level: parseInt(level) } as any)
+      .eq("id", beneficiaryId);
+    if (error) toast.error("Échec de la mise à jour");
+    else {
+      toast.success("Niveau d'urgence mis à jour");
+      setBeneficiaries(prev => prev.map(b => b.id === beneficiaryId ? { ...b, urgency_level: parseInt(level) } : b));
+    }
+  };
+
+  const generateAvatar = async (beneficiaryId: string) => {
+    setGeneratingAvatar(beneficiaryId);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-avatar", {
+        body: { beneficiary_id: beneficiaryId },
+      });
+      if (error) throw error;
+      toast.success("Avatar généré avec succès !");
+      setBeneficiaries(prev =>
+        prev.map(b => b.id === beneficiaryId ? { ...b, avatar_url: data.avatar_url } : b)
+      );
+    } catch (err: any) {
+      toast.error("Erreur : " + (err.message || "Échec de la génération"));
+    } finally {
+      setGeneratingAvatar(null);
     }
   };
 
@@ -126,11 +159,49 @@ const Admin = () => {
                       ageRange={b.avatar_age_range}
                       hairType={b.avatar_hair_type}
                       skinTone={b.avatar_skin_tone}
+                      avatarUrl={b.avatar_url}
                       size="sm"
                     />
                     <div className="flex-1">
-                      <p className="font-medium text-foreground">{b.alias_first_name} ({b.real_first_name} {b.real_last_name})</p>
-                      <p className="text-sm text-muted-foreground">{b.region} · {b.approx_age} ans · {b.is_active ? "Actif" : "Inactif"}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground">{b.alias_first_name} ({b.real_first_name} {b.real_last_name})</p>
+                        {b.urgency_level === 2 && (
+                          <Badge variant="outline" className="border-amber-400 text-amber-600 bg-amber-50 text-xs">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Urgent
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {b.region} · {b.approx_age} ans · {b.is_active ? "Actif" : "Inactif"} · {b.total_donations_received || 0} dons
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={String(b.urgency_level || 0)}
+                        onValueChange={(v) => updateUrgencyLevel(b.id, v)}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">Normal</SelectItem>
+                          <SelectItem value="1">Prioritaire</SelectItem>
+                          <SelectItem value="2">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => generateAvatar(b.id)}
+                        disabled={generatingAvatar === b.id}
+                      >
+                        {generatingAvatar === b.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Camera className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
                   </div>
                 ))}

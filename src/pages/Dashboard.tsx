@@ -22,6 +22,7 @@ interface DonationRow {
     avatar_age_range: string;
     avatar_hair_type: string;
     avatar_skin_tone: string;
+    avatar_url?: string;
   };
 }
 
@@ -34,7 +35,7 @@ const Dashboard = () => {
     if (!user) return;
     supabase
       .from("donations")
-      .select("id, amount, delivery_status, created_at, products_sent, beneficiaries_public!beneficiary_id(alias_first_name, approx_age, region, avatar_gender, avatar_age_range, avatar_hair_type, avatar_skin_tone)")
+      .select("id, amount, delivery_status, created_at, products_sent, beneficiaries_public!beneficiary_id(alias_first_name, approx_age, region, avatar_gender, avatar_age_range, avatar_hair_type, avatar_skin_tone, avatar_url)")
       .eq("donor_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -89,6 +90,7 @@ const Dashboard = () => {
                         ageRange={b.avatar_age_range}
                         hairType={b.avatar_hair_type}
                         skinTone={b.avatar_skin_tone}
+                        avatarUrl={b.avatar_url}
                         size="sm"
                       />
                     )}

@@ -1,1 +1,7 @@
 project_id = "reofbeluopsnqeirxofv"
+
+[functions.track-profile-view]
+verify_jwt = false
+
+[functions.generate-avatar]
+verify_jwt = false
