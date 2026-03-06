@@ -77,7 +77,10 @@ const BeneficiarySelection = () => {
         </button>
 
         <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Découvrez qui vous pouvez aider</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Choisissez qui vous voulez{" "}
+            <span className="text-gradient-primary">aider concrètement.</span>
+          </h1>
           <p className="text-lg text-muted-foreground">Chaque personne a une histoire unique. Choisissez quelqu'un à soutenir.</p>
         </div>
 
