@@ -4,9 +4,19 @@ import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Quote, AlertTriangle } from "lucide-react";
+import { ArrowLeft, MapPin, Quote, AlertTriangle, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+const DONOR_REGIONS = ["Île-de-France", "Rhône-Alpes", "PACA", "Occitanie", "Grand Est"];
+// Simulate donor region (in production this would come from user profile/geolocation)
+const getDonorRegion = () => {
+  const stored = localStorage.getItem("donor_region");
+  if (stored) return stored;
+  const region = DONOR_REGIONS[Math.floor(Math.random() * DONOR_REGIONS.length)];
+  localStorage.setItem("donor_region", region);
+  return region;
+};
 
 interface Beneficiary {
   id: string;
