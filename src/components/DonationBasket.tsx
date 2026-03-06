@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Package } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useState, useEffect } from "react";
 
 interface Product {
   id: string;
@@ -18,8 +19,25 @@ interface Props {
 }
 
 const DonationBasket = ({ products, getProductQuantity, amount, progressPercent }: Props) => {
+  const [flash, setFlash] = useState(false);
+  const [prevCount, setPrevCount] = useState(products.length);
+
+  useEffect(() => {
+    if (products.length > prevCount) {
+      setFlash(true);
+      const t = setTimeout(() => setFlash(false), 600);
+      setPrevCount(products.length);
+      return () => clearTimeout(t);
+    }
+    setPrevCount(products.length);
+  }, [products.length, prevCount]);
+
   return (
-    <div className="bg-card rounded-2xl p-6 border shadow-card">
+    <motion.div
+      animate={flash ? { backgroundColor: ["hsl(var(--card))", "hsl(160 60% 30% / 0.05)", "hsl(var(--card))"] } : {}}
+      transition={{ duration: 0.6 }}
+      className="bg-card rounded-2xl p-6 border shadow-card"
+    >
       <div className="flex items-center gap-2 mb-2">
         <Package className="h-5 w-5 text-primary" />
         <h3 className="text-lg font-semibold text-foreground">Contenu du colis</h3>
@@ -62,9 +80,20 @@ const DonationBasket = ({ products, getProductQuantity, amount, progressPercent 
 
       <div className="mt-4 pt-4 border-t flex items-center justify-between">
         <span className="text-sm text-muted-foreground">{products.length} articles</span>
-        <span className="text-xl font-bold text-primary">{amount}€</span>
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={amount}
+            initial={{ y: -4, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 4, opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="text-xl font-bold text-primary"
+          >
+            {amount}€
+          </motion.span>
+        </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -7,8 +7,11 @@ import DonationConfirmation from "@/components/DonationConfirmation";
 import DonationSlider from "@/components/DonationSlider";
 import TaxDeduction from "@/components/TaxDeduction";
 import DonationBasket from "@/components/DonationBasket";
+import EmergencyUpsell from "@/components/EmergencyUpsell";
+import DonationImpact from "@/components/DonationImpact";
+import SocialProof from "@/components/SocialProof";
 import { Button } from "@/components/ui/button";
-import { DONATION_TIERS, MIN_DONATION, MAX_DONATION } from "@/lib/constants";
+import { DONATION_TIERS, MIN_DONATION, MAX_DONATION, type EmergencyPack } from "@/lib/constants";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { ArrowLeft, Heart, MapPin, Quote } from "lucide-react";
@@ -46,13 +49,13 @@ const DonationFlow = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [emergencyPack, setEmergencyPack] = useState<EmergencyPack | null>(null);
 
-  // Find the current tier based on amount
   const currentTierIndex = DONATION_TIERS.reduce((acc, tier, i) => donationAmount >= tier.amount ? i : acc, 0);
   const currentTier = DONATION_TIERS[currentTierIndex];
   const includedProducts = products.filter(p => p.tier <= currentTier.tier);
+  const totalAmount = donationAmount + (emergencyPack?.amount || 0);
 
-  // Compute product quantities (tier 1 products get ×2 when amount >= 45)
   const getProductQuantity = (product: Product) => {
     if (product.tier === 1 && donationAmount >= 45) return 2;
     return 1;
@@ -68,7 +71,6 @@ const DonationFlow = () => {
       setLoading(false);
     });
 
-    // Track profile view
     supabase.functions.invoke("track-profile-view", {
       body: { beneficiary_id: beneficiaryId, event_type: "view" },
     });
@@ -83,11 +85,16 @@ const DonationFlow = () => {
     setSubmitting(true);
 
     try {
+      const productsSent = [
+        ...includedProducts.map(p => ({ id: p.id, name: p.name, qty: getProductQuantity(p) })),
+        ...(emergencyPack ? [{ id: `emergency_${emergencyPack.id}`, name: emergencyPack.name, qty: 1 }] : []),
+      ];
+
       const { error } = await supabase.from("donations").insert({
         donor_id: user.id,
         beneficiary_id: beneficiaryId,
-        amount: donationAmount,
-        products_sent: includedProducts.map(p => ({ id: p.id, name: p.name, qty: getProductQuantity(p) })),
+        amount: totalAmount,
+        products_sent: productsSent,
         delivery_status: "confirmed",
       } as any);
 
@@ -126,8 +133,10 @@ const DonationFlow = () => {
         <div className="container mx-auto px-4 py-12">
           <DonationConfirmation
             beneficiaryName={beneficiary.alias_first_name}
-            amount={donationAmount}
+            amount={totalAmount}
             products={includedProducts.map(p => ({ id: p.id, name: p.name }))}
+            emergencyPack={emergencyPack}
+            beneficiaryId={beneficiary.id}
           />
         </div>
       </Layout>
@@ -135,6 +144,7 @@ const DonationFlow = () => {
   }
 
   const progressPercent = ((donationAmount - MIN_DONATION) / (MAX_DONATION - MIN_DONATION)) * 100;
+  const isHighTier = donationAmount >= 45;
 
   return (
     <Layout>
@@ -179,17 +189,16 @@ const DonationFlow = () => {
               <p className="text-muted-foreground">Ajustez le montant pour composer le colis de {beneficiary.alias_first_name}.</p>
             </div>
 
-            {/* Slider */}
-            <DonationSlider
-              value={donationAmount}
-              onChange={setDonationAmount}
-              progressPercent={progressPercent}
+            <DonationSlider value={donationAmount} onChange={setDonationAmount} progressPercent={progressPercent} />
+
+            <DonationImpact amount={donationAmount} />
+
+            <TaxDeduction
+              amount={donationAmount}
+              extraAmount={emergencyPack?.amount}
+              extraLabel={emergencyPack?.name}
             />
 
-            {/* Tax deduction */}
-            <TaxDeduction amount={donationAmount} />
-
-            {/* Basket */}
             <DonationBasket
               products={includedProducts}
               getProductQuantity={getProductQuantity}
@@ -197,12 +206,25 @@ const DonationFlow = () => {
               progressPercent={progressPercent}
             />
 
+            <EmergencyUpsell selectedPack={emergencyPack} onSelectPack={setEmergencyPack} />
+
+            {/* Social proof near CTA */}
+            <SocialProof
+              variant="donation"
+              beneficiaryName={beneficiary.alias_first_name}
+              beneficiaryId={beneficiary.id}
+            />
+
             {/* Donate button */}
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
                 onClick={handleDonate}
                 disabled={submitting}
-                className="w-full bg-cta hover:bg-cta/90 text-cta-foreground text-lg py-6 shadow-warm-lg"
+                className={`w-full text-cta-foreground text-lg py-6 shadow-warm-lg transition-all ${
+                  isHighTier
+                    ? "bg-gradient-to-r from-cta to-cta/80 hover:from-cta/90 hover:to-cta/70 animate-[pulse_3s_ease-in-out_infinite]"
+                    : "bg-cta hover:bg-cta/90"
+                }`}
                 size="lg"
               >
                 {submitting ? (
@@ -210,7 +232,7 @@ const DonationFlow = () => {
                 ) : (
                   <>
                     <Heart className="h-5 w-5 mr-2" />
-                    Donner {donationAmount}€ à {beneficiary.alias_first_name}
+                    Donner {totalAmount}€ à {beneficiary.alias_first_name}
                   </>
                 )}
               </Button>

@@ -470,6 +470,7 @@ export type Database = {
         Args: { p_situation_id: string }
         Returns: undefined
       }
+      get_donation_stats: { Args: { p_beneficiary_id?: string }; Returns: Json }
       get_ranked_beneficiaries: {
         Args: { p_limit?: number; p_situation_id: string }
         Returns: {

@@ -2,16 +2,21 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Check, Package, Truck, Heart, PartyPopper } from "lucide-react";
 import { Link } from "react-router-dom";
-import { DELIVERY_STATUSES } from "@/lib/constants";
+import { DELIVERY_STATUSES, IMPACT_METRICS, MIN_DONATION, MAX_DONATION, type EmergencyPack } from "@/lib/constants";
 import { useEffect, useState } from "react";
+import SocialProof from "@/components/SocialProof";
 
 interface Props {
   beneficiaryName: string;
   amount: number;
   products: { id: string; name: string }[];
+  emergencyPack?: EmergencyPack | null;
+  beneficiaryId?: string;
 }
 
-const DonationConfirmation = ({ beneficiaryName, amount, products }: Props) => {
+const lerp = (min: number, max: number, t: number) => Math.round(min + (max - min) * t);
+
+const DonationConfirmation = ({ beneficiaryName, amount, products, emergencyPack, beneficiaryId }: Props) => {
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
@@ -20,9 +25,13 @@ const DonationConfirmation = ({ beneficiaryName, amount, products }: Props) => {
     return () => clearTimeout(t);
   }, []);
 
+  const baseAmount = emergencyPack ? amount - emergencyPack.amount : amount;
+  const impactT = Math.min(1, Math.max(0, (baseAmount - MIN_DONATION) / (MAX_DONATION - MIN_DONATION)));
+  const productCount = lerp(IMPACT_METRICS.products.min, IMPACT_METRICS.products.max, impactT);
+  const daysCount = lerp(IMPACT_METRICS.days.min, IMPACT_METRICS.days.max, impactT);
+
   return (
     <div className="max-w-2xl mx-auto text-center py-8">
-      {/* Confetti-like animation */}
       {showConfetti && (
         <motion.div
           initial={{ opacity: 1 }}
@@ -33,9 +42,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products }: Props) => {
           {[...Array(20)].map((_, i) => (
             <motion.div
               key={i}
-              initial={{
-                x: 0, y: 0, scale: 0, opacity: 1,
-              }}
+              initial={{ x: 0, y: 0, scale: 0, opacity: 1 }}
               animate={{
                 x: (Math.random() - 0.5) * 600,
                 y: (Math.random() - 0.5) * 600,
@@ -68,16 +75,19 @@ const DonationConfirmation = ({ beneficiaryName, amount, products }: Props) => {
         transition={{ delay: 0.3 }}
         className="text-2xl md:text-3xl font-bold text-foreground mb-3"
       >
-        Merci pour votre générosité !
+        Merci pour votre générosité ! ❤️
       </motion.h2>
 
       <motion.p
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="text-lg text-muted-foreground mb-8"
+        className="text-lg text-muted-foreground mb-4"
       >
-        Votre aide va permettre d'envoyer ce colis à <span className="font-semibold text-foreground">{beneficiaryName}</span>.
+        Votre don de <span className="font-bold text-primary">{amount}€</span> permet{" "}
+        <span className="font-semibold text-foreground">{productCount} produits essentiels</span> et{" "}
+        <span className="font-semibold text-foreground">{daysCount} jours de soutien</span> pour{" "}
+        <span className="font-semibold text-foreground">{beneficiaryName}</span>.
       </motion.p>
 
       {/* Products included */}
@@ -89,7 +99,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products }: Props) => {
       >
         <div className="flex items-center gap-2 mb-4">
           <Package className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Contenu du colis – {amount}€</h3>
+          <h3 className="font-semibold text-foreground">Contenu du colis – {emergencyPack ? amount - emergencyPack.amount : amount}€</h3>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {products.map((p) => (
@@ -99,36 +109,59 @@ const DonationConfirmation = ({ beneficiaryName, amount, products }: Props) => {
             </div>
           ))}
         </div>
+
+        {emergencyPack && (
+          <div className="mt-4 pt-4 border-t">
+            <div className="flex items-center gap-2 text-sm text-cta font-medium">
+              <Heart className="h-3 w-3 fill-cta/30" />
+              {emergencyPack.icon} {emergencyPack.name} (+{emergencyPack.amount}€)
+            </div>
+          </div>
+        )}
       </motion.div>
 
-      {/* Delivery timeline */}
+      {/* Delivery timeline with connecting line */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8 }}
-        className="bg-card rounded-2xl p-6 border shadow-card mb-8 text-left"
+        className="bg-card rounded-2xl p-6 border shadow-card mb-6 text-left"
       >
         <div className="flex items-center gap-2 mb-4">
           <Truck className="h-5 w-5 text-primary" />
           <h3 className="font-semibold text-foreground">Suivi de livraison</h3>
         </div>
-        <div className="space-y-3">
-          {DELIVERY_STATUSES.map((s, i) => (
-            <div key={s.key} className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-                i === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              }`}>
-                {s.icon}
+        <div className="relative">
+          {/* Vertical connecting line */}
+          <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-border" />
+          <div className="space-y-4">
+            {DELIVERY_STATUSES.map((s, i) => (
+              <div key={s.key} className="flex items-center gap-3 relative">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm z-10 ${
+                  i === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                }`}>
+                  {s.icon}
+                </div>
+                <span className={`text-sm ${i === 0 ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                  {s.label}
+                </span>
+                {i === 0 && (
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full ml-auto">En cours</span>
+                )}
               </div>
-              <span className={`text-sm ${i === 0 ? "font-medium text-foreground" : "text-muted-foreground"}`}>
-                {s.label}
-              </span>
-              {i === 0 && (
-                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full ml-auto">En cours</span>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+      </motion.div>
+
+      {/* Social proof */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.9 }}
+        className="mb-6 flex justify-center"
+      >
+        <SocialProof variant="confirmation" beneficiaryId={beneficiaryId} />
       </motion.div>
 
       <motion.div

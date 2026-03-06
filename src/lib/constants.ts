@@ -25,3 +25,17 @@ export const TAX_DEDUCTION_RATE = 0.66;
 
 export const MIN_DONATION = 32;
 export const MAX_DONATION = 75;
+
+export const EMERGENCY_PACKS = [
+  { id: "alimentaire", name: "Pack urgence alimentaire", amount: 5, icon: "🍞", description: "Produits alimentaires essentiels" },
+  { id: "hygiene", name: "Pack hygiène", amount: 8, icon: "🧴", description: "Savon, dentifrice, protections" },
+  { id: "bebe", name: "Pack bébé", amount: 10, icon: "👶", description: "Lait infantile, couches" },
+] as const;
+
+export type EmergencyPack = typeof EMERGENCY_PACKS[number];
+
+export const IMPACT_METRICS = {
+  products: { min: 6, max: 18 },
+  meals: { min: 4, max: 10 },
+  days: { min: 3, max: 7 },
+} as const;
