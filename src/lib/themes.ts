@@ -210,13 +210,13 @@ export const themes: ThemeDefinition[] = [
   },
   {
     name: "Violet Pop",
-    swatches: ["#6B4D8A", "#2EAE7D", "#D4637A"],
+    swatches: ["#6B4D8A", "#3D9B7A", "#D4657D"],
     colors: {
       "--primary": "271 28% 42%",
       "--primary-foreground": "0 0% 100%",
-      "--secondary": "155 58% 43%",
+      "--secondary": "157 43% 42%",
       "--secondary-foreground": "0 0% 100%",
-      "--cta": "349 57% 61%",
+      "--cta": "349 53% 61%",
       "--cta-foreground": "0 0% 100%",
       "--accent": "43 62% 57%",
       "--accent-foreground": "0 0% 10%",
