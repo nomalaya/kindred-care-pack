@@ -85,13 +85,13 @@ export const themes: ThemeDefinition[] = [
   },
   {
     name: "Palette 4",
-    swatches: ["#21725C", "#C97B6B", "#D4B95E"],
+    swatches: ["#21725C", "#4DB88F", "#D4B95E"],
     colors: {
       "--primary": "163 55% 29%",
       "--primary-foreground": "0 0% 100%",
-      "--secondary": "11 44% 60%",
+      "--secondary": "155 40% 50%",
       "--secondary-foreground": "0 0% 100%",
-      "--cta": "163 55% 29%",
+      "--cta": "15 55% 48%",
       "--cta-foreground": "0 0% 100%",
       "--accent": "43 58% 60%",
       "--accent-foreground": "0 0% 15%",
