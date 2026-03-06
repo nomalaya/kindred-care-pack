@@ -4,9 +4,19 @@ import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Quote, AlertTriangle } from "lucide-react";
+import { ArrowLeft, MapPin, Quote, AlertTriangle, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+const DONOR_REGIONS = ["Île-de-France", "Rhône-Alpes", "PACA", "Occitanie", "Grand Est"];
+// Simulate donor region (in production this would come from user profile/geolocation)
+const getDonorRegion = () => {
+  const stored = localStorage.getItem("donor_region");
+  if (stored) return stored;
+  const region = DONOR_REGIONS[Math.floor(Math.random() * DONOR_REGIONS.length)];
+  localStorage.setItem("donor_region", region);
+  return region;
+};
 
 interface Beneficiary {
   id: string;
@@ -27,6 +37,7 @@ const BeneficiarySelection = () => {
   const { situationId } = useParams();
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [loading, setLoading] = useState(true);
+  const donorRegion = getDonorRegion();
 
   useEffect(() => {
     // Use the ranked RPC for fair rotation
@@ -95,9 +106,19 @@ const BeneficiarySelection = () => {
                 {/* Urgency badge */}
                 {b.urgency_level === 2 && (
                   <div className="absolute top-4 right-4">
-                    <Badge variant="outline" className="border-amber-400 text-amber-600 bg-amber-50 text-xs">
+                    <Badge variant="outline" className="border-destructive/40 text-destructive bg-destructive/10 text-xs">
                       <AlertTriangle className="h-3 w-3 mr-1" />
                       Besoin urgent
+                    </Badge>
+                  </div>
+                )}
+
+                {/* Proximity badge */}
+                {b.region === donorRegion && (
+                  <div className={`absolute top-4 ${b.urgency_level === 2 ? 'left-4' : 'right-4'}`}>
+                    <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 text-xs">
+                      <Navigation className="h-3 w-3 mr-1" />
+                      Proche de chez vous
                     </Badge>
                   </div>
                 )}
