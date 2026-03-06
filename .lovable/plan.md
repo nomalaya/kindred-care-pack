@@ -1,124 +1,71 @@
 
 
-## Plan: Advanced Donation Conversion Mechanisms
+## Plan: 7 UI Theme Previews for CashForCause
 
-### 1. Emergency Micro-Donation Upsell
+### Approach
 
-**New component: `src/components/EmergencyUpsell.tsx`**
-- Displays 3 toggleable pack cards (5€ alimentaire, 8€ hygiène, 10€ bébé) with subtle pulse animation on the heart icon
-- Only one pack selectable at a time (radio-style toggle)
-- framer-motion scale-in animation when pack is selected
-- Props: `selectedPack`, `onSelectPack`, callback pattern
+Create a dedicated **Theme Comparison page** (`/themes`) with a floating theme switcher. Each theme overrides CSS variables at runtime — no layout or component changes needed.
 
-**Update `DonationFlow.tsx`**:
-- Add state `emergencyPack: { name, amount } | null`
-- Insert `EmergencyUpsell` between `DonationBasket` and the donate button
-- Update `TaxDeduction` to receive `amount + emergencyPack.amount`
-- Update donate button text to show total: "Donner {total}€"
-- On submit, store emergency pack info in the `products_sent` JSONB field alongside main products
+The page will:
+1. Show the current CashForCause interface (homepage hero, cause cards, donation slider, buttons, etc.) rendered as a **scrollable showcase** of key UI sections
+2. Provide a **sticky palette selector bar** at the top to switch between Palette 1–7 + the current default
+3. Apply the selected theme by setting CSS custom properties on `document.documentElement`
 
-**Update `TaxDeduction.tsx`**:
-- Accept optional `extraAmount` and `extraLabel` props to show the breakdown (Don actuel / Ajout pack / Total / Déduction / Coût réel) — switch from 3-col to 5-row layout when extra is present
+### Implementation
 
-### 2. Social Proof System
+**New file: `src/lib/themes.ts`**
+Define 7 theme objects, each mapping CSS variable names to HSL values converted from the provided hex colors:
 
-**New component: `src/components/SocialProof.tsx`**
-- Accepts a `variant` prop: `"homepage"`, `"cause"`, `"donation"`, `"confirmation"`
-- Queries donation stats from DB via a lightweight RPC or direct count query on `donations` table
-- Displays contextual messages in French:
-  - Homepage: "{X} personnes ont aidé quelqu'un aujourd'hui." + "Plus de {Y} colis solidaires envoyés."
-  - Donation page: "Les donateurs qui aident {name} donnent en moyenne {avg}€." near the CTA
-  - Confirmation: "{X} donateurs ont déjà aidé cette semaine."
-- Subtle fade-in animation, muted styling, small Users icon
+| Variable | Mapped from |
+|---|---|
+| `--primary` | Primary #1 (main CTA) |
+| `--secondary` | Primary #2 (hover/accents) |
+| `--cta` | Primary #1 (same as primary for CTA buttons) |
+| `--accent` | Primary #3 (badges, highlights) |
+| `--background` | Secondary #3 (lightest) |
+| `--foreground` | Secondary #2 (darkest) |
+| `--card` | White/near-white from secondary |
+| `--muted` | Derived from Secondary #1 |
+| `--muted-foreground` | Secondary #1 |
+| `--border` | Lightened Secondary #1 |
 
-**DB function (migration)**: `get_donation_stats()` — returns `today_count`, `week_count`, `total_count`, `avg_amount_for_beneficiary(id)` using simple aggregates on the donations table. Security definer, accessible to anon.
+Each hex will be pre-converted to HSL format (H S% L% without commas, matching the existing CSS variable format).
 
-**Integration points**:
-- `Index.tsx`: Add `<SocialProof variant="homepage" />` in the stats section
-- `CauseSelection.tsx`: Add below the header
-- `DonationFlow.tsx`: Add near the donate button
-- `DonationConfirmation.tsx`: Add after the delivery timeline
+**New file: `src/pages/ThemeShowcase.tsx`**
+A single page that renders representative UI sections inline (not iframes):
+- Navbar preview strip
+- Hero section (simplified)
+- 3 cause cards
+- Donation slider + impact preview
+- Button samples (primary, secondary, outline, CTA)
+- Progress bar
+- Card with badge
+- Emergency upsell pack preview
 
-### 3. Visible Impact System
+A sticky top bar with 8 buttons (Default + Palette 1–7), each showing a small color swatch. Clicking applies the theme by setting CSS variables on `:root`. The active palette is highlighted.
 
-**New component: `src/components/DonationImpact.tsx`**
-- Receives `amount` prop
-- Computes and displays impact metrics based on amount thresholds:
-  - Products count (interpolated: ~6 at 32€, ~10 at 45€, ~14 at 60€, ~18 at 75€)
-  - Meals supported (~4 at 32€, scaling up)
-  - Days of essential support (~3 at 32€, ~7 at 75€)
-- Each metric shown with an icon (Package, UtensilsCrossed, Calendar) and animated counter
-- Progress bars fill as amount increases
-- framer-motion `AnimatePresence` for smooth transitions when values change
+**Update `src/App.tsx`**
+Add route: `<Route path="/themes" element={<ThemeShowcase />} />`
 
-**Integration**: Insert in `DonationFlow.tsx` between the slider and tax deduction sections
+### Color Conversions (hex → HSL)
 
-### 4. Enhanced Impact Storytelling (Confirmation)
+All 7 palettes will be converted. For example:
+- Theme 1: `#DF48A6` → `325 70% 58%`, `#2326C1` → `239 70% 45%`, `#DDA120` → `41 76% 50%`
+- Theme 5: `#3F9F8B` → `168 43% 44%`, `#E3BB1A` → `47 85% 50%`, `#CB5426` → `17 68% 47%`
+- (All 7 fully converted in implementation)
 
-**Update `DonationConfirmation.tsx`**:
-- Accept `emergencyPack` prop to show it if selected
-- Add `<SocialProof variant="confirmation" />` 
-- Add impact summary section (reuse `DonationImpact` or inline): "Votre don de {X}€ permet {Y} produits essentiels et {Z} jours de soutien."
-- Enhance delivery timeline with connecting line between steps (vertical line with dots)
+### Key Constraints
+- No layout/typography/spacing changes — only CSS variable overrides
+- All text remains in French
+- WCAG AA contrast ensured by pairing dark foregrounds with light backgrounds (and vice versa)
+- Theme selection is ephemeral (not persisted) — refreshing resets to default
+- The showcase page reuses existing components directly, so the theme applies authentically
 
-### 5. Conversion-Optimized UI Polish
-
-**Update `DonationSlider.tsx`**:
-- Add tier-reached celebration: when slider crosses a tier threshold, briefly highlight the tier label with a scale animation and color pulse
-- Add a subtle glow effect on the active tier marker
-
-**Update `DonationBasket.tsx`**:
-- Add a gentle background color transition when new products appear (brief green tint)
-- Enhance the basket total with a counting animation
-
-**Update donate button in `DonationFlow.tsx`**:
-- Add a subtle pulse animation class when amount >= 45€ (higher tiers)
-- Warm gradient background shift based on donation amount
-
----
-
-### Files to Create/Edit
+### Files
 
 | File | Action |
 |---|---|
-| `src/components/EmergencyUpsell.tsx` | Create — micro-donation pack selector |
-| `src/components/SocialProof.tsx` | Create — social proof messages |
-| `src/components/DonationImpact.tsx` | Create — visible impact metrics |
-| `src/components/TaxDeduction.tsx` | Edit — support extra pack amount in breakdown |
-| `src/pages/DonationFlow.tsx` | Edit — integrate upsell, impact, social proof |
-| `src/components/DonationConfirmation.tsx` | Edit — enhanced storytelling + social proof |
-| `src/components/DonationSlider.tsx` | Edit — tier celebration animations |
-| `src/components/DonationBasket.tsx` | Edit — enhanced entry animations |
-| `src/pages/Index.tsx` | Edit — add social proof |
-| `src/pages/CauseSelection.tsx` | Edit — add social proof |
-| `src/lib/constants.ts` | Edit — add emergency pack definitions + impact thresholds |
-| SQL migration | Create `get_donation_stats` RPC function |
-
-### DB Migration
-
-```sql
-CREATE OR REPLACE FUNCTION public.get_donation_stats(p_beneficiary_id uuid DEFAULT NULL)
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE result jsonb;
-BEGIN
-  SELECT jsonb_build_object(
-    'today_count', (SELECT count(*) FROM donations WHERE created_at >= CURRENT_DATE),
-    'week_count', (SELECT count(*) FROM donations WHERE created_at >= date_trunc('week', now())),
-    'total_count', (SELECT count(*) FROM donations),
-    'avg_amount', COALESCE(
-      (SELECT round(avg(amount)::numeric, 0) FROM donations WHERE beneficiary_id = p_beneficiary_id),
-      55
-    )
-  ) INTO result;
-  RETURN result;
-END;
-$$;
-```
-
-No other schema changes needed — emergency packs are stored in the existing `products_sent` JSONB column and `amount` includes the pack total.
+| `src/lib/themes.ts` | Create — 7 theme definitions as CSS variable maps |
+| `src/pages/ThemeShowcase.tsx` | Create — showcase page with palette switcher |
+| `src/App.tsx` | Edit — add `/themes` route |
 
