@@ -10,13 +10,13 @@ export interface ThemeDefinition {
 export const themes: ThemeDefinition[] = [
   {
     name: "Palette 1",
-    swatches: ["#DF48A6", "#2326C1", "#DDA120"],
+    swatches: ["#2326C1", "#DF48A6", "#DDA120"],
     colors: {
-      "--primary": "325 70% 58%",
+      "--primary": "239 70% 45%",
       "--primary-foreground": "0 0% 100%",
-      "--secondary": "239 70% 45%",
+      "--secondary": "325 70% 58%",
       "--secondary-foreground": "0 0% 100%",
-      "--cta": "325 70% 58%",
+      "--cta": "239 70% 45%",
       "--cta-foreground": "0 0% 100%",
       "--accent": "41 76% 50%",
       "--accent-foreground": "0 0% 100%",
@@ -30,7 +30,7 @@ export const themes: ThemeDefinition[] = [
       "--muted-foreground": "210 4% 73%",
       "--border": "210 4% 86%",
       "--input": "210 4% 86%",
-      "--ring": "325 70% 58%",
+      "--ring": "239 70% 45%",
     },
   },
   {
