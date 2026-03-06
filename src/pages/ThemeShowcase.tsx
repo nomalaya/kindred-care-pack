@@ -62,9 +62,8 @@ const ThemeShowcase = () => {
       </div>
 
       <div className="container mx-auto px-4 py-10 space-y-16">
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-          Choisissez qui vous voulez{" "}
-          <span className="text-gradient-primary">aider concrètement.</span>
+        <h1 className="text-3xl font-bold text-foreground">
+          Comparaison des thèmes — CashForCause
         </h1>
 
         {/* ===== NAVBAR PREVIEW ===== */}

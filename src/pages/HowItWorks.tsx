@@ -14,10 +14,7 @@ const HowItWorks = () => (
   <Layout>
     <div className="container mx-auto px-4 py-16 max-w-3xl">
       <div className="text-center mb-16">
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-          Choisissez qui vous voulez{" "}
-          <span className="text-gradient-primary">aider concrètement.</span>
-        </h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Comment ça marche</h1>
         <p className="text-lg text-muted-foreground">
           Nous vous connectons avec de vraies personnes dans le besoin, en protégeant leur identité tout en créant un lien humain authentique.
         </p>
