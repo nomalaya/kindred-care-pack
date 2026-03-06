@@ -60,13 +60,13 @@ export const themes: ThemeDefinition[] = [
   },
   {
     name: "Palette 3",
-    swatches: ["#E16067", "#22438C", "#D7DC55"],
+    swatches: ["#22438C", "#E16067", "#D7DC55"],
     colors: {
-      "--primary": "357 69% 63%",
+      "--primary": "219 61% 34%",
       "--primary-foreground": "0 0% 100%",
-      "--secondary": "219 61% 34%",
+      "--secondary": "357 69% 63%",
       "--secondary-foreground": "0 0% 100%",
-      "--cta": "357 69% 63%",
+      "--cta": "219 61% 34%",
       "--cta-foreground": "0 0% 100%",
       "--accent": "63 66% 60%",
       "--accent-foreground": "220 41% 18%",
@@ -80,7 +80,7 @@ export const themes: ThemeDefinition[] = [
       "--muted-foreground": "135 20% 64%",
       "--border": "135 20% 84%",
       "--input": "135 20% 84%",
-      "--ring": "357 69% 63%",
+      "--ring": "219 61% 34%",
     },
   },
   {
