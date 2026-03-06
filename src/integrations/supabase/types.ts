@@ -23,23 +23,34 @@ export type Database = {
           avatar_gender: string | null
           avatar_hair_type: string | null
           avatar_skin_tone: string | null
+          avatar_url: string | null
           created_at: string
           culture_tags: string[] | null
           date_of_birth: string | null
           diet_tags: string[] | null
+          donation_clicks: number | null
+          donation_conversion_rate: number | null
           email: string | null
+          emotional_score: number | null
           emotional_sentence: string | null
           family_members: number | null
           financial_situation: string | null
           id: string
           is_active: boolean | null
+          last_donation_date: string | null
+          profile_views: number | null
           real_first_name: string | null
           real_last_name: string | null
           region: string | null
+          rotation_score: number | null
           short_story: string | null
           situation_id: string
           social_worker_notes: string | null
+          total_donations_received: number | null
           updated_at: string
+          urgency_level: number | null
+          urgent_reason: string | null
+          urgent_until: string | null
         }
         Insert: {
           address?: string | null
@@ -49,23 +60,34 @@ export type Database = {
           avatar_gender?: string | null
           avatar_hair_type?: string | null
           avatar_skin_tone?: string | null
+          avatar_url?: string | null
           created_at?: string
           culture_tags?: string[] | null
           date_of_birth?: string | null
           diet_tags?: string[] | null
+          donation_clicks?: number | null
+          donation_conversion_rate?: number | null
           email?: string | null
+          emotional_score?: number | null
           emotional_sentence?: string | null
           family_members?: number | null
           financial_situation?: string | null
           id?: string
           is_active?: boolean | null
+          last_donation_date?: string | null
+          profile_views?: number | null
           real_first_name?: string | null
           real_last_name?: string | null
           region?: string | null
+          rotation_score?: number | null
           short_story?: string | null
           situation_id: string
           social_worker_notes?: string | null
+          total_donations_received?: number | null
           updated_at?: string
+          urgency_level?: number | null
+          urgent_reason?: string | null
+          urgent_until?: string | null
         }
         Update: {
           address?: string | null
@@ -75,23 +97,34 @@ export type Database = {
           avatar_gender?: string | null
           avatar_hair_type?: string | null
           avatar_skin_tone?: string | null
+          avatar_url?: string | null
           created_at?: string
           culture_tags?: string[] | null
           date_of_birth?: string | null
           diet_tags?: string[] | null
+          donation_clicks?: number | null
+          donation_conversion_rate?: number | null
           email?: string | null
+          emotional_score?: number | null
           emotional_sentence?: string | null
           family_members?: number | null
           financial_situation?: string | null
           id?: string
           is_active?: boolean | null
+          last_donation_date?: string | null
+          profile_views?: number | null
           real_first_name?: string | null
           real_last_name?: string | null
           region?: string | null
+          rotation_score?: number | null
           short_story?: string | null
           situation_id?: string
           social_worker_notes?: string | null
+          total_donations_received?: number | null
           updated_at?: string
+          urgency_level?: number | null
+          urgent_reason?: string | null
+          urgent_until?: string | null
         }
         Relationships: [
           {
