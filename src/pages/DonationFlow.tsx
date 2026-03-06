@@ -249,7 +249,7 @@ const DonationFlow = () => {
 
             <DonationSlider value={donationAmount} onChange={setDonationAmount} progressPercent={progressPercent} />
 
-            <DonationImpact amount={donationAmount} />
+            <DonationImpact amount={donationAmount} basket={basket} />
 
             <TaxDeduction
               amount={donationAmount}

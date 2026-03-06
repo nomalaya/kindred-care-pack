@@ -67,18 +67,28 @@ const DonationSlider = ({ value, onChange, progressPercent }: Props) => {
               className={`text-center transition-all ${isActive ? "text-primary" : "text-muted-foreground"}`}
             >
               <motion.div
-                animate={isCelebrating ? { scale: [1, 1.3, 1], color: "hsl(var(--cta))" } : {}}
-                transition={{ duration: 0.5 }}
+                animate={isCelebrating ? { scale: [1, 1.4, 1.1, 1], color: "hsl(var(--cta))" } : {}}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="relative"
               >
                 <div className={`text-xs font-bold ${isActive ? "text-primary" : ""}`}>
                   {tier.amount}€
                 </div>
                 <div className="text-[10px]">{tier.label}</div>
+                {isCelebrating && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: [0, 1, 0], scale: [0.5, 1.5, 2] }}
+                    transition={{ duration: 0.8 }}
+                    className="absolute inset-0 rounded-full bg-cta/20 blur-md -z-10"
+                  />
+                )}
               </motion.div>
               {isActive && (
                 <motion.div
                   layoutId="tier-glow"
-                  className="h-0.5 bg-primary/40 rounded-full mt-1 mx-auto w-6"
+                  className="h-1 rounded-full mt-1 mx-auto w-6"
+                  style={{ background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--cta)))" }}
                 />
               )}
             </button>

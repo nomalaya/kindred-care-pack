@@ -1,26 +1,40 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Package, UtensilsCrossed, Calendar } from "lucide-react";
+import { Package, Layers, Heart, Sparkles } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { MIN_DONATION, MAX_DONATION, IMPACT_METRICS } from "@/lib/constants";
+import { EMOTIONAL_FAMILY_LABELS } from "@/lib/constants";
+import type { BasketItem } from "@/lib/basketEngine";
+import { computeBasketImpact } from "@/lib/basketEngine";
+import { useMemo } from "react";
 
 interface Props {
   amount: number;
+  basket?: BasketItem[];
 }
 
-const lerp = (min: number, max: number, t: number) => Math.round(min + (max - min) * t);
+const DonationImpact = ({ amount, basket }: Props) => {
+  const impact = useMemo(() => {
+    if (!basket || basket.length === 0) return null;
+    return computeBasketImpact(basket);
+  }, [basket]);
 
-const DonationImpact = ({ amount }: Props) => {
-  const t = Math.min(1, Math.max(0, (amount - MIN_DONATION) / (MAX_DONATION - MIN_DONATION)));
-
-  const metrics = [
-    { icon: Package, label: "Produits essentiels", value: lerp(IMPACT_METRICS.products.min, IMPACT_METRICS.products.max, t), max: IMPACT_METRICS.products.max },
-    { icon: UtensilsCrossed, label: "Repas soutenus", value: lerp(IMPACT_METRICS.meals.min, IMPACT_METRICS.meals.max, t), max: IMPACT_METRICS.meals.max },
-    { icon: Calendar, label: "Jours de soutien", value: lerp(IMPACT_METRICS.days.min, IMPACT_METRICS.days.max, t), max: IMPACT_METRICS.days.max },
-  ];
+  const metrics = impact
+    ? [
+        { icon: Package, label: "Produits essentiels", value: impact.totalProducts, max: 25 },
+        { icon: Layers, label: "Catégories couvertes", value: impact.categoriesCount, max: 8 },
+        { icon: Heart, label: "Familles émotionnelles", value: impact.familiesCount, max: 5 },
+      ]
+    : [
+        { icon: Package, label: "Produits essentiels", value: Math.round(6 + (amount - 32) * 0.28), max: 25 },
+        { icon: Layers, label: "Catégories couvertes", value: Math.min(8, Math.round(2 + (amount - 32) * 0.12)), max: 8 },
+        { icon: Heart, label: "Familles émotionnelles", value: Math.min(5, Math.round(1 + (amount - 32) * 0.09)), max: 5 },
+      ];
 
   return (
     <div className="bg-card rounded-2xl p-6 border shadow-card">
-      <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wide">Votre don permet</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <Sparkles className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Votre don permet</h3>
+      </div>
       <div className="space-y-4">
         {metrics.map((m) => (
           <div key={m.label} className="flex items-center gap-3">
@@ -43,11 +57,26 @@ const DonationImpact = ({ amount }: Props) => {
                   </motion.span>
                 </AnimatePresence>
               </div>
-              <Progress value={(m.value / m.max) * 100} className="h-1.5" />
+              <Progress value={Math.min(100, (m.value / m.max) * 100)} className="h-1.5" />
             </div>
           </div>
         ))}
       </div>
+
+      {/* Show active families */}
+      {impact && impact.families.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-4 pt-3 border-t flex flex-wrap gap-1.5"
+        >
+          {impact.families.map((f) => (
+            <span key={f} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+              {EMOTIONAL_FAMILY_LABELS[f] || f}
+            </span>
+          ))}
+        </motion.div>
+      )}
     </div>
   );
 };
