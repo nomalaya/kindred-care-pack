@@ -35,15 +35,15 @@ export const themes: ThemeDefinition[] = [
   },
   {
     name: "Palette 2",
-    swatches: ["#1650AE", "#E4941A", "#DC4428"],
+    swatches: ["#1650AE", "#D4A24C", "#E07A5F"],
     colors: {
       "--primary": "215 76% 38%",
       "--primary-foreground": "0 0% 100%",
-      "--secondary": "34 81% 50%",
+      "--secondary": "38 60% 56%",
       "--secondary-foreground": "0 0% 100%",
       "--cta": "215 76% 38%",
       "--cta-foreground": "0 0% 100%",
-      "--accent": "8 72% 51%",
+      "--accent": "14 68% 63%",
       "--accent-foreground": "0 0% 100%",
       "--background": "0 0% 100%",
       "--foreground": "230 38% 8%",
