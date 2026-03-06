@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { Heart, Users, Package, ArrowRight, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import heroImage from "@/assets/hero-solidarity.jpg";
+import SocialProof from "@/components/SocialProof";
 
 const steps = [
   { icon: Heart, title: "Choisissez une cause", desc: "Sélectionnez une cause qui vous tient à cœur parmi 6 catégories." },
@@ -92,13 +93,16 @@ const Index = () => {
       {/* Stats */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto mb-8">
             {stats.map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-primary mb-1">{stat.value}</div>
                 <div className="text-sm text-muted-foreground">{stat.label}</div>
               </div>
             ))}
+          </div>
+          <div className="flex justify-center">
+            <SocialProof variant="homepage" />
           </div>
         </div>
       </section>

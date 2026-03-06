@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { CAUSE_ICONS } from "@/lib/constants";
 import { motion } from "framer-motion";
+import SocialProof from "@/components/SocialProof";
 
 interface Cause {
   id: string;
@@ -28,9 +29,10 @@ const CauseSelection = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Choisissez une cause</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
             Chaque cause représente de vraies personnes confrontées à de vrais défis. Choisissez celle qui vous parle.
           </p>
+          <SocialProof variant="cause" />
         </div>
 
         {loading ? (
