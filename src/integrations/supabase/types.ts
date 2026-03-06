@@ -38,6 +38,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_donation_date: string | null
+          profile_type: string | null
           profile_views: number | null
           real_first_name: string | null
           real_last_name: string | null
@@ -75,6 +76,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_donation_date?: string | null
+          profile_type?: string | null
           profile_views?: number | null
           real_first_name?: string | null
           real_last_name?: string | null
@@ -112,6 +114,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_donation_date?: string | null
+          profile_type?: string | null
           profile_views?: number | null
           real_first_name?: string | null
           real_last_name?: string | null
@@ -260,42 +263,138 @@ export type Database = {
       products: {
         Row: {
           category: string
+          cause_relevance: string[] | null
+          contains_alcohol: boolean | null
+          contains_pork: boolean | null
           created_at: string
           culture_tags: string[] | null
           diet_tags: string[] | null
           emotion_tags: string[] | null
+          emotional_family: string | null
+          emotional_intensity: number | null
+          gender_specific: string | null
+          halal_compatible: boolean | null
           id: string
+          is_active_product: boolean | null
+          is_visible_public: boolean | null
+          kosher_compatible: boolean | null
           name: string
           price: number
+          product_code: string | null
           religion_tags: string[] | null
+          season_tag: string | null
           stock_quantity: number | null
+          subcategory: string | null
+          target_groups: string[] | null
           tier: number
+          vegan: boolean | null
+          vegetarian: boolean | null
         }
         Insert: {
           category: string
+          cause_relevance?: string[] | null
+          contains_alcohol?: boolean | null
+          contains_pork?: boolean | null
           created_at?: string
           culture_tags?: string[] | null
           diet_tags?: string[] | null
           emotion_tags?: string[] | null
+          emotional_family?: string | null
+          emotional_intensity?: number | null
+          gender_specific?: string | null
+          halal_compatible?: boolean | null
           id?: string
+          is_active_product?: boolean | null
+          is_visible_public?: boolean | null
+          kosher_compatible?: boolean | null
           name: string
           price?: number
+          product_code?: string | null
           religion_tags?: string[] | null
+          season_tag?: string | null
           stock_quantity?: number | null
+          subcategory?: string | null
+          target_groups?: string[] | null
           tier?: number
+          vegan?: boolean | null
+          vegetarian?: boolean | null
         }
         Update: {
           category?: string
+          cause_relevance?: string[] | null
+          contains_alcohol?: boolean | null
+          contains_pork?: boolean | null
           created_at?: string
           culture_tags?: string[] | null
           diet_tags?: string[] | null
           emotion_tags?: string[] | null
+          emotional_family?: string | null
+          emotional_intensity?: number | null
+          gender_specific?: string | null
+          halal_compatible?: boolean | null
           id?: string
+          is_active_product?: boolean | null
+          is_visible_public?: boolean | null
+          kosher_compatible?: boolean | null
           name?: string
           price?: number
+          product_code?: string | null
           religion_tags?: string[] | null
+          season_tag?: string | null
           stock_quantity?: number | null
+          subcategory?: string | null
+          target_groups?: string[] | null
           tier?: number
+          vegan?: boolean | null
+          vegetarian?: boolean | null
+        }
+        Relationships: []
+      }
+      profile_mappings: {
+        Row: {
+          created_at: string | null
+          cultural_weighting: string | null
+          id: string
+          min_autonomy_items: number | null
+          min_childhood_items: number | null
+          min_dignity_items: number | null
+          min_survival_items: number | null
+          profile_type: string
+          religious_filter: string | null
+          tier1_family: string
+          tier2_family: string
+          tier3_family: string
+          tier4_family: string
+        }
+        Insert: {
+          created_at?: string | null
+          cultural_weighting?: string | null
+          id?: string
+          min_autonomy_items?: number | null
+          min_childhood_items?: number | null
+          min_dignity_items?: number | null
+          min_survival_items?: number | null
+          profile_type: string
+          religious_filter?: string | null
+          tier1_family: string
+          tier2_family: string
+          tier3_family: string
+          tier4_family: string
+        }
+        Update: {
+          created_at?: string | null
+          cultural_weighting?: string | null
+          id?: string
+          min_autonomy_items?: number | null
+          min_childhood_items?: number | null
+          min_dignity_items?: number | null
+          min_survival_items?: number | null
+          profile_type?: string
+          religious_filter?: string | null
+          tier1_family?: string
+          tier2_family?: string
+          tier3_family?: string
+          tier4_family?: string
         }
         Relationships: []
       }
@@ -400,6 +499,7 @@ export type Database = {
           id: string | null
           is_active: boolean | null
           last_donation_date: string | null
+          profile_type: string | null
           profile_views: number | null
           region: string | null
           rotation_score: number | null
@@ -423,6 +523,7 @@ export type Database = {
           id?: string | null
           is_active?: boolean | null
           last_donation_date?: string | null
+          profile_type?: string | null
           profile_views?: number | null
           region?: string | null
           rotation_score?: number | null
@@ -446,6 +547,7 @@ export type Database = {
           id?: string | null
           is_active?: boolean | null
           last_donation_date?: string | null
+          profile_type?: string | null
           profile_views?: number | null
           region?: string | null
           rotation_score?: number | null
