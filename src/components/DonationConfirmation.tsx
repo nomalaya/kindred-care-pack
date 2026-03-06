@@ -12,6 +12,7 @@ interface Props {
   beneficiaryName: string;
   amount: number;
   products: { id: string; name: string }[];
+  basket?: BasketItem[];
   emergencyPack?: EmergencyPack | null;
   beneficiaryId?: string;
 }
