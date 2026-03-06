@@ -39,10 +39,8 @@ const Index = () => {
               Don transparent & centré sur l'humain
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight mb-6">
-              Un don simple.{" "}
-              <span className="text-gradient-primary">Une aide concrète.</span>
-              <br />
-              Une personne soutenue.
+              Donnez à une <span className="text-gradient-primary">vraie personne</span>,
+              <br />pas juste à une cause.
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl">
               Choisissez une cause, découvrez quelqu'un qui a besoin d'aide, et financez un colis personnalisé.
