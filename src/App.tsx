@@ -35,6 +35,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/themes" element={<ThemeShowcase />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
