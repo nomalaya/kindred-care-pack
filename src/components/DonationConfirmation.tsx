@@ -17,9 +17,7 @@ interface Props {
   beneficiaryId?: string;
 }
 
-const lerp = (min: number, max: number, t: number) => Math.round(min + (max - min) * t);
-
-const DonationConfirmation = ({ beneficiaryName, amount, products, emergencyPack, beneficiaryId }: Props) => {
+const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emergencyPack, beneficiaryId }: Props) => {
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
@@ -28,10 +26,8 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, emergencyPack
     return () => clearTimeout(t);
   }, []);
 
-  const baseAmount = emergencyPack ? amount - emergencyPack.amount : amount;
-  const impactT = Math.min(1, Math.max(0, (baseAmount - MIN_DONATION) / (MAX_DONATION - MIN_DONATION)));
-  const productCount = lerp(IMPACT_METRICS.products.min, IMPACT_METRICS.products.max, impactT);
-  const daysCount = lerp(IMPACT_METRICS.days.min, IMPACT_METRICS.days.max, impactT);
+  const impact = basket ? computeBasketImpact(basket) : null;
+  const productCount = impact?.totalProducts ?? products.length;
 
   return (
     <div className="max-w-2xl mx-auto text-center py-8">
