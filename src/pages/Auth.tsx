@@ -31,7 +31,7 @@ const Auth = () => {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast.success("Welcome back!");
+        toast.success("Content de vous revoir !");
         navigate("/dashboard");
       } else {
         const { error } = await supabase.auth.signUp({
@@ -43,7 +43,7 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        toast.success("Account created! Check your email to confirm.");
+        toast.success("Compte créé ! Vérifiez votre email pour confirmer.");
       }
     } catch (err: any) {
       toast.error(err.message);
@@ -59,37 +59,37 @@ const Auth = () => {
           <div className="text-center mb-6">
             <Heart className="h-8 w-8 text-cta mx-auto mb-2" />
             <h1 className="text-2xl font-bold text-foreground">
-              {isLogin ? "Welcome back" : "Join CashForCause"}
+              {isLogin ? "Content de vous revoir" : "Rejoignez CashForCause"}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {isLogin ? "Sign in to manage your donations" : "Create an account to start helping"}
+              {isLogin ? "Connectez-vous pour gérer vos dons" : "Créez un compte pour commencer à aider"}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div>
-                <Label htmlFor="name">Display name</Label>
-                <Input id="name" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Your name" required />
+                <Label htmlFor="name">Nom d'affichage</Label>
+                <Input id="name" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Votre nom" required />
               </div>
             )}
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vous@exemple.com" required />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Mot de passe</Label>
               <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} />
             </div>
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={loading}>
-              {loading ? "Loading..." : isLogin ? "Sign in" : "Create account"}
+              {loading ? "Chargement..." : isLogin ? "Se connecter" : "Créer un compte"}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-4">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+            {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}{" "}
             <button onClick={() => setIsLogin(!isLogin)} className="text-primary font-medium hover:underline">
-              {isLogin ? "Sign up" : "Sign in"}
+              {isLogin ? "S'inscrire" : "Se connecter"}
             </button>
           </p>
         </div>

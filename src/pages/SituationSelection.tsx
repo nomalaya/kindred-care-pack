@@ -34,12 +34,12 @@ const SituationSelection = () => {
     <Layout>
       <div className="container mx-auto px-4 py-12">
         <Link to="/causes" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to causes
+          <ArrowLeft className="h-4 w-4 mr-1" /> Retour aux causes
         </Link>
 
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{causeName}</h1>
-          <p className="text-lg text-muted-foreground">Choose a specific situation to discover who you can help.</p>
+          <p className="text-lg text-muted-foreground">Choisissez une situation pour découvrir qui vous pouvez aider.</p>
         </div>
 
         {loading ? (

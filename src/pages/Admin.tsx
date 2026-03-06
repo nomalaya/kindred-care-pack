@@ -39,9 +39,9 @@ const Admin = () => {
       .update({ delivery_status: status } as any)
       .eq("id", donationId);
     if (error) {
-      toast.error("Failed to update status");
+      toast.error("Échec de la mise à jour du statut");
     } else {
-      toast.success("Status updated");
+      toast.success("Statut mis à jour");
       setDonations(prev => prev.map(d => d.id === donationId ? { ...d, delivery_status: status } : d));
     }
   };
@@ -51,9 +51,9 @@ const Admin = () => {
       .from("products")
       .update({ stock_quantity: quantity } as any)
       .eq("id", productId);
-    if (error) toast.error("Failed to update stock");
+    if (error) toast.error("Échec de la mise à jour du stock");
     else {
-      toast.success("Stock updated");
+      toast.success("Stock mis à jour");
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock_quantity: quantity } : p));
     }
   };
@@ -64,8 +64,8 @@ const Admin = () => {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Access Denied</h1>
-          <p className="text-muted-foreground">You need administrator privileges to access this page.</p>
+          <h1 className="text-2xl font-bold text-foreground mb-4">Accès refusé</h1>
+          <p className="text-muted-foreground">Vous devez avoir les droits administrateur pour accéder à cette page.</p>
         </div>
       </Layout>
     );
@@ -74,14 +74,14 @@ const Admin = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
-        <p className="text-muted-foreground mb-8">Manage beneficiaries, products, and donation statuses.</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">Tableau de bord admin</h1>
+        <p className="text-muted-foreground mb-8">Gérez les bénéficiaires, produits et statuts de livraison.</p>
 
         <Tabs defaultValue="donations">
           <TabsList className="mb-6">
-            <TabsTrigger value="donations">Donations ({donations.length})</TabsTrigger>
-            <TabsTrigger value="beneficiaries">Beneficiaries ({beneficiaries.length})</TabsTrigger>
-            <TabsTrigger value="products">Products ({products.length})</TabsTrigger>
+            <TabsTrigger value="donations">Dons ({donations.length})</TabsTrigger>
+            <TabsTrigger value="beneficiaries">Bénéficiaires ({beneficiaries.length})</TabsTrigger>
+            <TabsTrigger value="products">Produits ({products.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="donations">
@@ -95,7 +95,7 @@ const Admin = () => {
                       <p className="font-medium text-foreground">
                         {d.beneficiaries?.alias_first_name} – {d.beneficiaries?.region}
                       </p>
-                      <p className="text-sm text-muted-foreground">{d.amount}€ · {new Date(d.created_at).toLocaleDateString()}</p>
+                      <p className="text-sm text-muted-foreground">{d.amount}€ · {new Date(d.created_at).toLocaleDateString("fr-FR")}</p>
                     </div>
                     <Select value={d.delivery_status} onValueChange={(v) => updateDeliveryStatus(d.id, v)}>
                       <SelectTrigger className="w-48">
@@ -130,7 +130,7 @@ const Admin = () => {
                     />
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{b.alias_first_name} ({b.real_first_name} {b.real_last_name})</p>
-                      <p className="text-sm text-muted-foreground">{b.region} · Age {b.approx_age} · {b.is_active ? "Active" : "Inactive"}</p>
+                      <p className="text-sm text-muted-foreground">{b.region} · {b.approx_age} ans · {b.is_active ? "Actif" : "Inactif"}</p>
                     </div>
                   </div>
                 ))}
@@ -147,10 +147,10 @@ const Admin = () => {
                   <div key={p.id} className="bg-card rounded-xl p-4 border flex items-center gap-4">
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{p.name}</p>
-                      <p className="text-sm text-muted-foreground">Tier {p.tier} · {p.category} · {p.price}€</p>
+                      <p className="text-sm text-muted-foreground">Palier {p.tier} · {p.category} · {p.price}€</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Label className="text-xs text-muted-foreground">Stock:</Label>
+                      <Label className="text-xs text-muted-foreground">Stock :</Label>
                       <Input
                         type="number"
                         className="w-20"

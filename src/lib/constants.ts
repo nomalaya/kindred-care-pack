@@ -1,8 +1,8 @@
 export const DONATION_TIERS = [
-  { amount: 32, label: "Essential", description: "Basic food & essentials", tier: 1 },
-  { amount: 45, label: "Essential + Hygiene", description: "Add hygiene products", tier: 2 },
-  { amount: 60, label: "Comfort", description: "Add comfort items", tier: 3 },
-  { amount: 75, label: "Family+", description: "Full family extras", tier: 4 },
+  { amount: 32, label: "Essentiel", description: "Nourriture & produits de base", tier: 1 },
+  { amount: 45, label: "Essentiel + Hygiène", description: "Ajout de produits d'hygiène", tier: 2 },
+  { amount: 60, label: "Confort", description: "Ajout d'articles de confort", tier: 3 },
+  { amount: 75, label: "Famille+", description: "Extras pour toute la famille", tier: 4 },
 ] as const;
 
 export const CAUSE_ICONS: Record<string, string> = {
@@ -15,8 +15,8 @@ export const CAUSE_ICONS: Record<string, string> = {
 };
 
 export const DELIVERY_STATUSES = [
-  { key: "confirmed", label: "Donation confirmed", icon: "✓" },
-  { key: "prepared", label: "Package prepared", icon: "📦" },
-  { key: "shipped", label: "Package shipped", icon: "🚚" },
-  { key: "delivered", label: "Package delivered", icon: "🎉" },
+  { key: "confirmed", label: "Don confirmé", icon: "✓" },
+  { key: "prepared", label: "Colis préparé", icon: "📦" },
+  { key: "shipped", label: "Colis expédié", icon: "🚚" },
+  { key: "delivered", label: "Colis livré", icon: "🎉" },
 ] as const;

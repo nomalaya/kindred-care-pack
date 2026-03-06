@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { DELIVERY_STATUSES } from "@/lib/constants";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { Navigate } from "react-router-dom";
-import { Package, FileText } from "lucide-react";
+import { Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface DonationRow {
@@ -32,13 +32,12 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!user) return;
-    // We query donations and join with the public view
     supabase
       .from("donations")
       .select("id, amount, delivery_status, created_at, products_sent, beneficiaries_public!beneficiary_id(alias_first_name, approx_age, region, avatar_gender, avatar_age_range, avatar_hair_type, avatar_skin_tone)")
       .eq("donor_id", user.id)
       .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
+      .then(({ data }) => {
         if (data) {
           setDonations(data.map((d: any) => ({
             ...d,
@@ -57,8 +56,8 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-foreground mb-2">My Donations</h1>
-        <p className="text-muted-foreground mb-8">Track all your contributions and their impact.</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">Mes dons</h1>
+        <p className="text-muted-foreground mb-8">Suivez toutes vos contributions et leur impact.</p>
 
         {loading ? (
           <div className="space-y-4">
@@ -69,10 +68,10 @@ const Dashboard = () => {
         ) : donations.length === 0 ? (
           <div className="text-center py-16 bg-card rounded-2xl border">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-foreground mb-2">No donations yet</h2>
-            <p className="text-muted-foreground mb-4">Start helping someone today!</p>
+            <h2 className="text-xl font-semibold text-foreground mb-2">Aucun don pour le moment</h2>
+            <p className="text-muted-foreground mb-4">Commencez à aider quelqu'un dès aujourd'hui !</p>
             <a href="/causes">
-              <Button className="bg-cta hover:bg-cta/90 text-cta-foreground">Browse causes</Button>
+              <Button className="bg-cta hover:bg-cta/90 text-cta-foreground">Découvrir les causes</Button>
             </a>
           </div>
         ) : (
@@ -96,12 +95,12 @@ const Dashboard = () => {
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="font-semibold text-foreground">
-                          {b?.alias_first_name || "Unknown"} – {b?.region}
+                          {b?.alias_first_name || "Inconnu"} – {b?.region}
                         </h3>
                         <span className="text-lg font-bold text-primary">{d.amount}€</span>
                       </div>
                       <p className="text-xs text-muted-foreground mb-3">
-                        {new Date(d.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                        {new Date(d.created_at).toLocaleDateString("fr-FR", { year: "numeric", month: "long", day: "numeric" })}
                       </p>
 
                       {/* Progress bar */}
