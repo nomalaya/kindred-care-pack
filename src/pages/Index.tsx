@@ -38,9 +38,9 @@ const Index = () => {
               <ShieldCheck className="h-4 w-4" />
               Don transparent & centré sur l'humain
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6 text-foreground">
-              Aidez concrètement{" "}
-              <span className="text-gradient-primary">une vraie personne.</span>
+            <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight mb-6">
+              Donnez à une <span className="text-gradient-primary">vraie personne</span>,
+              <br />pas juste à une cause.
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl">
               Choisissez une cause, découvrez quelqu'un qui a besoin d'aide, et financez un colis personnalisé.
