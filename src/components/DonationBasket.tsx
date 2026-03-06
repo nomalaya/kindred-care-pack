@@ -2,35 +2,38 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, Package } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useState, useEffect } from "react";
-
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  tier: number;
-}
+import { EMOTIONAL_FAMILY_LABELS } from "@/lib/constants";
+import type { BasketItem } from "@/lib/basketEngine";
 
 interface Props {
-  products: Product[];
-  getProductQuantity: (product: Product) => number;
+  items: BasketItem[];
   amount: number;
   progressPercent: number;
 }
 
-const DonationBasket = ({ products, getProductQuantity, amount, progressPercent }: Props) => {
+const DonationBasket = ({ items, amount, progressPercent }: Props) => {
   const [flash, setFlash] = useState(false);
-  const [prevCount, setPrevCount] = useState(products.length);
+  const [prevCount, setPrevCount] = useState(items.length);
 
   useEffect(() => {
-    if (products.length > prevCount) {
+    if (items.length > prevCount) {
       setFlash(true);
       const t = setTimeout(() => setFlash(false), 600);
-      setPrevCount(products.length);
+      setPrevCount(items.length);
       return () => clearTimeout(t);
     }
-    setPrevCount(products.length);
-  }, [products.length, prevCount]);
+    setPrevCount(items.length);
+  }, [items.length, prevCount]);
+
+  // Group items by emotional family
+  const grouped = items.reduce<Record<string, BasketItem[]>>((acc, item) => {
+    const family = item.product.emotional_family || "other";
+    if (!acc[family]) acc[family] = [];
+    acc[family].push(item);
+    return acc;
+  }, {});
+
+  const totalProducts = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
     <motion.div
@@ -45,41 +48,55 @@ const DonationBasket = ({ products, getProductQuantity, amount, progressPercent 
 
       <Progress value={progressPercent} className="h-1.5 mb-4" />
 
-      <div className="space-y-2">
+      <div className="space-y-4">
         <AnimatePresence mode="popLayout">
-          {products.map((product) => {
-            const qty = getProductQuantity(product);
-            return (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, scale: 0.8, height: 0 }}
-                animate={{ opacity: 1, scale: 1, height: "auto" }}
-                exit={{ opacity: 0, scale: 0.8, height: 0 }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                className="flex items-center gap-3 py-2 px-3 rounded-lg bg-background"
-              >
-                <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                <span className="text-sm text-foreground flex-1">
-                  {product.name}
-                  {qty > 1 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="ml-1 text-xs font-medium text-primary"
-                    >
-                      ×{qty}
-                    </motion.span>
-                  )}
-                </span>
-                <span className="text-xs text-muted-foreground capitalize">{product.category}</span>
-              </motion.div>
-            );
-          })}
+          {Object.entries(grouped).map(([family, familyItems]) => (
+            <motion.div
+              key={family}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            >
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                {EMOTIONAL_FAMILY_LABELS[family] || family}
+              </p>
+              <div className="space-y-1.5">
+                {familyItems.map((item) => (
+                  <motion.div
+                    key={item.product.id}
+                    initial={{ opacity: 0, scale: 0.8, height: 0 }}
+                    animate={{ opacity: 1, scale: 1, height: "auto" }}
+                    exit={{ opacity: 0, scale: 0.8, height: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    className="flex items-center gap-3 py-2 px-3 rounded-lg bg-background"
+                  >
+                    <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="text-sm text-foreground flex-1">
+                      {item.product.name}
+                      {item.quantity > 1 && (
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="ml-1 text-xs font-medium text-primary"
+                        >
+                          ×{item.quantity}
+                        </motion.span>
+                      )}
+                    </span>
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {item.product.subcategory || item.product.category}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          ))}
         </AnimatePresence>
       </div>
 
       <div className="mt-4 pt-4 border-t flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{products.length} articles</span>
+        <span className="text-sm text-muted-foreground">{totalProducts} articles</span>
         <AnimatePresence mode="wait">
           <motion.span
             key={amount}

@@ -39,3 +39,20 @@ export const IMPACT_METRICS = {
   meals: { min: 4, max: 10 },
   days: { min: 3, max: 7 },
 } as const;
+
+export const CAUSE_KEY_MAP: Record<string, string> = {
+  "Aider un enfant en aidant sa famille": "child_family",
+  "Aider une femme à se reconstruire": "women_recovery",
+  "Donner sa chance à un étudiant": "student",
+  "Soutenir une personne âgée": "elderly",
+  "Aider un travailleur en difficulté": "working_poor",
+  "Soutenir face à la maladie": "health_disability",
+};
+
+export const EMOTIONAL_FAMILY_LABELS: Record<string, string> = {
+  survival: "Survie & Alimentation",
+  dignity: "Dignité & Hygiène",
+  childhood: "Enfance & Éducation",
+  autonomy: "Autonomie",
+  comfort: "Confort & Bien-être",
+};
