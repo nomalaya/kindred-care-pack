@@ -226,7 +226,18 @@ const DonationBasket = ({ items, amount, progressPercent }: Props) => {
         )}
 
         <div className="mt-4 pt-4 border-t flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">{totalProducts} articles</span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={totalProducts}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              className="text-sm text-muted-foreground"
+            >
+              <span className="font-semibold text-foreground">{totalProducts}</span> articles
+            </motion.span>
+          </AnimatePresence>
           <AnimatePresence mode="wait">
             <motion.span
               key={amount}

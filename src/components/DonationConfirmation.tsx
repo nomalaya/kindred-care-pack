@@ -1,22 +1,23 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, Package, Truck, Heart, PartyPopper } from "lucide-react";
+import { Check, Package, Truck, Heart, PartyPopper, Layers } from "lucide-react";
 import { Link } from "react-router-dom";
-import { DELIVERY_STATUSES, IMPACT_METRICS, MIN_DONATION, MAX_DONATION, type EmergencyPack } from "@/lib/constants";
+import { DELIVERY_STATUSES, EMOTIONAL_FAMILY_LABELS, type EmergencyPack } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import SocialProof from "@/components/SocialProof";
+import type { BasketItem } from "@/lib/basketEngine";
+import { computeBasketImpact } from "@/lib/basketEngine";
 
 interface Props {
   beneficiaryName: string;
   amount: number;
   products: { id: string; name: string }[];
+  basket?: BasketItem[];
   emergencyPack?: EmergencyPack | null;
   beneficiaryId?: string;
 }
 
-const lerp = (min: number, max: number, t: number) => Math.round(min + (max - min) * t);
-
-const DonationConfirmation = ({ beneficiaryName, amount, products, emergencyPack, beneficiaryId }: Props) => {
+const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emergencyPack, beneficiaryId }: Props) => {
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
@@ -25,10 +26,8 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, emergencyPack
     return () => clearTimeout(t);
   }, []);
 
-  const baseAmount = emergencyPack ? amount - emergencyPack.amount : amount;
-  const impactT = Math.min(1, Math.max(0, (baseAmount - MIN_DONATION) / (MAX_DONATION - MIN_DONATION)));
-  const productCount = lerp(IMPACT_METRICS.products.min, IMPACT_METRICS.products.max, impactT);
-  const daysCount = lerp(IMPACT_METRICS.days.min, IMPACT_METRICS.days.max, impactT);
+  const impact = basket ? computeBasketImpact(basket) : null;
+  const productCount = impact?.totalProducts ?? products.length;
 
   return (
     <div className="max-w-2xl mx-auto text-center py-8">
@@ -85,9 +84,9 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, emergencyPack
         className="text-lg text-muted-foreground mb-4"
       >
         Votre don de <span className="font-bold text-primary">{amount}€</span> permet{" "}
-        <span className="font-semibold text-foreground">{productCount} produits essentiels</span> et{" "}
-        <span className="font-semibold text-foreground">{daysCount} jours de soutien</span> pour{" "}
-        <span className="font-semibold text-foreground">{beneficiaryName}</span>.
+        <span className="font-semibold text-foreground">{productCount} produits essentiels</span>
+        {impact && <> couvrant <span className="font-semibold text-foreground">{impact.categoriesCount} catégories</span></>}
+        {" "}pour <span className="font-semibold text-foreground">{beneficiaryName}</span>.
       </motion.p>
 
       {/* Products included */}

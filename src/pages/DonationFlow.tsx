@@ -194,6 +194,7 @@ const DonationFlow = () => {
             beneficiaryName={beneficiary.alias_first_name}
             amount={totalAmount}
             products={basket.map((i) => ({ id: i.product.id, name: i.product.name }))}
+            basket={basket}
             emergencyPack={emergencyPack}
             beneficiaryId={beneficiary.id}
           />
@@ -249,7 +250,7 @@ const DonationFlow = () => {
 
             <DonationSlider value={donationAmount} onChange={setDonationAmount} progressPercent={progressPercent} />
 
-            <DonationImpact amount={donationAmount} />
+            <DonationImpact amount={donationAmount} basket={basket} />
 
             <TaxDeduction
               amount={donationAmount}
