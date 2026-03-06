@@ -110,15 +110,15 @@ export const themes: ThemeDefinition[] = [
   },
   {
     name: "Palette 5",
-    swatches: ["#3F9F8B", "#E3BB1A", "#CB5426"],
+    swatches: ["#3F9F8B", "#C9A84C", "#C4724A"],
     colors: {
       "--primary": "168 43% 44%",
       "--primary-foreground": "0 0% 100%",
-      "--secondary": "47 85% 50%",
+      "--secondary": "44 52% 54%",
       "--secondary-foreground": "0 0% 10%",
       "--cta": "168 43% 44%",
       "--cta-foreground": "0 0% 100%",
-      "--accent": "17 68% 47%",
+      "--accent": "20 50% 53%",
       "--accent-foreground": "0 0% 100%",
       "--background": "0 0% 99%",
       "--foreground": "0 0% 9%",
