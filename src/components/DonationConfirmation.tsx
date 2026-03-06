@@ -84,9 +84,9 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         className="text-lg text-muted-foreground mb-4"
       >
         Votre don de <span className="font-bold text-primary">{amount}€</span> permet{" "}
-        <span className="font-semibold text-foreground">{productCount} produits essentiels</span> et{" "}
-        <span className="font-semibold text-foreground">{daysCount} jours de soutien</span> pour{" "}
-        <span className="font-semibold text-foreground">{beneficiaryName}</span>.
+        <span className="font-semibold text-foreground">{productCount} produits essentiels</span>
+        {impact && <> couvrant <span className="font-semibold text-foreground">{impact.categoriesCount} catégories</span></>}
+        {" "}pour <span className="font-semibold text-foreground">{beneficiaryName}</span>.
       </motion.p>
 
       {/* Products included */}
