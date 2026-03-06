@@ -106,9 +106,19 @@ const BeneficiarySelection = () => {
                 {/* Urgency badge */}
                 {b.urgency_level === 2 && (
                   <div className="absolute top-4 right-4">
-                    <Badge variant="outline" className="border-amber-400 text-amber-600 bg-amber-50 text-xs">
+                    <Badge variant="outline" className="border-destructive/40 text-destructive bg-destructive/10 text-xs">
                       <AlertTriangle className="h-3 w-3 mr-1" />
                       Besoin urgent
+                    </Badge>
+                  </div>
+                )}
+
+                {/* Proximity badge */}
+                {b.region === donorRegion && (
+                  <div className={`absolute top-4 ${b.urgency_level === 2 ? 'left-4' : 'right-4'}`}>
+                    <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 text-xs">
+                      <Navigation className="h-3 w-3 mr-1" />
+                      Proche de chez vous
                     </Badge>
                   </div>
                 )}
