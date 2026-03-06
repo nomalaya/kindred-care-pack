@@ -21,7 +21,7 @@ const hairColors: Record<string, string> = {
   coily: "#0D0705",
   short: "#3D2914",
   bald: "transparent",
-  covered: "#7B9E87",
+  covered: "#2A9D6E",
 };
 
 const BeneficiaryAvatar = ({ gender, ageRange, skinTone, hairType, size = "md", name, avatarUrl }: AvatarProps) => {
