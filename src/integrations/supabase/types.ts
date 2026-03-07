@@ -284,6 +284,7 @@ export type Database = {
           product_code: string | null
           religion_tags: string[] | null
           season_tag: string | null
+          situation_relevance: string[] | null
           stock_quantity: number | null
           subcategory: string | null
           target_groups: string[] | null
@@ -314,6 +315,7 @@ export type Database = {
           product_code?: string | null
           religion_tags?: string[] | null
           season_tag?: string | null
+          situation_relevance?: string[] | null
           stock_quantity?: number | null
           subcategory?: string | null
           target_groups?: string[] | null
@@ -344,6 +346,7 @@ export type Database = {
           product_code?: string | null
           religion_tags?: string[] | null
           season_tag?: string | null
+          situation_relevance?: string[] | null
           stock_quantity?: number | null
           subcategory?: string | null
           target_groups?: string[] | null
