@@ -69,6 +69,8 @@ interface BasketInput {
   causeKey: string;
   donationAmount: number;
   dietaryFilters?: string[];
+  situationId?: string;
+  emotionalNudge?: string;
 }
 
 /**
