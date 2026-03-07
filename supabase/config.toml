@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-avatar]
 verify_jwt = false
+
+[functions.seed-beneficiaries]
+verify_jwt = false
