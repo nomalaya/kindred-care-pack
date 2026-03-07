@@ -551,6 +551,8 @@ export type Database = {
           avatar_hair_type: string | null
           avatar_skin_tone: string | null
           avatar_url: string | null
+          beneficiary_category: string | null
+          children_count: number | null
           culture_tags: string[] | null
           diet_tags: string[] | null
           emotional_score: number | null
@@ -575,6 +577,8 @@ export type Database = {
           avatar_hair_type?: string | null
           avatar_skin_tone?: string | null
           avatar_url?: string | null
+          beneficiary_category?: string | null
+          children_count?: number | null
           culture_tags?: string[] | null
           diet_tags?: string[] | null
           emotional_score?: number | null
@@ -599,6 +603,8 @@ export type Database = {
           avatar_hair_type?: string | null
           avatar_skin_tone?: string | null
           avatar_url?: string | null
+          beneficiary_category?: string | null
+          children_count?: number | null
           culture_tags?: string[] | null
           diet_tags?: string[] | null
           emotional_score?: number | null
