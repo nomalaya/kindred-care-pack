@@ -17,7 +17,7 @@ serve(async (req) => {
 
     // Read CSV bundled with the function
     const csvPath = new URL("./data.csv", import.meta.url);
-    const csvText = await (await fetch(csvPath)).text();
+    const csvText = await Deno.readTextFile(new URL(csvPath));
     
     const lines = csvText.trim().split("\n");
     const header = lines[0].split(";");
