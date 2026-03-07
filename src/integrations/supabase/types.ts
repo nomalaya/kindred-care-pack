@@ -266,6 +266,53 @@ export type Database = {
           },
         ]
       }
+      matching_rules: {
+        Row: {
+          created_at: string | null
+          excluded_tags: string[] | null
+          id: string
+          is_active: boolean | null
+          max_tier: number | null
+          min_tier: number | null
+          priority_boost: number | null
+          required_categories: string[] | null
+          rule_name: string
+          situation_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          excluded_tags?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          max_tier?: number | null
+          min_tier?: number | null
+          priority_boost?: number | null
+          required_categories?: string[] | null
+          rule_name: string
+          situation_id: string
+        }
+        Update: {
+          created_at?: string | null
+          excluded_tags?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          max_tier?: number | null
+          min_tier?: number | null
+          priority_boost?: number | null
+          required_categories?: string[] | null
+          rule_name?: string
+          situation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matching_rules_situation_id_fkey"
+            columns: ["situation_id"]
+            isOneToOne: false
+            referencedRelation: "situations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string
