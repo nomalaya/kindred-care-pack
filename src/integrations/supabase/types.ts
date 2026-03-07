@@ -638,6 +638,30 @@ export type Database = {
         Returns: undefined
       }
       get_donation_stats: { Args: { p_beneficiary_id?: string }; Returns: Json }
+      get_empathy_beneficiaries: {
+        Args: { p_limit?: number; p_situation_id: string }
+        Returns: {
+          alias_first_name: string
+          approx_age: number
+          avatar_age_range: string
+          avatar_gender: string
+          avatar_hair_type: string
+          avatar_skin_tone: string
+          avatar_url: string
+          beneficiary_category: string
+          children_count: number
+          culture_tags: string[]
+          diet_tags: string[]
+          emotional_score: number
+          emotional_sentence: string
+          id: string
+          profile_type: string
+          region: string
+          rotation_score: number
+          short_story: string
+          urgency_level: number
+        }[]
+      }
       get_ranked_beneficiaries: {
         Args: { p_limit?: number; p_situation_id: string }
         Returns: {
