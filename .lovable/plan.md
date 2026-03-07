@@ -1,124 +1,53 @@
 
 
-## Plan: Advanced Donation Conversion Mechanisms
+## Audit Results and Correction Plan
 
-### 1. Emergency Micro-Donation Upsell
+### Problem 1: Fewer than 4 beneficiaries displayed
 
-**New component: `src/components/EmergencyUpsell.tsx`**
-- Displays 3 toggleable pack cards (5€ alimentaire, 8€ hygiène, 10€ bébé) with subtle pulse animation on the heart icon
-- Only one pack selectable at a time (radio-style toggle)
-- framer-motion scale-in animation when pack is selected
-- Props: `selectedPack`, `onSelectPack`, callback pattern
+**Root cause:** The database only has 3 beneficiaries for situation `b1000000-...-000000000001`. The `get_empathy_beneficiaries` RPC simply queries `WHERE situation_id = X` with no fallback logic. If fewer than 4 exist, fewer are shown.
 
-**Update `DonationFlow.tsx`**:
-- Add state `emergencyPack: { name, amount } | null`
-- Insert `EmergencyUpsell` between `DonationBasket` and the donate button
-- Update `TaxDeduction` to receive `amount + emergencyPack.amount`
-- Update donate button text to show total: "Donner {total}€"
-- On submit, store emergency pack info in the `products_sent` JSONB field alongside main products
+**Fix — Two-layer approach:**
 
-**Update `TaxDeduction.tsx`**:
-- Accept optional `extraAmount` and `extraLabel` props to show the breakdown (Don actuel / Ajout pack / Total / Déduction / Coût réel) — switch from 3-col to 5-row layout when extra is present
+1. **Database: Enhance the `get_empathy_beneficiaries` RPC** to implement a fallback waterfall:
+   - First, fetch beneficiaries matching the exact `situation_id`
+   - If count < 4, fetch additional beneficiaries from the same **cause** (via `situations.cause_id`), excluding already-selected IDs
+   - If still < 4, fetch from any active beneficiary with compatible `profile_type`
+   - Always return exactly `p_limit` rows (default 4)
 
-### 2. Social Proof System
+2. **Frontend: Loading skeleton** — Change the loading placeholder from 3 to 4 skeleton cards (line 91 of `BeneficiarySelection.tsx`: `[...Array(3)]` → `[...Array(4)]`)
 
-**New component: `src/components/SocialProof.tsx`**
-- Accepts a `variant` prop: `"homepage"`, `"cause"`, `"donation"`, `"confirmation"`
-- Queries donation stats from DB via a lightweight RPC or direct count query on `donations` table
-- Displays contextual messages in French:
-  - Homepage: "{X} personnes ont aidé quelqu'un aujourd'hui." + "Plus de {Y} colis solidaires envoyés."
-  - Donation page: "Les donateurs qui aident {name} donnent en moyenne {avg}€." near the CTA
-  - Confirmation: "{X} donateurs ont déjà aidé cette semaine."
-- Subtle fade-in animation, muted styling, small Users icon
+### Problem 2: English text visible in the UI
 
-**DB function (migration)**: `get_donation_stats()` — returns `today_count`, `week_count`, `total_count`, `avg_amount_for_beneficiary(id)` using simple aggregates on the donations table. Security definer, accessible to anon.
+**Root cause:** The `short_story` and `emotional_sentence` columns in the `beneficiaries` table contain English text for the 3 seed beneficiaries. These are displayed directly on:
+- Beneficiary selection cards (`BeneficiarySelection.tsx` lines 148, 151)
+- Donation flow profile card (`DonationFlow.tsx` lines 236, 239)
 
-**Integration points**:
-- `Index.tsx`: Add `<SocialProof variant="homepage" />` in the stats section
-- `CauseSelection.tsx`: Add below the header
-- `DonationFlow.tsx`: Add near the donate button
-- `DonationConfirmation.tsx`: Add after the delivery timeline
+**Fix:**
 
-### 3. Visible Impact System
+1. **Data update via SQL:** Update the 3 existing beneficiaries to have French text:
+   - `c1000000-...-01` (Samira): `short_story` → "À 31 ans, elle élève seule ses deux enfants et peine à assurer des repas réguliers." / `emotional_sentence` → "Je fais toujours en sorte que mes enfants mangent avant moi."
+   - `c1000000-...-02` (Marie): `short_story` → "Après le départ de son compagnon, Marie s'est retrouvée seule avec un nouveau-né et un bambin." / `emotional_sentence` → "Mes enfants sont ma force, même dans les moments les plus difficiles."
+   - `c1000000-...-03` (Fatou): `short_story` → "Fatou travaille comme femme de ménage la nuit pour pouvoir s'occuper de ses 3 enfants la journée." / `emotional_sentence` → "Le sommeil est un luxe auquel j'ai renoncé pour que mes enfants aient un avenir."
 
-**New component: `src/components/DonationImpact.tsx`**
-- Receives `amount` prop
-- Computes and displays impact metrics based on amount thresholds:
-  - Products count (interpolated: ~6 at 32€, ~10 at 45€, ~14 at 60€, ~18 at 75€)
-  - Meals supported (~4 at 32€, scaling up)
-  - Days of essential support (~3 at 32€, ~7 at 75€)
-- Each metric shown with an icon (Package, UtensilsCrossed, Calendar) and animated counter
-- Progress bars fill as amount increases
-- framer-motion `AnimatePresence` for smooth transitions when values change
+2. **Also update `children_count`** which is currently 0 for all three mothers (should reflect their stories): Samira → 2, Marie → 2, Fatou → 3.
 
-**Integration**: Insert in `DonationFlow.tsx` between the slider and tax deduction sections
+No other visible English text found in the UI components — all buttons, labels, headings, tooltips, and navigation are already in French.
 
-### 4. Enhanced Impact Storytelling (Confirmation)
+### Technical Details
 
-**Update `DonationConfirmation.tsx`**:
-- Accept `emergencyPack` prop to show it if selected
-- Add `<SocialProof variant="confirmation" />` 
-- Add impact summary section (reuse `DonationImpact` or inline): "Votre don de {X}€ permet {Y} produits essentiels et {Z} jours de soutien."
-- Enhance delivery timeline with connecting line between steps (vertical line with dots)
+**RPC modification** — Replace `get_empathy_beneficiaries` with a function that uses a CTE waterfall:
 
-### 5. Conversion-Optimized UI Polish
-
-**Update `DonationSlider.tsx`**:
-- Add tier-reached celebration: when slider crosses a tier threshold, briefly highlight the tier label with a scale animation and color pulse
-- Add a subtle glow effect on the active tier marker
-
-**Update `DonationBasket.tsx`**:
-- Add a gentle background color transition when new products appear (brief green tint)
-- Enhance the basket total with a counting animation
-
-**Update donate button in `DonationFlow.tsx`**:
-- Add a subtle pulse animation class when amount >= 45€ (higher tiers)
-- Warm gradient background shift based on donation amount
-
----
-
-### Files to Create/Edit
-
-| File | Action |
-|---|---|
-| `src/components/EmergencyUpsell.tsx` | Create — micro-donation pack selector |
-| `src/components/SocialProof.tsx` | Create — social proof messages |
-| `src/components/DonationImpact.tsx` | Create — visible impact metrics |
-| `src/components/TaxDeduction.tsx` | Edit — support extra pack amount in breakdown |
-| `src/pages/DonationFlow.tsx` | Edit — integrate upsell, impact, social proof |
-| `src/components/DonationConfirmation.tsx` | Edit — enhanced storytelling + social proof |
-| `src/components/DonationSlider.tsx` | Edit — tier celebration animations |
-| `src/components/DonationBasket.tsx` | Edit — enhanced entry animations |
-| `src/pages/Index.tsx` | Edit — add social proof |
-| `src/pages/CauseSelection.tsx` | Edit — add social proof |
-| `src/lib/constants.ts` | Edit — add emergency pack definitions + impact thresholds |
-| SQL migration | Create `get_donation_stats` RPC function |
-
-### DB Migration
-
-```sql
-CREATE OR REPLACE FUNCTION public.get_donation_stats(p_beneficiary_id uuid DEFAULT NULL)
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE result jsonb;
-BEGIN
-  SELECT jsonb_build_object(
-    'today_count', (SELECT count(*) FROM donations WHERE created_at >= CURRENT_DATE),
-    'week_count', (SELECT count(*) FROM donations WHERE created_at >= date_trunc('week', now())),
-    'total_count', (SELECT count(*) FROM donations),
-    'avg_amount', COALESCE(
-      (SELECT round(avg(amount)::numeric, 0) FROM donations WHERE beneficiary_id = p_beneficiary_id),
-      55
-    )
-  ) INTO result;
-  RETURN result;
-END;
-$$;
+```text
+1. exact_matches   ← WHERE situation_id = p_situation_id (up to p_limit)
+2. same_cause      ← JOIN situations to find same cause_id, exclude already selected
+3. any_fallback    ← Any active beneficiary, exclude already selected
+4. UNION ALL → LIMIT p_limit
 ```
 
-No other schema changes needed — emergency packs are stored in the existing `products_sent` JSONB column and `amount` includes the pack total.
+**Files changed:**
+- 1 database migration (new RPC function)
+- 1 data update (French translations + children_count)
+- `src/pages/BeneficiarySelection.tsx` — skeleton count 3 → 4
+
+**No UI structure changes.** Only data content and backend logic are modified.
 
