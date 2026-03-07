@@ -9,6 +9,10 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Sanitize email: remove diacritics
+  const sanitizeEmail = (email: string) => 
+    email.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
