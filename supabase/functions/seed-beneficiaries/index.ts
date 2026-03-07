@@ -72,8 +72,8 @@ serve(async (req) => {
     }
 
     for (let i = 0; i < batchSituations.length; i++) {
-      const sit = SITUATIONS[i];
-      console.log(`Processing ${i + 1}/${SITUATIONS.length}: ${sit.title}`);
+      const sit = batchSituations[i];
+      console.log(`Processing ${start + i + 1}/${SITUATIONS.length}: ${sit.title}`);
 
       const prompt = `Génère exactement 8 bénéficiaires fictifs ultra-réalistes pour une association caritative française.
 
