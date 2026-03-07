@@ -88,7 +88,7 @@ const BeneficiarySelection = () => {
 
         {loading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[...Array(3)].map((_, i) => (
+            {[...Array(4)].map((_, i) => (
               <div key={i} className="bg-card rounded-2xl p-8 animate-pulse h-64" />
             ))}
           </div>
