@@ -26,6 +26,8 @@ export interface ProductRecord {
   is_visible_public: boolean | null;
   is_active_product: boolean | null;
   stock_quantity: number | null;
+  priority_score: number | null;
+  situation_relevance: string[] | null;
 }
 
 export interface ProfileMapping {
