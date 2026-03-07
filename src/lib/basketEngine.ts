@@ -175,10 +175,15 @@ export function composeBasket({
   }
 
   // 5. Second pass: fill remaining budget with more products (priority order)
-  for (const family of activeFamilies) {
+  // If emotionalNudge is set, prioritize that family first
+  const fillOrder = emotionalNudge
+    ? [emotionalNudge, ...activeFamilies.filter((f) => f !== emotionalNudge)]
+    : activeFamilies;
+
+  for (const family of fillOrder) {
     const familyProducts = pool
       .filter((p) => p.emotional_family === family && !usedIds.has(p.id))
-      .sort((a, b) => a.price - b.price);
+      .sort((a, b) => (b.priority_score ?? 3) - (a.priority_score ?? 3) || a.price - b.price);
 
     for (const product of familyProducts) {
       if (remainingBudget < 1) break;

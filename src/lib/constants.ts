@@ -23,8 +23,8 @@ export const DELIVERY_STATUSES = [
 
 export const TAX_DEDUCTION_RATE = 0.66;
 
-export const MIN_DONATION = 32;
-export const MAX_DONATION = 75;
+export const MIN_DONATION = 30;
+export const MAX_DONATION = 80;
 
 export const EMERGENCY_PACKS = [
   { id: "alimentaire", name: "Pack urgence alimentaire", amount: 5, icon: "🍞", description: "Produits alimentaires essentiels" },

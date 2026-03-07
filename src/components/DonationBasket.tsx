@@ -30,12 +30,19 @@ const DIET_BADGES: Record<string, { label: string; emoji: string; color: string 
 
 function getProductDietBadges(product: BasketItem["product"]): string[] {
   const badges: string[] = [];
-  if (product.halal_compatible) badges.push("halal");
-  if (product.kosher_compatible) badges.push("kosher");
+  // Only show halal badge if product is specifically halal-certified AND not just a default
+  if (product.halal_compatible && (product.contains_pork === false || product.contains_alcohol === false)) {
+    badges.push("halal");
+  }
+  if (product.kosher_compatible && product.category === "alimentaire") badges.push("kosher");
   if (product.vegan) badges.push("vegan");
   else if (product.vegetarian) badges.push("vegetarian");
-  if (product.contains_pork === false && !badges.includes("halal")) badges.push("sans_porc");
-  if (product.contains_alcohol === false && product.category === "boisson") badges.push("sans_alcool");
+  // Show "sans porc" only for food items that explicitly exclude pork
+  if (product.contains_pork === false && product.category === "alimentaire" && !badges.includes("halal")) {
+    badges.push("sans_porc");
+  }
+  // Show "sans alcool" only for beverages
+  if (product.contains_alcohol === false && product.subcategory === "boisson") badges.push("sans_alcool");
   return badges;
 }
 

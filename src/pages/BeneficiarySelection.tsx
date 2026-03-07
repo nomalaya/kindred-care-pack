@@ -45,11 +45,11 @@ const BeneficiarySelection = () => {
   const donorRegion = getDonorRegion();
 
   useEffect(() => {
-    // Use the ranked RPC for fair rotation
-    supabase.rpc("get_ranked_beneficiaries", {
+    // Use the empathy-enriched RPC for fair rotation + extra fields
+    supabase.rpc("get_empathy_beneficiaries" as any, {
       p_situation_id: situationId,
       p_limit: 4,
-    }).then(({ data, error }) => {
+    }).then(({ data, error }: { data: any; error: any }) => {
       if (error || !data) {
         // Fallback to simple query
         supabase.from("beneficiaries_public")
