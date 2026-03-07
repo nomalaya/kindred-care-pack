@@ -1,0 +1,1 @@
+ALTER TABLE products ADD COLUMN IF NOT EXISTS situation_relevance text[] DEFAULT '{}';
