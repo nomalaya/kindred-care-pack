@@ -15,6 +15,8 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const { offset = 0, limit = 100 } = await req.json().catch(() => ({ offset: 0, limit: 100 }));
+
     // Read CSV from storage
     const { data: fileData, error: downloadError } = await supabase.storage
       .from("avatars")
@@ -26,14 +28,15 @@ serve(async (req) => {
     const lines = csvText.trim().split("\n");
     const header = lines[0].split(";");
     
-    const rows = lines.slice(1).map(line => {
+    const allRows = lines.slice(1).map(line => {
       const cols = line.split(";");
       const obj: Record<string, string> = {};
       header.forEach((h, i) => { obj[h.trim()] = cols[i]?.trim() || ""; });
       return obj;
     });
 
-    console.log(`Parsed ${rows.length} rows from CSV`);
+    const rows = allRows.slice(offset, offset + limit);
+    console.log(`Processing rows ${offset}-${offset + rows.length} of ${allRows.length}`);
     const results = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
 
     for (let i = 0; i < rows.length; i++) {
