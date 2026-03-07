@@ -280,6 +280,7 @@ export type Database = {
           kosher_compatible: boolean | null
           name: string
           price: number
+          priority_score: number | null
           product_code: string | null
           religion_tags: string[] | null
           season_tag: string | null
@@ -309,6 +310,7 @@ export type Database = {
           kosher_compatible?: boolean | null
           name: string
           price?: number
+          priority_score?: number | null
           product_code?: string | null
           religion_tags?: string[] | null
           season_tag?: string | null
@@ -338,6 +340,7 @@ export type Database = {
           kosher_compatible?: boolean | null
           name?: string
           price?: number
+          priority_score?: number | null
           product_code?: string | null
           religion_tags?: string[] | null
           season_tag?: string | null
