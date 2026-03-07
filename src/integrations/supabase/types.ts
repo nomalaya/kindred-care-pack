@@ -24,6 +24,7 @@ export type Database = {
           avatar_hair_type: string | null
           avatar_skin_tone: string | null
           avatar_url: string | null
+          children_count: number | null
           created_at: string
           culture_tags: string[] | null
           date_of_birth: string | null
@@ -62,6 +63,7 @@ export type Database = {
           avatar_hair_type?: string | null
           avatar_skin_tone?: string | null
           avatar_url?: string | null
+          children_count?: number | null
           created_at?: string
           culture_tags?: string[] | null
           date_of_birth?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           avatar_hair_type?: string | null
           avatar_skin_tone?: string | null
           avatar_url?: string | null
+          children_count?: number | null
           created_at?: string
           culture_tags?: string[] | null
           date_of_birth?: string | null

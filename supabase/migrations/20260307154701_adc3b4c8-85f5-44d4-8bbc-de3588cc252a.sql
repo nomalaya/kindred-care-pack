@@ -1,0 +1,1 @@
+ALTER TABLE beneficiaries ADD COLUMN IF NOT EXISTS children_count integer DEFAULT 0;
