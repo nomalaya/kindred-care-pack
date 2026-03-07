@@ -157,7 +157,7 @@ export function composeBasket({
   for (const family of activeFamilies) {
     const familyProducts = pool
       .filter((p) => p.emotional_family === family && !usedIds.has(p.id))
-      .sort((a, b) => a.price - b.price);
+      .sort((a, b) => (b.priority_score ?? 3) - (a.priority_score ?? 3) || a.price - b.price);
 
     const minKey = FAMILY_MIN_KEY[family];
     const minItems = minKey ? ((profileMapping[minKey] as number) || 0) : 0;
