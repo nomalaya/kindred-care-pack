@@ -1,124 +1,111 @@
 
 
-## Plan: Advanced Donation Conversion Mechanisms
+## Plan : Moteurs intelligents de sélection et composition
 
-### 1. Emergency Micro-Donation Upsell
-
-**New component: `src/components/EmergencyUpsell.tsx`**
-- Displays 3 toggleable pack cards (5€ alimentaire, 8€ hygiène, 10€ bébé) with subtle pulse animation on the heart icon
-- Only one pack selectable at a time (radio-style toggle)
-- framer-motion scale-in animation when pack is selected
-- Props: `selectedPack`, `onSelectPack`, callback pattern
-
-**Update `DonationFlow.tsx`**:
-- Add state `emergencyPack: { name, amount } | null`
-- Insert `EmergencyUpsell` between `DonationBasket` and the donate button
-- Update `TaxDeduction` to receive `amount + emergencyPack.amount`
-- Update donate button text to show total: "Donner {total}€"
-- On submit, store emergency pack info in the `products_sent` JSONB field alongside main products
-
-**Update `TaxDeduction.tsx`**:
-- Accept optional `extraAmount` and `extraLabel` props to show the breakdown (Don actuel / Ajout pack / Total / Déduction / Coût réel) — switch from 3-col to 5-row layout when extra is present
-
-### 2. Social Proof System
-
-**New component: `src/components/SocialProof.tsx`**
-- Accepts a `variant` prop: `"homepage"`, `"cause"`, `"donation"`, `"confirmation"`
-- Queries donation stats from DB via a lightweight RPC or direct count query on `donations` table
-- Displays contextual messages in French:
-  - Homepage: "{X} personnes ont aidé quelqu'un aujourd'hui." + "Plus de {Y} colis solidaires envoyés."
-  - Donation page: "Les donateurs qui aident {name} donnent en moyenne {avg}€." near the CTA
-  - Confirmation: "{X} donateurs ont déjà aidé cette semaine."
-- Subtle fade-in animation, muted styling, small Users icon
-
-**DB function (migration)**: `get_donation_stats()` — returns `today_count`, `week_count`, `total_count`, `avg_amount_for_beneficiary(id)` using simple aggregates on the donations table. Security definer, accessible to anon.
-
-**Integration points**:
-- `Index.tsx`: Add `<SocialProof variant="homepage" />` in the stats section
-- `CauseSelection.tsx`: Add below the header
-- `DonationFlow.tsx`: Add near the donate button
-- `DonationConfirmation.tsx`: Add after the delivery timeline
-
-### 3. Visible Impact System
-
-**New component: `src/components/DonationImpact.tsx`**
-- Receives `amount` prop
-- Computes and displays impact metrics based on amount thresholds:
-  - Products count (interpolated: ~6 at 32€, ~10 at 45€, ~14 at 60€, ~18 at 75€)
-  - Meals supported (~4 at 32€, scaling up)
-  - Days of essential support (~3 at 32€, ~7 at 75€)
-- Each metric shown with an icon (Package, UtensilsCrossed, Calendar) and animated counter
-- Progress bars fill as amount increases
-- framer-motion `AnimatePresence` for smooth transitions when values change
-
-**Integration**: Insert in `DonationFlow.tsx` between the slider and tax deduction sections
-
-### 4. Enhanced Impact Storytelling (Confirmation)
-
-**Update `DonationConfirmation.tsx`**:
-- Accept `emergencyPack` prop to show it if selected
-- Add `<SocialProof variant="confirmation" />` 
-- Add impact summary section (reuse `DonationImpact` or inline): "Votre don de {X}€ permet {Y} produits essentiels et {Z} jours de soutien."
-- Enhance delivery timeline with connecting line between steps (vertical line with dots)
-
-### 5. Conversion-Optimized UI Polish
-
-**Update `DonationSlider.tsx`**:
-- Add tier-reached celebration: when slider crosses a tier threshold, briefly highlight the tier label with a scale animation and color pulse
-- Add a subtle glow effect on the active tier marker
-
-**Update `DonationBasket.tsx`**:
-- Add a gentle background color transition when new products appear (brief green tint)
-- Enhance the basket total with a counting animation
-
-**Update donate button in `DonationFlow.tsx`**:
-- Add a subtle pulse animation class when amount >= 45€ (higher tiers)
-- Warm gradient background shift based on donation amount
+**Objectif** : Remplacer les données et la logique backend par le modèle Excel fourni, sans modifier aucun composant UI.
 
 ---
 
-### Files to Create/Edit
+### Etat actuel vs. cible
 
-| File | Action |
+| | Actuel | Cible |
+|---|---|---|
+| Produits | 237, avec prix/cause_relevance/tier | 300 (Excel), sans prix → à générer |
+| Bénéficiaires | 12, sur 6 situations | ~96+ (4 min par situation × 24) |
+| Situations | 24 ✓ | 24 ✓ (alignement titres Excel) |
+| Tiers | 32/45/60/75€ | 30/45/60/80€ |
+| Sélection | rotation_score simple | Algorithme empathie avec diversité |
+| Colis | cause_relevance filtering | situation_relevance + nudge émotionnel |
+
+---
+
+### Phase 1 : Schema & données
+
+**1.1 Migration DB**
+- Ajouter colonnes `products` : `priority_score integer DEFAULT 3`, `situation_relevance text[] DEFAULT '{}'`
+- Créer table `matching_rules` (rule_id, cause_id, situation_id, age_min, age_max, gender, emotional_family_priority text[], target_group_priority text[], halal_filter, kosher_filter)
+- Ajouter colonne `beneficiaries` : `children_count integer DEFAULT 0`, `beneficiary_category text` (family/individual/young/senior)
+
+**1.2 Remplacer les 237 produits par les 300 du Excel**
+- Supprimer les produits existants
+- Insérer les 300 produits avec :
+  - Prix générés par catégorie (Alimentaire: 1-5€, Hygiène: 2-6€, Bébé: 3-8€, Enfant: 2-7€, Maison: 2-8€, Autonomie: 5-15€)
+  - `situation_relevance` peuplé à partir des rules (Page 5) : chaque produit dont le `target_groups` et `emotional_family` matchent une rule est lié aux situations correspondantes
+  - `priority_score` = `emotional_intensity` (déjà dans le Excel)
+
+**1.3 Insérer les 5 matching_rules** (Page 5 du Excel)
+
+**1.4 Générer ~96 bénéficiaires** (4 par situation)
+- Pour chaque situation : créer 4 profils respectant les contraintes de cohérence :
+  - `student` → âge 18-28
+  - `mother` → gender=female, children_count>0
+  - `elderly` → âge 65-99
+  - `family` → children_count≥1
+- Diversité par quatuor : 1 familial, 1 individuel, 1 jeune, 1 adulte/senior
+- Prénoms anonymisés (banque de ~50 prénoms crédibles français/multiculturels)
+- Régions variées, short_story et emotional_sentence contextualisés par situation
+- `profile_type` mappé depuis les profile_mappings existants
+- Attributs avatar variés (gender, age_range, skin_tone, hair_type)
+
+**1.5 Mettre à jour les situations** pour aligner les titres avec le Excel (Page 3) si différents
+
+**1.6 Mettre à jour constants** : `DONATION_TIERS` → 30/45/60/80€, `MIN_DONATION` → 30, `MAX_DONATION` → 80
+
+---
+
+### Phase 2 : Moteur 1 — Algorithme d'empathie
+
+**Nouvelle RPC `get_empathy_beneficiaries(p_situation_id, p_limit)`**
+
+Remplace `get_ranked_beneficiaries` avec :
+1. Filtrer bénéficiaires actifs de la situation
+2. Appliquer les contraintes de diversité obligatoires :
+   - Au moins 1 `beneficiary_category = 'family'`
+   - Au moins 1 `beneficiary_category = 'individual'`  
+   - Au moins 1 `beneficiary_category = 'young'`
+   - Au moins 1 `beneficiary_category = 'senior'` (ou adult si pas de senior dans cette situation)
+3. Score de sélection = `(urgency_level + 1) * time_since_last_donation / (total_donations_received + 1)`
+4. Dans chaque catégorie, prendre le profil avec le meilleur score
+5. Fallback : si une catégorie n'a pas de candidat, remplir avec le meilleur score global
+
+**Mise à jour de `BeneficiarySelection.tsx`** : appeler la nouvelle RPC au lieu de `get_ranked_beneficiaries` (uniquement le nom de la fonction appelée, pas l'UI).
+
+---
+
+### Phase 3 : Moteur 2 — Composition intelligente du colis
+
+**Refactorer `basketEngine.ts`** :
+
+1. **Filtrage par situation** : remplacer `cause_relevance` par `situation_relevance` comme filtre primaire (avec fallback cause_relevance)
+2. **Tri par priorité** : trier les produits candidats par `priority_score DESC, emotional_intensity DESC` au lieu de `price ASC`
+3. **Diversité catégorielle** : garantir au moins 1 produit de chaque catégorie disponible (Alimentaire, Hygiène, Bébé/Enfant si pertinent) avant de remplir le budget
+4. **Nudge émotionnel** : quand le budget restant est < 15% du montant total ET qu'un produit à forte intensité émotionnelle (≥4) est disponible à +2-5€ au-dessus du budget → l'inclure dans le basket comme "suggestion" (le produit est affiché mais le slider n'est pas modifié — le donateur voit naturellement qu'augmenter de quelques euros débloque un produit fort)
+5. **Anti-monotonie** : limiter à max 2 produits du même `subcategory` par colis
+
+**Aucun changement UI** dans `DonationBasket.tsx` ou `DonationImpact.tsx` — les composants consomment déjà le basket via props.
+
+---
+
+### Phase 4 : Pictogrammes produits
+
+**Mise à jour de `getProductDietBadges()` dans `DonationBasket.tsx`** (logique uniquement) :
+- Afficher `sans_porc` si `contains_pork === true` (alerte, pas compatibilité)
+- Afficher `sans_alcool` si `contains_alcohol === true`
+- Corriger la condition actuelle qui vérifie `=== false` (inversée)
+- Les pictogrammes restent discrets (déjà le cas dans l'UI actuelle)
+
+---
+
+### Résumé des fichiers modifiés
+
+| Fichier | Type de changement |
 |---|---|
-| `src/components/EmergencyUpsell.tsx` | Create — micro-donation pack selector |
-| `src/components/SocialProof.tsx` | Create — social proof messages |
-| `src/components/DonationImpact.tsx` | Create — visible impact metrics |
-| `src/components/TaxDeduction.tsx` | Edit — support extra pack amount in breakdown |
-| `src/pages/DonationFlow.tsx` | Edit — integrate upsell, impact, social proof |
-| `src/components/DonationConfirmation.tsx` | Edit — enhanced storytelling + social proof |
-| `src/components/DonationSlider.tsx` | Edit — tier celebration animations |
-| `src/components/DonationBasket.tsx` | Edit — enhanced entry animations |
-| `src/pages/Index.tsx` | Edit — add social proof |
-| `src/pages/CauseSelection.tsx` | Edit — add social proof |
-| `src/lib/constants.ts` | Edit — add emergency pack definitions + impact thresholds |
-| SQL migration | Create `get_donation_stats` RPC function |
+| `src/lib/constants.ts` | Tiers 30/45/60/80, CAUSE_KEY_MAP alignement |
+| `src/lib/basketEngine.ts` | Nouveau moteur : situation_relevance, priority_score, nudge, anti-monotonie |
+| `src/pages/BeneficiarySelection.tsx` | Appel RPC `get_empathy_beneficiaries` (1 ligne) |
+| `src/pages/DonationFlow.tsx` | Filtrage situation_relevance au lieu de cause_relevance (logique interne) |
+| `src/components/DonationBasket.tsx` | Fix logique `getProductDietBadges` (3 lignes) |
+| DB migrations | 3 migrations (schema, data, RPC) |
 
-### DB Migration
-
-```sql
-CREATE OR REPLACE FUNCTION public.get_donation_stats(p_beneficiary_id uuid DEFAULT NULL)
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE result jsonb;
-BEGIN
-  SELECT jsonb_build_object(
-    'today_count', (SELECT count(*) FROM donations WHERE created_at >= CURRENT_DATE),
-    'week_count', (SELECT count(*) FROM donations WHERE created_at >= date_trunc('week', now())),
-    'total_count', (SELECT count(*) FROM donations),
-    'avg_amount', COALESCE(
-      (SELECT round(avg(amount)::numeric, 0) FROM donations WHERE beneficiary_id = p_beneficiary_id),
-      55
-    )
-  ) INTO result;
-  RETURN result;
-END;
-$$;
-```
-
-No other schema changes needed — emergency packs are stored in the existing `products_sent` JSONB column and `amount` includes the pack total.
+Aucun changement de layout, cartes, blocs, sliders, boutons, structure visuelle, indicateurs, calcul fiscal, ou fiche bénéficiaire.
 
