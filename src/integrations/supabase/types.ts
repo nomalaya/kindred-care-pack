@@ -459,26 +459,41 @@ export type Database = {
       }
       profiles: {
         Row: {
+          country_code: string | null
           created_at: string
+          department_code: string | null
           display_name: string | null
           email: string | null
           id: string
+          location_visibility: boolean
+          postal_prefix: string | null
+          region_code: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          country_code?: string | null
           created_at?: string
+          department_code?: string | null
           display_name?: string | null
           email?: string | null
           id?: string
+          location_visibility?: boolean
+          postal_prefix?: string | null
+          region_code?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          country_code?: string | null
           created_at?: string
+          department_code?: string | null
           display_name?: string | null
           email?: string | null
           id?: string
+          location_visibility?: boolean
+          postal_prefix?: string | null
+          region_code?: string | null
           updated_at?: string
           user_id?: string
         }
