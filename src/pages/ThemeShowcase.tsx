@@ -1,18 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { themes, applyTheme, type ThemeDefinition } from "@/lib/themes";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Users, Package, ShieldCheck, ArrowRight, Palette } from "lucide-react";
+import { Heart, Users, Package, ShieldCheck, ArrowRight, Palette, Download, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const ThemeShowcase = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const stickyBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    return () => applyTheme(null); // Reset on unmount
+    return () => applyTheme(null);
   }, []);
 
   const handleSelect = (index: number | null) => {
@@ -20,10 +25,95 @@ const ThemeShowcase = () => {
     applyTheme(index !== null ? themes[index] : null);
   };
 
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  const captureCurrentPage = async (): Promise<HTMLCanvasElement> => {
+    if (stickyBarRef.current) stickyBarRef.current.style.display = "none";
+    await wait(100);
+    const canvas = await html2canvas(contentRef.current!, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+    });
+    if (stickyBarRef.current) stickyBarRef.current.style.display = "";
+    return canvas;
+  };
+
+  const exportCurrentTheme = useCallback(async () => {
+    if (!contentRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await captureCurrentPage();
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW - 20;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+
+      let y = 10;
+      let remaining = imgH;
+      while (remaining > 0) {
+        if (y !== 10) pdf.addPage();
+        const sliceH = Math.min(remaining, pageH - 20);
+        pdf.addImage(imgData, "JPEG", 10, y === 10 ? 10 : 10, imgW, imgH, undefined, "FAST", 0);
+        remaining -= sliceH;
+        y = 10;
+      }
+
+      const name = activeIndex !== null ? themes[activeIndex].name : "defaut";
+      pdf.save(`theme-${name.toLowerCase().replace(/\s+/g, "-")}.pdf`);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [activeIndex]);
+
+  const exportAllThemes = useCallback(async () => {
+    if (!contentRef.current) return;
+    setIsExporting(true);
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageW = pdf.internal.pageSize.getWidth();
+      const savedIndex = activeIndex;
+
+      // Default theme first
+      applyTheme(null);
+      await wait(300);
+      let canvas = await captureCurrentPage();
+      let imgW = pageW - 20;
+      let imgH = (canvas.height * imgW) / canvas.width;
+      pdf.setFontSize(16);
+      pdf.text("Thème : Défaut", 10, 10);
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 10, 16, imgW, imgH);
+
+      // Each theme
+      for (let i = 0; i < themes.length; i++) {
+        pdf.addPage();
+        applyTheme(themes[i]);
+        await wait(300);
+        canvas = await captureCurrentPage();
+        imgW = pageW - 20;
+        imgH = (canvas.height * imgW) / canvas.width;
+        pdf.setFontSize(16);
+        pdf.text(`Thème : ${themes[i].name}`, 10, 10);
+        pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 10, 16, imgW, imgH);
+      }
+
+      // Restore
+      if (savedIndex !== null) applyTheme(themes[savedIndex]);
+      else applyTheme(null);
+      setActiveIndex(savedIndex);
+
+      pdf.save("tous-les-themes.pdf");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [activeIndex]);
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div ref={contentRef} className="min-h-screen bg-background text-foreground">
       {/* Sticky palette selector */}
-      <div className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b py-3 px-4">
+      <div ref={stickyBarRef} className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b py-3 px-4">
         <div className="container mx-auto flex items-center gap-3 flex-wrap">
           <Palette className="h-5 w-5 text-muted-foreground shrink-0" />
           <button
@@ -58,6 +148,26 @@ const ThemeShowcase = () => {
               {theme.name}
             </button>
           ))}
+          <div className="ml-auto flex gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportCurrentTheme}
+              disabled={isExporting}
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
+              PDF actuel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportAllThemes}
+              disabled={isExporting}
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
+              Tous les PDFs
+            </Button>
+          </div>
         </div>
       </div>
 
