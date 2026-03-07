@@ -148,6 +148,26 @@ const ThemeShowcase = () => {
               {theme.name}
             </button>
           ))}
+          <div className="ml-auto flex gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportCurrentTheme}
+              disabled={isExporting}
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
+              PDF actuel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportAllThemes}
+              disabled={isExporting}
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
+              Tous les PDFs
+            </Button>
+          </div>
         </div>
       </div>
 
