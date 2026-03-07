@@ -93,7 +93,10 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      total_rows: rows.length,
+      total_rows: allRows.length,
+      processed_offset: offset,
+      processed_count: rows.length,
+      next_offset: offset + rows.length < allRows.length ? offset + rows.length : null,
       ...results,
       error_count: results.errors.length,
       first_errors: results.errors.slice(0, 20),
