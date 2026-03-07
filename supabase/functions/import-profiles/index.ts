@@ -15,15 +15,31 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { rows } = await req.json();
-    if (!rows || !Array.isArray(rows)) throw new Error("rows array required");
+    // Read CSV from storage
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from("avatars")
+      .download("import/profiles.csv");
 
-    console.log(`Processing ${rows.length} rows`);
+    if (downloadError || !fileData) throw new Error(`Download error: ${downloadError?.message}`);
+    
+    const csvText = await fileData.text();
+    const lines = csvText.trim().split("\n");
+    const header = lines[0].split(";");
+    
+    const rows = lines.slice(1).map(line => {
+      const cols = line.split(";");
+      const obj: Record<string, string> = {};
+      header.forEach((h, i) => { obj[h.trim()] = cols[i]?.trim() || ""; });
+      return obj;
+    });
+
+    console.log(`Parsed ${rows.length} rows from CSV`);
     const results = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
 
-    for (const row of rows) {
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
       try {
-        const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+        const { error: userError } = await supabase.auth.admin.createUser({
           id: row.user_id,
           email: row.email,
           password: "Cash4Cause2024!",
@@ -43,7 +59,7 @@ serve(async (req) => {
         }
 
         // Wait for trigger
-        await new Promise(r => setTimeout(r, 50));
+        await new Promise(r => setTimeout(r, 30));
 
         const { error: updateError } = await supabase
           .from("profiles")
@@ -65,12 +81,19 @@ serve(async (req) => {
       } catch (e) {
         results.errors.push(`${row.email}: ${e.message}`);
       }
+
+      // Log progress every 100
+      if ((i + 1) % 100 === 0) {
+        console.log(`Progress: ${i + 1}/${rows.length} | Created: ${results.created} | Updated: ${results.updated} | Errors: ${results.errors.length}`);
+      }
     }
 
     return new Response(JSON.stringify({
       success: true,
+      total_rows: rows.length,
       ...results,
-      first_errors: results.errors.slice(0, 10),
+      error_count: results.errors.length,
+      first_errors: results.errors.slice(0, 20),
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
