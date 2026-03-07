@@ -6,5 +6,3 @@ verify_jwt = false
 [functions.generate-avatar]
 verify_jwt = false
 
-[functions.import-profiles]
-verify_jwt = false
