@@ -111,9 +111,9 @@ const ThemeShowcase = () => {
   }, [activeIndex]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div ref={contentRef} className="min-h-screen bg-background text-foreground">
       {/* Sticky palette selector */}
-      <div className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b py-3 px-4">
+      <div ref={stickyBarRef} className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b py-3 px-4">
         <div className="container mx-auto flex items-center gap-3 flex-wrap">
           <Palette className="h-5 w-5 text-muted-foreground shrink-0" />
           <button
