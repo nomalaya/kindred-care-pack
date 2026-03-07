@@ -31,6 +31,11 @@ interface Beneficiary {
   avatar_skin_tone: string;
   avatar_url?: string;
   urgency_level?: number;
+  children_count?: number;
+  beneficiary_category?: string;
+  profile_type?: string;
+  diet_tags?: string[];
+  culture_tags?: string[];
 }
 
 const BeneficiarySelection = () => {
