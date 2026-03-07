@@ -183,8 +183,10 @@ alias_first_name, approx_age, region, short_story, emotional_sentence, avatar_ge
 
     return new Response(JSON.stringify({
       success: true,
+      batch,
+      next_batch: end < SITUATIONS.length ? batch + 1 : null,
       total_inserted: totalInserted,
-      total_situations: SITUATIONS.length,
+      situations_processed: `${start + 1}-${end}/${SITUATIONS.length}`,
       results,
       errors_count: errors.length,
     }), {
