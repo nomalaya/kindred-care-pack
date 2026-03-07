@@ -12,15 +12,103 @@ import jsPDF from "jspdf";
 
 const ThemeShowcase = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const stickyBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    return () => applyTheme(null); // Reset on unmount
+    return () => applyTheme(null);
   }, []);
 
   const handleSelect = (index: number | null) => {
     setActiveIndex(index);
     applyTheme(index !== null ? themes[index] : null);
   };
+
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  const captureCurrentPage = async (): Promise<HTMLCanvasElement> => {
+    if (stickyBarRef.current) stickyBarRef.current.style.display = "none";
+    await wait(100);
+    const canvas = await html2canvas(contentRef.current!, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+    });
+    if (stickyBarRef.current) stickyBarRef.current.style.display = "";
+    return canvas;
+  };
+
+  const exportCurrentTheme = useCallback(async () => {
+    if (!contentRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await captureCurrentPage();
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW - 20;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+
+      let y = 10;
+      let remaining = imgH;
+      while (remaining > 0) {
+        if (y !== 10) pdf.addPage();
+        const sliceH = Math.min(remaining, pageH - 20);
+        pdf.addImage(imgData, "JPEG", 10, y === 10 ? 10 : 10, imgW, imgH, undefined, "FAST", 0);
+        remaining -= sliceH;
+        y = 10;
+      }
+
+      const name = activeIndex !== null ? themes[activeIndex].name : "defaut";
+      pdf.save(`theme-${name.toLowerCase().replace(/\s+/g, "-")}.pdf`);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [activeIndex]);
+
+  const exportAllThemes = useCallback(async () => {
+    if (!contentRef.current) return;
+    setIsExporting(true);
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageW = pdf.internal.pageSize.getWidth();
+      const savedIndex = activeIndex;
+
+      // Default theme first
+      applyTheme(null);
+      await wait(300);
+      let canvas = await captureCurrentPage();
+      let imgW = pageW - 20;
+      let imgH = (canvas.height * imgW) / canvas.width;
+      pdf.setFontSize(16);
+      pdf.text("Thème : Défaut", 10, 10);
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 10, 16, imgW, imgH);
+
+      // Each theme
+      for (let i = 0; i < themes.length; i++) {
+        pdf.addPage();
+        applyTheme(themes[i]);
+        await wait(300);
+        canvas = await captureCurrentPage();
+        imgW = pageW - 20;
+        imgH = (canvas.height * imgW) / canvas.width;
+        pdf.setFontSize(16);
+        pdf.text(`Thème : ${themes[i].name}`, 10, 10);
+        pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 10, 16, imgW, imgH);
+      }
+
+      // Restore
+      if (savedIndex !== null) applyTheme(themes[savedIndex]);
+      else applyTheme(null);
+      setActiveIndex(savedIndex);
+
+      pdf.save("tous-les-themes.pdf");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [activeIndex]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
