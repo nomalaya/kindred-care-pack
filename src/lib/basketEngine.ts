@@ -93,6 +93,8 @@ export function composeBasket({
   causeKey,
   donationAmount,
   dietaryFilters = [],
+  situationId,
+  emotionalNudge,
 }: BasketInput): BasketItem[] {
   // 1. Filter products by cause relevance, stock, and visibility
   let pool = products.filter(
@@ -102,6 +104,16 @@ export function composeBasket({
       p.is_active_product !== false &&
       p.is_visible_public !== false
   );
+
+  // 1b. Boost products with situation_relevance matching the current situation
+  if (situationId) {
+    pool = pool.map((p) => ({
+      ...p,
+      priority_score: (p.situation_relevance ?? []).includes(situationId)
+        ? Math.min((p.priority_score ?? 3) + 2, 5)
+        : (p.priority_score ?? 3),
+    }));
+  }
 
   // 2. Apply dietary filters from beneficiary preferences
   if (dietaryFilters.includes("halal")) {
