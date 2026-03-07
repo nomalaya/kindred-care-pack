@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { themes, applyTheme, type ThemeDefinition } from "@/lib/themes";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Users, Package, ShieldCheck, ArrowRight, Palette } from "lucide-react";
+import { Heart, Users, Package, ShieldCheck, ArrowRight, Palette, Download, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const ThemeShowcase = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
