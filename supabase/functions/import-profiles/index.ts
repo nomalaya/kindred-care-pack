@@ -15,83 +15,62 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Read CSV bundled with the function
-    const csvPath = new URL("./data.csv", import.meta.url);
-    const csvText = await Deno.readTextFile(new URL(csvPath));
-    
-    const lines = csvText.trim().split("\n");
-    const header = lines[0].split(";");
-    
-    const rows = lines.slice(1).map(line => {
-      const cols = line.split(";");
-      const obj: Record<string, string> = {};
-      header.forEach((h, i) => { obj[h.trim()] = cols[i]?.trim() || ""; });
-      return obj;
-    });
+    const { rows } = await req.json();
+    if (!rows || !Array.isArray(rows)) throw new Error("rows array required");
 
-    console.log(`Parsed ${rows.length} rows from CSV`);
+    console.log(`Processing ${rows.length} rows`);
+    const results = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
 
-    const BATCH_SIZE = 25;
-    const results = { created: 0, updated: 0, errors: [] as string[] };
+    for (const row of rows) {
+      try {
+        const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+          id: row.user_id,
+          email: row.email,
+          password: "Cash4Cause2024!",
+          email_confirm: true,
+          user_metadata: { display_name: row.display_name },
+        });
 
-    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-      const batch = rows.slice(i, i + BATCH_SIZE);
-      
-      for (const row of batch) {
-        try {
-          // 1. Create auth user with specified UUID
-          const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-            id: row.user_id,
-            email: row.email,
-            password: "Cash4Cause2024!",
-            email_confirm: true,
-            user_metadata: { display_name: row.display_name },
-          });
-
-          if (userError) {
-            // If user already exists, skip creation
-            if (!userError.message?.includes("already been registered")) {
-              results.errors.push(`User ${row.email}: ${userError.message}`);
-              continue;
-            }
+        if (userError) {
+          if (userError.message?.includes("already been registered")) {
+            results.skipped++;
           } else {
-            results.created++;
+            results.errors.push(`${row.email}: ${userError.message}`);
+            continue;
           }
-
-          // 2. Update the profile created by handle_new_user trigger
-          // Small delay to let trigger execute
-          await new Promise(r => setTimeout(r, 100));
-
-          const { error: updateError } = await supabase
-            .from("profiles")
-            .update({
-              display_name: row.display_name,
-              country_code: row.country_code || null,
-              region_code: row.region_code || null,
-              department_code: row.department_code || null,
-              postal_prefix: row.postal_prefix || null,
-              location_visibility: row.location_visibility === "True",
-            })
-            .eq("user_id", row.user_id);
-
-          if (updateError) {
-            results.errors.push(`Profile update ${row.email}: ${updateError.message}`);
-          } else {
-            results.updated++;
-          }
-        } catch (e) {
-          results.errors.push(`Row ${row.email}: ${e.message}`);
+        } else {
+          results.created++;
         }
-      }
 
-      console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(rows.length / BATCH_SIZE)} done. Created: ${results.created}, Updated: ${results.updated}`);
+        // Wait for trigger
+        await new Promise(r => setTimeout(r, 50));
+
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({
+            display_name: row.display_name,
+            country_code: row.country_code || null,
+            region_code: row.region_code || null,
+            department_code: row.department_code || null,
+            postal_prefix: row.postal_prefix || null,
+            location_visibility: row.location_visibility === "True",
+          })
+          .eq("user_id", row.user_id);
+
+        if (updateError) {
+          results.errors.push(`Update ${row.email}: ${updateError.message}`);
+        } else {
+          results.updated++;
+        }
+      } catch (e) {
+        results.errors.push(`${row.email}: ${e.message}`);
+      }
     }
 
     return new Response(JSON.stringify({
       success: true,
-      total_rows: rows.length,
       ...results,
-      first_errors: results.errors.slice(0, 20),
+      first_errors: results.errors.slice(0, 10),
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
