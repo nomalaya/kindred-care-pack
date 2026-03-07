@@ -87,7 +87,7 @@ const BeneficiarySelection = () => {
         </div>
 
         {loading ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="bg-card rounded-2xl p-8 animate-pulse h-64" />
             ))}
@@ -98,7 +98,7 @@ const BeneficiarySelection = () => {
             <Link to="/causes" className="text-primary underline mt-2 inline-block">Découvrir d'autres causes</Link>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
             {beneficiaries.map((b, i) => (
               <motion.div
                 key={b.id}
