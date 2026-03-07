@@ -26,6 +26,8 @@ export interface ProductRecord {
   is_visible_public: boolean | null;
   is_active_product: boolean | null;
   stock_quantity: number | null;
+  priority_score: number | null;
+  situation_relevance: string[] | null;
 }
 
 export interface ProfileMapping {
@@ -67,6 +69,8 @@ interface BasketInput {
   causeKey: string;
   donationAmount: number;
   dietaryFilters?: string[];
+  situationId?: string;
+  emotionalNudge?: string;
 }
 
 /**
@@ -89,6 +93,8 @@ export function composeBasket({
   causeKey,
   donationAmount,
   dietaryFilters = [],
+  situationId,
+  emotionalNudge,
 }: BasketInput): BasketItem[] {
   // 1. Filter products by cause relevance, stock, and visibility
   let pool = products.filter(
@@ -98,6 +104,16 @@ export function composeBasket({
       p.is_active_product !== false &&
       p.is_visible_public !== false
   );
+
+  // 1b. Boost products with situation_relevance matching the current situation
+  if (situationId) {
+    pool = pool.map((p) => ({
+      ...p,
+      priority_score: (p.situation_relevance ?? []).includes(situationId)
+        ? Math.min((p.priority_score ?? 3) + 2, 5)
+        : (p.priority_score ?? 3),
+    }));
+  }
 
   // 2. Apply dietary filters from beneficiary preferences
   if (dietaryFilters.includes("halal")) {
@@ -141,7 +157,7 @@ export function composeBasket({
   for (const family of activeFamilies) {
     const familyProducts = pool
       .filter((p) => p.emotional_family === family && !usedIds.has(p.id))
-      .sort((a, b) => a.price - b.price);
+      .sort((a, b) => (b.priority_score ?? 3) - (a.priority_score ?? 3) || a.price - b.price);
 
     const minKey = FAMILY_MIN_KEY[family];
     const minItems = minKey ? ((profileMapping[minKey] as number) || 0) : 0;
@@ -159,10 +175,15 @@ export function composeBasket({
   }
 
   // 5. Second pass: fill remaining budget with more products (priority order)
-  for (const family of activeFamilies) {
+  // If emotionalNudge is set, prioritize that family first
+  const fillOrder = emotionalNudge
+    ? [emotionalNudge, ...activeFamilies.filter((f) => f !== emotionalNudge)]
+    : activeFamilies;
+
+  for (const family of fillOrder) {
     const familyProducts = pool
       .filter((p) => p.emotional_family === family && !usedIds.has(p.id))
-      .sort((a, b) => a.price - b.price);
+      .sort((a, b) => (b.priority_score ?? 3) - (a.priority_score ?? 3) || a.price - b.price);
 
     for (const product of familyProducts) {
       if (remainingBudget < 1) break;
