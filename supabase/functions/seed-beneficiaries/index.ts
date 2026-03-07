@@ -71,7 +71,7 @@ serve(async (req) => {
       });
     }
 
-    for (let i = 0; i < SITUATIONS.length; i++) {
+    for (let i = 0; i < batchSituations.length; i++) {
       const sit = SITUATIONS[i];
       console.log(`Processing ${i + 1}/${SITUATIONS.length}: ${sit.title}`);
 
