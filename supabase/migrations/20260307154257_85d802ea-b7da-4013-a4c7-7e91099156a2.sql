@@ -1,0 +1,1 @@
+ALTER TABLE products ADD COLUMN IF NOT EXISTS priority_score integer DEFAULT 3;
