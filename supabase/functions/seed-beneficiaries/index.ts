@@ -43,6 +43,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const { batch = 0, clear = false } = await req.json().catch(() => ({}));
+    
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -50,12 +52,24 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Process in batches of 4 situations at a time
     const results: { situation: string; count: number; error?: string }[] = [];
     
-    // Delete existing beneficiaries first
-    const { error: delError } = await supabase.from("beneficiaries").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-    if (delError) console.error("Delete error:", delError);
+    if (clear) {
+      const { error: delError } = await supabase.from("beneficiaries").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      if (delError) console.error("Delete error:", delError);
+    }
+    
+    // Process 4 situations per batch
+    const batchSize = 4;
+    const start = batch * batchSize;
+    const end = Math.min(start + batchSize, SITUATIONS.length);
+    const batchSituations = SITUATIONS.slice(start, end);
+    
+    if (batchSituations.length === 0) {
+      return new Response(JSON.stringify({ success: true, message: "All batches done", total_batches: Math.ceil(SITUATIONS.length / batchSize) }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     for (let i = 0; i < SITUATIONS.length; i++) {
       const sit = SITUATIONS[i];
