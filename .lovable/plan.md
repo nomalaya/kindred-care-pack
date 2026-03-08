@@ -1,124 +1,130 @@
 
 
-## Plan: Advanced Donation Conversion Mechanisms
+## Analyse de l'existant
 
-### 1. Emergency Micro-Donation Upsell
+En examinant le code, je constate qu'un système de proximité basique existe déjà :
+- **BeneficiarySelection.tsx** : Badge "Proche de chez vous" quand `b.region === donorRegion`
+- **Table profiles** : Colonnes `country_code`, `region_code`, `department_code`, `postal_prefix` déjà présentes
+- **Table beneficiaries** : Seulement `region` (text) et `address` (text)
 
-**New component: `src/components/EmergencyUpsell.tsx`**
-- Displays 3 toggleable pack cards (5€ alimentaire, 8€ hygiène, 10€ bébé) with subtle pulse animation on the heart icon
-- Only one pack selectable at a time (radio-style toggle)
-- framer-motion scale-in animation when pack is selected
-- Props: `selectedPack`, `onSelectPack`, callback pattern
+La logique actuelle simule la région du donateur via localStorage et compare avec le champ texte `region` des bénéficiaires.
 
-**Update `DonationFlow.tsx`**:
-- Add state `emergencyPack: { name, amount } | null`
-- Insert `EmergencyUpsell` between `DonationBasket` and the donate button
-- Update `TaxDeduction` to receive `amount + emergencyPack.amount`
-- Update donate button text to show total: "Donner {total}€"
-- On submit, store emergency pack info in the `products_sent` JSONB field alongside main products
+## Plan d'implémentation
 
-**Update `TaxDeduction.tsx`**:
-- Accept optional `extraAmount` and `extraLabel` props to show the breakdown (Don actuel / Ajout pack / Total / Déduction / Coût réel) — switch from 3-col to 5-row layout when extra is present
+### ÉTAPE 1 : Ajouter colonnes géographiques à beneficiaries
 
-### 2. Social Proof System
-
-**New component: `src/components/SocialProof.tsx`**
-- Accepts a `variant` prop: `"homepage"`, `"cause"`, `"donation"`, `"confirmation"`
-- Queries donation stats from DB via a lightweight RPC or direct count query on `donations` table
-- Displays contextual messages in French:
-  - Homepage: "{X} personnes ont aidé quelqu'un aujourd'hui." + "Plus de {Y} colis solidaires envoyés."
-  - Donation page: "Les donateurs qui aident {name} donnent en moyenne {avg}€." near the CTA
-  - Confirmation: "{X} donateurs ont déjà aidé cette semaine."
-- Subtle fade-in animation, muted styling, small Users icon
-
-**DB function (migration)**: `get_donation_stats()` — returns `today_count`, `week_count`, `total_count`, `avg_amount_for_beneficiary(id)` using simple aggregates on the donations table. Security definer, accessible to anon.
-
-**Integration points**:
-- `Index.tsx`: Add `<SocialProof variant="homepage" />` in the stats section
-- `CauseSelection.tsx`: Add below the header
-- `DonationFlow.tsx`: Add near the donate button
-- `DonationConfirmation.tsx`: Add after the delivery timeline
-
-### 3. Visible Impact System
-
-**New component: `src/components/DonationImpact.tsx`**
-- Receives `amount` prop
-- Computes and displays impact metrics based on amount thresholds:
-  - Products count (interpolated: ~6 at 32€, ~10 at 45€, ~14 at 60€, ~18 at 75€)
-  - Meals supported (~4 at 32€, scaling up)
-  - Days of essential support (~3 at 32€, ~7 at 75€)
-- Each metric shown with an icon (Package, UtensilsCrossed, Calendar) and animated counter
-- Progress bars fill as amount increases
-- framer-motion `AnimatePresence` for smooth transitions when values change
-
-**Integration**: Insert in `DonationFlow.tsx` between the slider and tax deduction sections
-
-### 4. Enhanced Impact Storytelling (Confirmation)
-
-**Update `DonationConfirmation.tsx`**:
-- Accept `emergencyPack` prop to show it if selected
-- Add `<SocialProof variant="confirmation" />` 
-- Add impact summary section (reuse `DonationImpact` or inline): "Votre don de {X}€ permet {Y} produits essentiels et {Z} jours de soutien."
-- Enhance delivery timeline with connecting line between steps (vertical line with dots)
-
-### 5. Conversion-Optimized UI Polish
-
-**Update `DonationSlider.tsx`**:
-- Add tier-reached celebration: when slider crosses a tier threshold, briefly highlight the tier label with a scale animation and color pulse
-- Add a subtle glow effect on the active tier marker
-
-**Update `DonationBasket.tsx`**:
-- Add a gentle background color transition when new products appear (brief green tint)
-- Enhance the basket total with a counting animation
-
-**Update donate button in `DonationFlow.tsx`**:
-- Add a subtle pulse animation class when amount >= 45€ (higher tiers)
-- Warm gradient background shift based on donation amount
-
----
-
-### Files to Create/Edit
-
-| File | Action |
-|---|---|
-| `src/components/EmergencyUpsell.tsx` | Create — micro-donation pack selector |
-| `src/components/SocialProof.tsx` | Create — social proof messages |
-| `src/components/DonationImpact.tsx` | Create — visible impact metrics |
-| `src/components/TaxDeduction.tsx` | Edit — support extra pack amount in breakdown |
-| `src/pages/DonationFlow.tsx` | Edit — integrate upsell, impact, social proof |
-| `src/components/DonationConfirmation.tsx` | Edit — enhanced storytelling + social proof |
-| `src/components/DonationSlider.tsx` | Edit — tier celebration animations |
-| `src/components/DonationBasket.tsx` | Edit — enhanced entry animations |
-| `src/pages/Index.tsx` | Edit — add social proof |
-| `src/pages/CauseSelection.tsx` | Edit — add social proof |
-| `src/lib/constants.ts` | Edit — add emergency pack definitions + impact thresholds |
-| SQL migration | Create `get_donation_stats` RPC function |
-
-### DB Migration
-
+**Migration SQL** :
 ```sql
-CREATE OR REPLACE FUNCTION public.get_donation_stats(p_beneficiary_id uuid DEFAULT NULL)
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE result jsonb;
-BEGIN
-  SELECT jsonb_build_object(
-    'today_count', (SELECT count(*) FROM donations WHERE created_at >= CURRENT_DATE),
-    'week_count', (SELECT count(*) FROM donations WHERE created_at >= date_trunc('week', now())),
-    'total_count', (SELECT count(*) FROM donations),
-    'avg_amount', COALESCE(
-      (SELECT round(avg(amount)::numeric, 0) FROM donations WHERE beneficiary_id = p_beneficiary_id),
-      55
-    )
-  ) INTO result;
-  RETURN result;
-END;
-$$;
+ALTER TABLE public.beneficiaries 
+ADD COLUMN IF NOT EXISTS country_code TEXT,
+ADD COLUMN IF NOT EXISTS region_code TEXT,
+ADD COLUMN IF NOT EXISTS department_code TEXT,
+ADD COLUMN IF NOT EXISTS postal_prefix TEXT,
+ADD COLUMN IF NOT EXISTS location_visibility TEXT DEFAULT 'region';
 ```
 
-No other schema changes needed — emergency packs are stored in the existing `products_sent` JSONB column and `amount` includes the pack total.
+### ÉTAPE 2 : Peupler automatiquement les données géographiques
+
+**Edge Function** : `supabase/functions/populate-beneficiary-locations/index.ts`
+- Parser les adresses existantes avec regex pour extraire codes postaux français
+- Mapper codes postaux → département → région → pays selon référentiel INSEE
+- Mettre à jour les colonnes géographiques massivement
+
+**Logique de mapping** :
+- Code postal 75001-20 → Paris (75) → Île-de-France → FR
+- Code postal 69001-9 → Rhône (69) → Auvergne-Rhône-Alpes → FR
+- etc.
+
+### ÉTAPE 3 : Améliorer la détection donateur
+
+**Fichier** : `src/hooks/useGeolocation.tsx`
+```typescript
+const useGeolocation = () => {
+  const [location, setLocation] = useState(null);
+  
+  // 1. Géolocalisation IP (via service externe)
+  // 2. Fallback navigateur (avec permission)
+  // 3. Fallback localStorage actuel
+  // 4. Fallback pays par défaut (FR)
+};
+```
+
+**Integration avec profiles** :
+- Sauvegarder la localisation détectée dans `profiles` du donateur connecté
+- Utiliser cette donnée pour le matching de proximité
+
+### ÉTAPE 4 : Calculer score de proximité
+
+**Fichier** : `src/lib/proximityEngine.ts`
+```typescript
+export const calculateProximityScore = (
+  donorLocation: LocationData,
+  beneficiary: BeneficiaryData
+) => {
+  if (donorLocation.postal_prefix === beneficiary.postal_prefix) return 100;
+  if (donorLocation.department_code === beneficiary.department_code) return 90;
+  if (donorLocation.region_code === beneficiary.region_code) return 70;
+  if (donorLocation.country_code === beneficiary.country_code) return 40;
+  return 10;
+};
+
+export const getProximityLabel = (score: number) => {
+  if (score >= 100) return "Proche de chez vous";
+  if (score >= 90) return "Dans votre département";  
+  if (score >= 70) return "Dans votre région";
+  if (score >= 40) return "Dans votre pays";
+  return null;
+};
+```
+
+### ÉTAPE 5 : Mettre à jour la fonction RPC
+
+**Modification** : `get_empathy_beneficiaries`
+- Ajouter paramètre `p_donor_location` optionnel  
+- Inclure calcul de proximité dans la sélection
+- Garantir au moins 1 profil avec score élevé quand possible
+- Retourner `proximity_score` et `proximity_label` dans les résultats
+
+### ÉTAPE 6 : Mettre à jour l'UI
+
+**BeneficiarySelection.tsx** :
+- Remplacer la logique actuelle `donorRegion === b.region` 
+- Utiliser le nouveau `proximity_score` de la RPC
+- Afficher badge avec `proximity_label` retourné
+- Conserver l'icône Navigation et les styles existants
+
+**Badge amélioré** :
+```jsx
+{proximity_label && (
+  <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 text-xs">
+    <Navigation className="h-3 w-3 mr-1" />
+    {proximity_label}
+  </Badge>
+)}
+```
+
+### ÉTAPE 7 : Respecter la vie privée
+
+**Sécurité** :
+- Les colonnes géographiques détaillées restent dans la table `beneficiaries` (accès admin uniquement)
+- La vue `beneficiaries_public` ne doit PAS exposer ces colonnes
+- Seuls `proximity_score` et `proximity_label` calculés sont retournés au frontend
+- Aucune donnée géographique brute n'est jamais envoyée au client
+
+## Fichiers à modifier
+
+1. **Migration** : Nouvelles colonnes beneficiaries
+2. **Edge Function** : Population automatique des données géographiques  
+3. **Hook** : `src/hooks/useGeolocation.tsx` (nouveau)
+4. **Library** : `src/lib/proximityEngine.ts` (nouveau)
+5. **RPC Function** : Modification `get_empathy_beneficiaries`
+6. **Component** : Mise à jour `BeneficiarySelection.tsx`
+
+## Résultat attendu
+
+- Badge "Proche de chez vous" basé sur vraies données géographiques
+- Détection automatique de la localisation donateur (IP + navigateur)
+- Algorithme intelligent privilégiant la proximité dans la sélection des 4 profils
+- Préservation totale de la vie privée (aucune adresse exposée)
+- Interface identique avec badges de proximité plus précis
 
