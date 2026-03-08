@@ -459,41 +459,71 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
+          avg_donation_amount: number | null
           country_code: string | null
           created_at: string
+          csp_category: string | null
           department_code: string | null
           display_name: string | null
+          donation_frequency: string | null
           email: string | null
+          gender: string | null
           id: string
           location_visibility: boolean
+          motivation_tags: string[] | null
+          persona_type: string | null
           postal_prefix: string | null
+          preferred_causes: string[] | null
           region_code: string | null
+          social_media_active: boolean | null
+          tax_deduction_sensitive: boolean | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          age?: number | null
+          avg_donation_amount?: number | null
           country_code?: string | null
           created_at?: string
+          csp_category?: string | null
           department_code?: string | null
           display_name?: string | null
+          donation_frequency?: string | null
           email?: string | null
+          gender?: string | null
           id?: string
           location_visibility?: boolean
+          motivation_tags?: string[] | null
+          persona_type?: string | null
           postal_prefix?: string | null
+          preferred_causes?: string[] | null
           region_code?: string | null
+          social_media_active?: boolean | null
+          tax_deduction_sensitive?: boolean | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          age?: number | null
+          avg_donation_amount?: number | null
           country_code?: string | null
           created_at?: string
+          csp_category?: string | null
           department_code?: string | null
           display_name?: string | null
+          donation_frequency?: string | null
           email?: string | null
+          gender?: string | null
           id?: string
           location_visibility?: boolean
+          motivation_tags?: string[] | null
+          persona_type?: string | null
           postal_prefix?: string | null
+          preferred_causes?: string[] | null
           region_code?: string | null
+          social_media_active?: boolean | null
+          tax_deduction_sensitive?: boolean | null
           updated_at?: string
           user_id?: string
         }
