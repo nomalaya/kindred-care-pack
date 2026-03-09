@@ -90,11 +90,11 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-green-800 mb-2">
+              <CheckCircle className="h-16 w-16 text-green-600 dark:text-green-400 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-green-800 dark:text-green-200 mb-2">
                 Merci pour votre générosité !
               </h2>
-              <p className="text-green-700">
+              <p className="text-green-700 dark:text-green-300">
                 Votre don de {checkoutData.totalAmount.toFixed(2)}€ pour {beneficiary.alias_first_name} a été confirmé.
               </p>
             </motion.div>
