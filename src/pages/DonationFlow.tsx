@@ -275,8 +275,7 @@ const DonationFlow = () => {
             {/* Donate button */}
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
-                onClick={handleDonate}
-                disabled={submitting}
+                onClick={() => navigate(`/checkout/${beneficiaryId}`)}
                 className={`w-full text-cta-foreground text-lg py-6 shadow-warm-lg transition-all ${
                   isHighTier
                     ? "bg-gradient-to-r from-cta to-cta/80 hover:from-cta/90 hover:to-cta/70 animate-[pulse_3s_ease-in-out_infinite]"
@@ -284,14 +283,8 @@ const DonationFlow = () => {
                 }`}
                 size="lg"
               >
-                {submitting ? (
-                  "Traitement en cours..."
-                ) : (
-                  <>
-                    <Heart className="h-5 w-5 mr-2" />
-                    Donner {totalAmount}€ à {beneficiary.alias_first_name}
-                  </>
-                )}
+                <Heart className="h-5 w-5 mr-2" />
+                Donner {totalAmount}€ à {beneficiary.alias_first_name}
               </Button>
             </motion.div>
 
