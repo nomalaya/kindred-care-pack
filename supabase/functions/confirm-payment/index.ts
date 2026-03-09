@@ -71,25 +71,73 @@ serve(async (req) => {
         })
         .eq("id", checkoutSessionId);
 
-      // Create donation record
-      const { error: donationError } = await supabaseClient
-        .from("donations")
-        .insert({
-          donor_id: checkoutSession.donor_id,
-          beneficiary_id: checkoutSession.beneficiary_id,
-          amount: checkoutSession.total_amount,
-          products_sent: checkoutSession.basket_data || [],
-          checkout_session_id: checkoutSessionId,
-          stripe_payment_id: paymentIntent.id,
-          payment_status: "completed",
-          delivery_status: "confirmed",
-        });
+      // Determine if there's an emergency pack with a separate beneficiary
+      const emergencyPackData = checkoutSession.emergency_pack_data as any;
+      const emergencyBeneficiaryId = checkoutSession.emergency_beneficiary_id;
+      const emergencyPackAmount = emergencyPackData?.amount || 0;
 
-      if (donationError) {
-        console.error("Error creating donation:", donationError);
+      if (emergencyBeneficiaryId && emergencyPackAmount > 0) {
+        // Create TWO donation records: main + emergency
+        const mainAmount = checkoutSession.total_amount - emergencyPackAmount;
+
+        // Main donation
+        const { error: mainDonationError } = await supabaseClient
+          .from("donations")
+          .insert({
+            donor_id: checkoutSession.donor_id,
+            beneficiary_id: checkoutSession.beneficiary_id,
+            amount: mainAmount,
+            products_sent: checkoutSession.basket_data || [],
+            checkout_session_id: checkoutSessionId,
+            stripe_payment_id: paymentIntent.id,
+            payment_status: "completed",
+            delivery_status: "confirmed",
+          });
+
+        if (mainDonationError) {
+          console.error("Error creating main donation:", mainDonationError);
+        }
+
+        // Emergency pack donation — different beneficiary
+        const { error: emergencyDonationError } = await supabaseClient
+          .from("donations")
+          .insert({
+            donor_id: checkoutSession.donor_id,
+            beneficiary_id: emergencyBeneficiaryId,
+            amount: emergencyPackAmount,
+            products_sent: [emergencyPackData],
+            checkout_session_id: checkoutSessionId,
+            stripe_payment_id: paymentIntent.id,
+            payment_status: "completed",
+            delivery_status: "confirmed",
+          });
+
+        if (emergencyDonationError) {
+          console.error("Error creating emergency donation:", emergencyDonationError);
+        }
+
+        console.log(`Payment confirmed: main donation to ${checkoutSession.beneficiary_id}, emergency to ${emergencyBeneficiaryId}`);
+      } else {
+        // Single donation (no emergency pack or no separate beneficiary)
+        const { error: donationError } = await supabaseClient
+          .from("donations")
+          .insert({
+            donor_id: checkoutSession.donor_id,
+            beneficiary_id: checkoutSession.beneficiary_id,
+            amount: checkoutSession.total_amount,
+            products_sent: checkoutSession.basket_data || [],
+            checkout_session_id: checkoutSessionId,
+            stripe_payment_id: paymentIntent.id,
+            payment_status: "completed",
+            delivery_status: "confirmed",
+          });
+
+        if (donationError) {
+          console.error("Error creating donation:", donationError);
+        }
+
+        console.log(`Payment confirmed for checkout session: ${checkoutSessionId}`);
       }
-
-      console.log(`Payment confirmed for checkout session: ${checkoutSessionId}`);
     }
 
     return new Response(JSON.stringify({ received: true }), {

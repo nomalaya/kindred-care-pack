@@ -1,98 +1,124 @@
 
 
-# Attribution du don additionnel à un bénéficiaire différent
+## Plan: Advanced Donation Conversion Mechanisms
 
-## Résumé
+### 1. Emergency Micro-Donation Upsell
 
-Quand un donateur ajoute un colis d'urgence, le système sélectionnera automatiquement un bénéficiaire différent du bénéficiaire principal, en utilisant le matching par catégorie et la rotation existante.
+**New component: `src/components/EmergencyUpsell.tsx`**
+- Displays 3 toggleable pack cards (5€ alimentaire, 8€ hygiène, 10€ bébé) with subtle pulse animation on the heart icon
+- Only one pack selectable at a time (radio-style toggle)
+- framer-motion scale-in animation when pack is selected
+- Props: `selectedPack`, `onSelectPack`, callback pattern
 
-## Changements
+**Update `DonationFlow.tsx`**:
+- Add state `emergencyPack: { name, amount } | null`
+- Insert `EmergencyUpsell` between `DonationBasket` and the donate button
+- Update `TaxDeduction` to receive `amount + emergencyPack.amount`
+- Update donate button text to show total: "Donner {total}€"
+- On submit, store emergency pack info in the `products_sent` JSONB field alongside main products
 
-### 1. Migration base de données
+**Update `TaxDeduction.tsx`**:
+- Accept optional `extraAmount` and `extraLabel` props to show the breakdown (Don actuel / Ajout pack / Total / Déduction / Coût réel) — switch from 3-col to 5-row layout when extra is present
 
-Ajouter une colonne `emergency_beneficiary_id` (uuid, nullable) à `checkout_sessions` pour stocker le bénéficiaire du colis d'urgence.
+### 2. Social Proof System
 
-Créer une fonction RPC `get_emergency_beneficiary(p_exclude_id uuid, p_pack_type text)` qui :
-- Exclut le bénéficiaire principal (`p_exclude_id`)
-- Filtre selon le type de pack :
-  - `alimentaire` → bénéficiaires actifs triés par `rotation_score` (besoin alimentaire universel)
-  - `hygiene` → idem (besoin hygiène universel)
-  - `bebe` → bénéficiaires avec `children_count > 0` ou `beneficiary_category` contenant "enfant"/"famille"
-- Trie par `rotation_score DESC` pour répartir équitablement
-- Retourne 1 seul bénéficiaire
+**New component: `src/components/SocialProof.tsx`**
+- Accepts a `variant` prop: `"homepage"`, `"cause"`, `"donation"`, `"confirmation"`
+- Queries donation stats from DB via a lightweight RPC or direct count query on `donations` table
+- Displays contextual messages in French:
+  - Homepage: "{X} personnes ont aidé quelqu'un aujourd'hui." + "Plus de {Y} colis solidaires envoyés."
+  - Donation page: "Les donateurs qui aident {name} donnent en moyenne {avg}€." near the CTA
+  - Confirmation: "{X} donateurs ont déjà aidé cette semaine."
+- Subtle fade-in animation, muted styling, small Users icon
 
-### 2. Edge function `create-payment-intent`
+**DB function (migration)**: `get_donation_stats()` — returns `today_count`, `week_count`, `total_count`, `avg_amount_for_beneficiary(id)` using simple aggregates on the donations table. Security definer, accessible to anon.
 
-Quand `emergency_pack_data` est présent :
-- Appeler la fonction RPC `get_emergency_beneficiary` avec le `beneficiary_id` principal et le type du pack
-- Stocker `emergency_beneficiary_id` dans `checkout_sessions`
-- Ajouter l'info dans les métadonnées Stripe
-- Retourner `emergency_beneficiary_id` + `emergency_beneficiary_name` au frontend
+**Integration points**:
+- `Index.tsx`: Add `<SocialProof variant="homepage" />` in the stats section
+- `CauseSelection.tsx`: Add below the header
+- `DonationFlow.tsx`: Add near the donate button
+- `DonationConfirmation.tsx`: Add after the delivery timeline
 
-### 3. Edge function `confirm-payment`
+### 3. Visible Impact System
 
-Quand le paiement est confirmé et qu'un `emergency_beneficiary_id` existe dans la session :
-- Créer **2 enregistrements** dans `donations` :
-  - Don principal → `beneficiary_id` avec `amount = total - emergency_pack_amount`
-  - Don additionnel → `emergency_beneficiary_id` avec `amount = emergency_pack_amount`
-- Les deux donations partagent le même `checkout_session_id` et `stripe_payment_id`
-- Les deux ont `delivery_status: "confirmed"` (même pipeline de suivi)
+**New component: `src/components/DonationImpact.tsx`**
+- Receives `amount` prop
+- Computes and displays impact metrics based on amount thresholds:
+  - Products count (interpolated: ~6 at 32€, ~10 at 45€, ~14 at 60€, ~18 at 75€)
+  - Meals supported (~4 at 32€, scaling up)
+  - Days of essential support (~3 at 32€, ~7 at 75€)
+- Each metric shown with an icon (Package, UtensilsCrossed, Calendar) and animated counter
+- Progress bars fill as amount increases
+- framer-motion `AnimatePresence` for smooth transitions when values change
 
-### 4. Frontend — `CheckoutData` type
+**Integration**: Insert in `DonationFlow.tsx` between the slider and tax deduction sections
 
-Ajouter `emergencyBeneficiary?: { id: string; alias_first_name: string }` au type `CheckoutData`.
+### 4. Enhanced Impact Storytelling (Confirmation)
 
-### 5. Frontend — `PaymentMethods.tsx`
+**Update `DonationConfirmation.tsx`**:
+- Accept `emergencyPack` prop to show it if selected
+- Add `<SocialProof variant="confirmation" />` 
+- Add impact summary section (reuse `DonationImpact` or inline): "Votre don de {X}€ permet {Y} produits essentiels et {Z} jours de soutien."
+- Enhance delivery timeline with connecting line between steps (vertical line with dots)
 
-Récupérer `emergency_beneficiary_id` et `emergency_beneficiary_name` depuis la réponse de l'edge function et les stocker dans `checkoutData`.
+### 5. Conversion-Optimized UI Polish
 
-### 6. Frontend — `OrderConfirmation.tsx`
+**Update `DonationSlider.tsx`**:
+- Add tier-reached celebration: when slider crosses a tier threshold, briefly highlight the tier label with a scale animation and color pulse
+- Add a subtle glow effect on the active tier marker
 
-Si un colis d'urgence a été ajouté, afficher le nom du bénéficiaire additionnel à côté du pack d'urgence dans le résumé :
-> "Pack urgence alimentaire — pour **Fatima**"
+**Update `DonationBasket.tsx`**:
+- Add a gentle background color transition when new products appear (brief green tint)
+- Enhance the basket total with a counting animation
 
-L'attestation fiscale affiche toujours le montant total combiné (inchangé).
+**Update donate button in `DonationFlow.tsx`**:
+- Add a subtle pulse animation class when amount >= 45€ (higher tiers)
+- Warm gradient background shift based on donation amount
 
-## Détails techniques
+---
 
-```text
-Flux de données :
-CartSummary (sélection pack) 
-  → PaymentMethods (appel edge function)
-    → create-payment-intent (RPC get_emergency_beneficiary → stocke emergency_beneficiary_id)
-      → retourne emergency_beneficiary au frontend
-  → confirm-payment (webhook → crée 2 donations séparées)
-  → OrderConfirmation (affiche les 2 bénéficiaires)
-```
+### Files to Create/Edit
 
-### Fonction SQL `get_emergency_beneficiary`
+| File | Action |
+|---|---|
+| `src/components/EmergencyUpsell.tsx` | Create — micro-donation pack selector |
+| `src/components/SocialProof.tsx` | Create — social proof messages |
+| `src/components/DonationImpact.tsx` | Create — visible impact metrics |
+| `src/components/TaxDeduction.tsx` | Edit — support extra pack amount in breakdown |
+| `src/pages/DonationFlow.tsx` | Edit — integrate upsell, impact, social proof |
+| `src/components/DonationConfirmation.tsx` | Edit — enhanced storytelling + social proof |
+| `src/components/DonationSlider.tsx` | Edit — tier celebration animations |
+| `src/components/DonationBasket.tsx` | Edit — enhanced entry animations |
+| `src/pages/Index.tsx` | Edit — add social proof |
+| `src/pages/CauseSelection.tsx` | Edit — add social proof |
+| `src/lib/constants.ts` | Edit — add emergency pack definitions + impact thresholds |
+| SQL migration | Create `get_donation_stats` RPC function |
+
+### DB Migration
 
 ```sql
-CREATE FUNCTION get_emergency_beneficiary(p_exclude_id uuid, p_pack_type text)
-RETURNS TABLE(id uuid, alias_first_name text)
-LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
+CREATE OR REPLACE FUNCTION public.get_donation_stats(p_beneficiary_id uuid DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
 AS $$
+DECLARE result jsonb;
 BEGIN
-  RETURN QUERY
-  SELECT b.id, b.alias_first_name
-  FROM beneficiaries b
-  WHERE b.is_active = true
-    AND b.id <> p_exclude_id
-    AND (
-      p_pack_type <> 'bebe' 
-      OR b.children_count > 0 
-      OR b.beneficiary_category IN ('famille_enfants', 'jeune_enfant')
+  SELECT jsonb_build_object(
+    'today_count', (SELECT count(*) FROM donations WHERE created_at >= CURRENT_DATE),
+    'week_count', (SELECT count(*) FROM donations WHERE created_at >= date_trunc('week', now())),
+    'total_count', (SELECT count(*) FROM donations),
+    'avg_amount', COALESCE(
+      (SELECT round(avg(amount)::numeric, 0) FROM donations WHERE beneficiary_id = p_beneficiary_id),
+      55
     )
-  ORDER BY b.rotation_score DESC NULLS LAST
-  LIMIT 1;
+  ) INTO result;
+  RETURN result;
 END;
 $$;
 ```
 
-## Ce qui ne change PAS
-
-- Interface utilisateur du funnel (aucun nouveau composant)
-- Système de matching existant (`get_empathy_beneficiaries`, `get_ranked_beneficiaries`)
-- Suivi de colis (même pipeline pour les 2 donations)
-- Calcul fiscal (montant total inchangé, une seule attestation)
+No other schema changes needed — emergency packs are stored in the existing `products_sent` JSONB column and `amount` includes the pack total.
 

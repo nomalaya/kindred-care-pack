@@ -61,7 +61,17 @@ const PaymentForm = ({ beneficiary, checkoutData, onUpdateData, onNext, onPrevio
         throw new Error(sessionError.message);
       }
 
-      const { client_secret, session_id } = data;
+      const { client_secret, session_id, emergency_beneficiary_id, emergency_beneficiary_name } = data;
+
+      // Store emergency beneficiary info if present
+      if (emergency_beneficiary_id && emergency_beneficiary_name) {
+        onUpdateData({
+          emergencyBeneficiary: {
+            id: emergency_beneficiary_id,
+            alias_first_name: emergency_beneficiary_name,
+          },
+        });
+      }
 
       // Confirm payment with Stripe
       const result = await stripe.confirmCardPayment(client_secret, {

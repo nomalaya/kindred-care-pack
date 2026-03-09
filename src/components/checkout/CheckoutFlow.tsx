@@ -43,6 +43,7 @@ export interface CheckoutData {
     createAccount: boolean;
   } | null;
   sessionId?: string;
+  emergencyBeneficiary?: { id: string; alias_first_name: string };
 }
 
 const CheckoutFlow = () => {
