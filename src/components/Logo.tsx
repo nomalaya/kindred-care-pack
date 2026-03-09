@@ -1,3 +1,4 @@
+import React from "react";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
@@ -5,7 +6,7 @@ interface LogoProps {
   size?: "sm" | "md" | "lg";
 }
 
-const Logo = ({ className, size = "md" }: LogoProps) => {
+const Logo = React.forwardRef<SVGSVGElement, LogoProps>(({ className, size = "md" }, ref) => {
   const sizeClasses = {
     sm: "h-5 w-5",
     md: "h-6 w-6", 
