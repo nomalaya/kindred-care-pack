@@ -15,6 +15,7 @@ const Logo = React.forwardRef<SVGSVGElement, LogoProps>(({ className, size = "md
 
   return (
     <svg
+      ref={ref}
       className={cn(sizeClasses[size], className)}
       viewBox="0 0 192.44 161.16"
       xmlns="http://www.w3.org/2000/svg"
