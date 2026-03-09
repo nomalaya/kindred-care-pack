@@ -1,130 +1,65 @@
 
+# Plan de remplacement du logo CashForCause
 
-## Analyse de l'existant
+## Analyse
+L'utilisateur souhaite remplacer le logo actuel (cœur rose de Lucide React) par son SVG personnalisé uniquement dans les zones de marque, et résoudre une erreur de migration de base de données.
 
-En examinant le code, je constate qu'un système de proximité basique existe déjà :
-- **BeneficiarySelection.tsx** : Badge "Proche de chez vous" quand `b.region === donorRegion`
-- **Table profiles** : Colonnes `country_code`, `region_code`, `department_code`, `postal_prefix` déjà présentes
-- **Table beneficiaries** : Seulement `region` (text) et `address` (text)
+### Emplacements du logo de marque identifiés :
+1. **Navbar** : `src/components/Navbar.tsx` - ligne 22
+2. **Page Auth** : `src/pages/Auth.tsx` - ligne 60  
+3. **Page ThemeShowcase** : `src/pages/ThemeShowcase.tsx` - ligne 183
+4. **Favicon** : `index.html` (actuellement `favicon.ico`)
 
-La logique actuelle simule la région du donateur via localStorage et compare avec le champ texte `region` des bénéficiaires.
+Les icônes Heart dans les boutons/étapes (DonationFlow, HowItWorks, EmergencyUpsell, etc.) resteront inchangées.
 
-## Plan d'implémentation
+## Étapes d'implémentation
 
-### ÉTAPE 1 : Ajouter colonnes géographiques à beneficiaries
+### 1. Analyser le fichier SVG fourni
+- Vérifier les dimensions et structure du SVG
+- S'assurer qu'il est optimisé pour différentes tailles
 
-**Migration SQL** :
-```sql
-ALTER TABLE public.beneficiaries 
-ADD COLUMN IF NOT EXISTS country_code TEXT,
-ADD COLUMN IF NOT EXISTS region_code TEXT,
-ADD COLUMN IF NOT EXISTS department_code TEXT,
-ADD COLUMN IF NOT EXISTS postal_prefix TEXT,
-ADD COLUMN IF NOT EXISTS location_visibility TEXT DEFAULT 'region';
-```
+### 2. Préparer les assets
+- Copier le SVG vers `src/assets/logo.svg`
+- Créer une version favicon si nécessaire
 
-### ÉTAPE 2 : Peupler automatiquement les données géographiques
-
-**Edge Function** : `supabase/functions/populate-beneficiary-locations/index.ts`
-- Parser les adresses existantes avec regex pour extraire codes postaux français
-- Mapper codes postaux → département → région → pays selon référentiel INSEE
-- Mettre à jour les colonnes géographiques massivement
-
-**Logique de mapping** :
-- Code postal 75001-20 → Paris (75) → Île-de-France → FR
-- Code postal 69001-9 → Rhône (69) → Auvergne-Rhône-Alpes → FR
-- etc.
-
-### ÉTAPE 3 : Améliorer la détection donateur
-
-**Fichier** : `src/hooks/useGeolocation.tsx`
+### 3. Créer un composant Logo réutilisable
+**Fichier**: `src/components/Logo.tsx`
 ```typescript
-const useGeolocation = () => {
-  const [location, setLocation] = useState(null);
-  
-  // 1. Géolocalisation IP (via service externe)
-  // 2. Fallback navigateur (avec permission)
-  // 3. Fallback localStorage actuel
-  // 4. Fallback pays par défaut (FR)
-};
+interface LogoProps {
+  className?: string;
+  size?: "sm" | "md" | "lg";
+}
+```
+- Props pour taille et classes CSS
+- Import direct du SVG pour préserver la qualité vectorielle
+
+### 4. Remplacer dans les composants
+**Modifications** :
+- `src/components/Navbar.tsx` : remplacer `<Heart>` par `<Logo>`
+- `src/pages/Auth.tsx` : remplacer `<Heart>` par `<Logo>`  
+- `src/pages/ThemeShowcase.tsx` : remplacer `<Heart>` par `<Logo>`
+
+### 5. Mettre à jour le favicon
+- Exporter une version PNG/ICO depuis le SVG
+- Modifier `index.html` pour référencer le nouveau favicon
+
+### 6. Tests de rendu
+- Vérifier l'affichage sur desktop/mobile
+- Contrôler les proportions dans différents contextes
+- S'assurer de la netteté sur tous les écrans
+
+## Contraintes respectées
+- **SVG vectoriel** : Pas de rasterisation, import direct
+- **Fond transparent** : Préservé par défaut SVG
+- **Responsive** : Tailles adaptatives via props
+- **Qualité** : Netteté garantie sur tous écrans
+- **Scope limité** : Seulement logo de marque, pas les icônes décoratives
+
+## Architecture technique
+```
+src/assets/logo.svg          // Fichier SVG source
+src/components/Logo.tsx      // Composant réutilisable
+public/favicon.png          // Favicon généré
 ```
 
-**Integration avec profiles** :
-- Sauvegarder la localisation détectée dans `profiles` du donateur connecté
-- Utiliser cette donnée pour le matching de proximité
-
-### ÉTAPE 4 : Calculer score de proximité
-
-**Fichier** : `src/lib/proximityEngine.ts`
-```typescript
-export const calculateProximityScore = (
-  donorLocation: LocationData,
-  beneficiary: BeneficiaryData
-) => {
-  if (donorLocation.postal_prefix === beneficiary.postal_prefix) return 100;
-  if (donorLocation.department_code === beneficiary.department_code) return 90;
-  if (donorLocation.region_code === beneficiary.region_code) return 70;
-  if (donorLocation.country_code === beneficiary.country_code) return 40;
-  return 10;
-};
-
-export const getProximityLabel = (score: number) => {
-  if (score >= 100) return "Proche de chez vous";
-  if (score >= 90) return "Dans votre département";  
-  if (score >= 70) return "Dans votre région";
-  if (score >= 40) return "Dans votre pays";
-  return null;
-};
-```
-
-### ÉTAPE 5 : Mettre à jour la fonction RPC
-
-**Modification** : `get_empathy_beneficiaries`
-- Ajouter paramètre `p_donor_location` optionnel  
-- Inclure calcul de proximité dans la sélection
-- Garantir au moins 1 profil avec score élevé quand possible
-- Retourner `proximity_score` et `proximity_label` dans les résultats
-
-### ÉTAPE 6 : Mettre à jour l'UI
-
-**BeneficiarySelection.tsx** :
-- Remplacer la logique actuelle `donorRegion === b.region` 
-- Utiliser le nouveau `proximity_score` de la RPC
-- Afficher badge avec `proximity_label` retourné
-- Conserver l'icône Navigation et les styles existants
-
-**Badge amélioré** :
-```jsx
-{proximity_label && (
-  <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 text-xs">
-    <Navigation className="h-3 w-3 mr-1" />
-    {proximity_label}
-  </Badge>
-)}
-```
-
-### ÉTAPE 7 : Respecter la vie privée
-
-**Sécurité** :
-- Les colonnes géographiques détaillées restent dans la table `beneficiaries` (accès admin uniquement)
-- La vue `beneficiaries_public` ne doit PAS exposer ces colonnes
-- Seuls `proximity_score` et `proximity_label` calculés sont retournés au frontend
-- Aucune donnée géographique brute n'est jamais envoyée au client
-
-## Fichiers à modifier
-
-1. **Migration** : Nouvelles colonnes beneficiaries
-2. **Edge Function** : Population automatique des données géographiques  
-3. **Hook** : `src/hooks/useGeolocation.tsx` (nouveau)
-4. **Library** : `src/lib/proximityEngine.ts` (nouveau)
-5. **RPC Function** : Modification `get_empathy_beneficiaries`
-6. **Component** : Mise à jour `BeneficiarySelection.tsx`
-
-## Résultat attendu
-
-- Badge "Proche de chez vous" basé sur vraies données géographiques
-- Détection automatique de la localisation donateur (IP + navigateur)
-- Algorithme intelligent privilégiant la proximité dans la sélection des 4 profils
-- Préservation totale de la vie privée (aucune adresse exposée)
-- Interface identique avec badges de proximité plus précis
-
+Le composant Logo encapsulera le SVG avec des props pour la taille et les styles, garantissant une implémentation cohérente dans toute l'application.
