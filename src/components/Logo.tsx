@@ -15,14 +15,23 @@ const Logo = ({ className, size = "md" }: LogoProps) => {
   return (
     <svg
       className={cn(sizeClasses[size], className)}
-      viewBox="0 0 100 100"
+      viewBox="0 0 307.96 307.96"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <circle cx="50" cy="50" r="48" fill="#FF6B6B" stroke="white" strokeWidth="2"/>
-      <path d="M30 45 L35 40 L50 55 L65 40 L70 45 L50 65 Z" fill="white"/>
-      <circle cx="38" cy="35" r="3" fill="white"/>
-      <circle cx="62" cy="35" r="3" fill="white"/>
+      <circle
+        cx="153.98"
+        cy="153.98"
+        r="153.98"
+        fill="currentColor"
+        fillOpacity="0.1"
+      />
+      <path
+        d="M103.98 113.98c-16.57 0-30 13.43-30 30 0 21.21 30 60 30 60s30-38.79 30-60c0-16.57-13.43-30-30-30zm50 0c-16.57 0-30 13.43-30 30 0 21.21 30 60 30 60s30-38.79 30-60c0-16.57-13.43-30-30-30z"
+        fill="currentColor"
+      />
+      <circle cx="103.98" cy="143.98" r="8" fill="white" />
+      <circle cx="203.98" cy="143.98" r="8" fill="white" />
     </svg>
   );
 };
