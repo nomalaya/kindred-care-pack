@@ -40,6 +40,31 @@ serve(async (req) => {
       create_account,
     } = body;
 
+    // If emergency pack is present, find a different beneficiary using the RPC
+    let emergency_beneficiary_id: string | null = null;
+    let emergency_beneficiary_name: string | null = null;
+
+    if (emergency_pack_data && emergency_pack_data.id) {
+      // Use service role client to call the security definer function
+      const serviceClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+
+      const { data: emergencyBeneficiary, error: rpcError } = await serviceClient
+        .rpc("get_emergency_beneficiary", {
+          p_exclude_id: beneficiary_id,
+          p_pack_type: emergency_pack_data.id,
+        });
+
+      if (rpcError) {
+        console.error("Error finding emergency beneficiary:", rpcError);
+      } else if (emergencyBeneficiary && emergencyBeneficiary.length > 0) {
+        emergency_beneficiary_id = emergencyBeneficiary[0].id;
+        emergency_beneficiary_name = emergencyBeneficiary[0].alias_first_name;
+      }
+    }
+
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -61,6 +86,7 @@ serve(async (req) => {
         total_amount,
         basket_data: basket_data || [],
         emergency_pack_data,
+        emergency_beneficiary_id,
         status: "pending",
       })
       .select()
@@ -96,6 +122,7 @@ serve(async (req) => {
         checkout_session_id: session.id,
         beneficiary_id,
         donor_email,
+        ...(emergency_beneficiary_id ? { emergency_beneficiary_id } : {}),
       },
       description: `Don solidaire pour ${beneficiary_id}`,
     });
@@ -112,6 +139,8 @@ serve(async (req) => {
       JSON.stringify({
         client_secret: paymentIntent.client_secret,
         session_id: session.id,
+        emergency_beneficiary_id,
+        emergency_beneficiary_name,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

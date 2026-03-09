@@ -240,6 +240,7 @@ export type Database = {
           donor_id: string | null
           donor_name: string | null
           donor_phone: string | null
+          emergency_beneficiary_id: string | null
           emergency_pack_data: Json | null
           id: string
           status: string | null
@@ -257,6 +258,7 @@ export type Database = {
           donor_id?: string | null
           donor_name?: string | null
           donor_phone?: string | null
+          emergency_beneficiary_id?: string | null
           emergency_pack_data?: Json | null
           id?: string
           status?: string | null
@@ -274,6 +276,7 @@ export type Database = {
           donor_id?: string | null
           donor_name?: string | null
           donor_phone?: string | null
+          emergency_beneficiary_id?: string | null
           emergency_pack_data?: Json | null
           id?: string
           status?: string | null
@@ -780,6 +783,13 @@ export type Database = {
         Returns: undefined
       }
       get_donation_stats: { Args: { p_beneficiary_id?: string }; Returns: Json }
+      get_emergency_beneficiary: {
+        Args: { p_exclude_id: string; p_pack_type: string }
+        Returns: {
+          alias_first_name: string
+          id: string
+        }[]
+      }
       get_empathy_beneficiaries: {
         Args: {
           p_donor_location?: Json
