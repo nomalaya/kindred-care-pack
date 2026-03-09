@@ -83,7 +83,7 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
-        <Card className="text-center bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+        <Card className="text-center bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 dark:from-green-950 dark:to-emerald-950 dark:border-green-800">
           <CardContent className="p-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
