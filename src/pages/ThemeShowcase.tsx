@@ -5,7 +5,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Users, Package, ShieldCheck, ArrowRight, Palette, Download, Loader2 } from "lucide-react";
+import { Users, Package, ShieldCheck, ArrowRight, Palette, Download, Loader2 } from "lucide-react";
+import Logo from "@/components/Logo";
 import { motion } from "framer-motion";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -180,7 +181,7 @@ const ThemeShowcase = () => {
         <Section title="Navigation">
           <div className="bg-card/80 backdrop-blur-md border rounded-xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Heart className="h-6 w-6 text-cta fill-cta" />
+              <Logo className="text-cta" />
               <span className="text-xl font-bold text-foreground">CashForCause</span>
             </div>
             <div className="hidden md:flex items-center gap-4">

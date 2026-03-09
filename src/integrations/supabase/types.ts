@@ -26,9 +26,11 @@ export type Database = {
           avatar_url: string | null
           beneficiary_category: string | null
           children_count: number | null
+          country_code: string | null
           created_at: string
           culture_tags: string[] | null
           date_of_birth: string | null
+          department_code: string | null
           diet_tags: string[] | null
           donation_clicks: number | null
           donation_conversion_rate: number | null
@@ -40,11 +42,14 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_donation_date: string | null
+          location_visibility: string | null
+          postal_prefix: string | null
           profile_type: string | null
           profile_views: number | null
           real_first_name: string | null
           real_last_name: string | null
           region: string | null
+          region_code: string | null
           rotation_score: number | null
           short_story: string | null
           situation_id: string
@@ -66,9 +71,11 @@ export type Database = {
           avatar_url?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
+          country_code?: string | null
           created_at?: string
           culture_tags?: string[] | null
           date_of_birth?: string | null
+          department_code?: string | null
           diet_tags?: string[] | null
           donation_clicks?: number | null
           donation_conversion_rate?: number | null
@@ -80,11 +87,14 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_donation_date?: string | null
+          location_visibility?: string | null
+          postal_prefix?: string | null
           profile_type?: string | null
           profile_views?: number | null
           real_first_name?: string | null
           real_last_name?: string | null
           region?: string | null
+          region_code?: string | null
           rotation_score?: number | null
           short_story?: string | null
           situation_id: string
@@ -106,9 +116,11 @@ export type Database = {
           avatar_url?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
+          country_code?: string | null
           created_at?: string
           culture_tags?: string[] | null
           date_of_birth?: string | null
+          department_code?: string | null
           diet_tags?: string[] | null
           donation_clicks?: number | null
           donation_conversion_rate?: number | null
@@ -120,11 +132,14 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_donation_date?: string | null
+          location_visibility?: string | null
+          postal_prefix?: string | null
           profile_type?: string | null
           profile_views?: number | null
           real_first_name?: string | null
           real_last_name?: string | null
           region?: string | null
+          region_code?: string | null
           rotation_score?: number | null
           short_story?: string | null
           situation_id?: string
@@ -684,7 +699,11 @@ export type Database = {
       }
       get_donation_stats: { Args: { p_beneficiary_id?: string }; Returns: Json }
       get_empathy_beneficiaries: {
-        Args: { p_limit?: number; p_situation_id: string }
+        Args: {
+          p_donor_location?: Json
+          p_limit?: number
+          p_situation_id: string
+        }
         Returns: {
           alias_first_name: string
           approx_age: number
@@ -701,6 +720,8 @@ export type Database = {
           emotional_sentence: string
           id: string
           profile_type: string
+          proximity_label: string
+          proximity_score: number
           region: string
           rotation_score: number
           short_story: string
