@@ -57,7 +57,7 @@ const Auth = () => {
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-md mx-auto bg-card rounded-2xl p-8 shadow-card border">
           <div className="text-center mb-6">
-            <Heart className="h-8 w-8 text-cta mx-auto mb-2" />
+            <Logo size="lg" className="text-cta mx-auto mb-2" />
             <h1 className="text-2xl font-bold text-foreground">
               {isLogin ? "Content de vous revoir" : "Rejoignez CashForCause"}
             </h1>

@@ -20,7 +20,7 @@ const Navbar = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-md border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <Heart className="h-6 w-6 text-cta fill-cta" />
+          <Logo className="text-cta" />
           <span className="text-xl font-bold text-foreground">CashForCause</span>
         </Link>
 
