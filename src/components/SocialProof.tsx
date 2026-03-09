@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,7 @@ interface Stats {
   avg_amount: number;
 }
 
-const SocialProof = ({ variant, beneficiaryName, beneficiaryId }: Props) => {
+const SocialProof = React.forwardRef<HTMLDivElement, Props>(({ variant, beneficiaryName, beneficiaryId }, ref) => {
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
