@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import type { CheckoutData } from "./CheckoutFlow";
 
 // Initialize Stripe (using test key for now - should be configured in environment)
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_...");
+const stripePromise = loadStripe("pk_live_51S8g0PL3tw3IkWQWLigd0xSjrjsiDbNlDy85M7Zs3tBmVhJf2D0sH20cYCzp2qj1JkTzPjdqsikN1Fpq7Pj7g1fw00aaTrMblF");
 
 interface Beneficiary {
   id: string;
