@@ -230,14 +230,85 @@ export type Database = {
         }
         Relationships: []
       }
+      checkout_sessions: {
+        Row: {
+          basket_data: Json
+          beneficiary_id: string
+          create_account: boolean | null
+          created_at: string | null
+          donor_email: string | null
+          donor_id: string | null
+          donor_name: string | null
+          donor_phone: string | null
+          emergency_pack_data: Json | null
+          id: string
+          status: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          basket_data?: Json
+          beneficiary_id: string
+          create_account?: boolean | null
+          created_at?: string | null
+          donor_email?: string | null
+          donor_id?: string | null
+          donor_name?: string | null
+          donor_phone?: string | null
+          emergency_pack_data?: Json | null
+          id?: string
+          status?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          total_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          basket_data?: Json
+          beneficiary_id?: string
+          create_account?: boolean | null
+          created_at?: string | null
+          donor_email?: string | null
+          donor_id?: string | null
+          donor_name?: string | null
+          donor_phone?: string | null
+          emergency_pack_data?: Json | null
+          id?: string
+          status?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_sessions_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_sessions_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiaries_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       donations: {
         Row: {
           amount: number
           beneficiary_id: string
+          checkout_session_id: string | null
           created_at: string
           delivery_status: string
           donor_id: string
           id: string
+          payment_status: string | null
           products_sent: Json | null
           stripe_payment_id: string | null
           updated_at: string
@@ -245,10 +316,12 @@ export type Database = {
         Insert: {
           amount: number
           beneficiary_id: string
+          checkout_session_id?: string | null
           created_at?: string
           delivery_status?: string
           donor_id: string
           id?: string
+          payment_status?: string | null
           products_sent?: Json | null
           stripe_payment_id?: string | null
           updated_at?: string
@@ -256,10 +329,12 @@ export type Database = {
         Update: {
           amount?: number
           beneficiary_id?: string
+          checkout_session_id?: string | null
           created_at?: string
           delivery_status?: string
           donor_id?: string
           id?: string
+          payment_status?: string | null
           products_sent?: Json | null
           stripe_payment_id?: string | null
           updated_at?: string
@@ -277,6 +352,13 @@ export type Database = {
             columns: ["beneficiary_id"]
             isOneToOne: false
             referencedRelation: "beneficiaries_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "donations_checkout_session_id_fkey"
+            columns: ["checkout_session_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_sessions"
             referencedColumns: ["id"]
           },
         ]

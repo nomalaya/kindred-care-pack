@@ -1,3 +1,4 @@
+import React from "react";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
@@ -5,7 +6,7 @@ interface LogoProps {
   size?: "sm" | "md" | "lg";
 }
 
-const Logo = ({ className, size = "md" }: LogoProps) => {
+const Logo = React.forwardRef<SVGSVGElement, LogoProps>(({ className, size = "md" }, ref) => {
   const sizeClasses = {
     sm: "h-5 w-5",
     md: "h-6 w-6", 
@@ -14,6 +15,7 @@ const Logo = ({ className, size = "md" }: LogoProps) => {
 
   return (
     <svg
+      ref={ref}
       className={cn(sizeClasses[size], className)}
       viewBox="0 0 192.44 161.16"
       xmlns="http://www.w3.org/2000/svg"
@@ -40,6 +42,7 @@ const Logo = ({ className, size = "md" }: LogoProps) => {
       />
     </svg>
   );
-};
+});
+Logo.displayName = "Logo";
 
 export default Logo;

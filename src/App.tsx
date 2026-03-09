@@ -9,6 +9,7 @@ import CauseSelection from "./pages/CauseSelection";
 import SituationSelection from "./pages/SituationSelection";
 import BeneficiarySelection from "./pages/BeneficiarySelection";
 import DonationFlow from "./pages/DonationFlow";
+import CheckoutFlow from "./components/checkout/CheckoutFlow";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
@@ -24,13 +25,14 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/causes" element={<CauseSelection />} />
             <Route path="/causes/:causeId/situations" element={<SituationSelection />} />
             <Route path="/situations/:situationId/beneficiaries" element={<BeneficiarySelection />} />
             <Route path="/donate/:beneficiaryId" element={<DonationFlow />} />
+            <Route path="/checkout/:beneficiaryId" element={<CheckoutFlow />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
