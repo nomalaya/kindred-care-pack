@@ -42,6 +42,7 @@ const Logo = React.forwardRef<SVGSVGElement, LogoProps>(({ className, size = "md
       />
     </svg>
   );
-};
+});
+Logo.displayName = "Logo";
 
 export default Logo;

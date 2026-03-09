@@ -73,6 +73,7 @@ const SocialProof = React.forwardRef<HTMLDivElement, Props>(({ variant, benefici
       </div>
     </motion.div>
   );
-};
+});
+SocialProof.displayName = "SocialProof";
 
 export default SocialProof;
