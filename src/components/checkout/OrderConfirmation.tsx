@@ -29,8 +29,9 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
   useEffect(() => {
     // Track successful donation
     const trackSuccess = () => {
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'purchase', {
+      // Google Analytics tracking (if available)
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', 'purchase', {
           transaction_id: checkoutData.sessionId,
           value: checkoutData.totalAmount,
           currency: 'EUR',
