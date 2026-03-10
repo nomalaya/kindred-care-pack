@@ -141,10 +141,7 @@ const DonationFlow = () => {
     setSubmitting(true);
 
     try {
-      const productsSent = [
-        ...basket.map((item) => ({ id: item.product.id, name: item.product.name, qty: item.quantity })),
-        ...(emergencyPack ? [{ id: `emergency_${emergencyPack.id}`, name: emergencyPack.name, qty: 1 }] : []),
-      ];
+      const productsSent = basket.map((item) => ({ id: item.product.id, name: item.product.name, qty: item.quantity }));
 
       const { error } = await supabase.from("donations").insert({
         donor_id: user.id,
