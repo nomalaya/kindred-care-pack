@@ -252,12 +252,14 @@ const DonationFlow = () => {
 
             <DonationSlider value={donationAmount} onChange={setDonationAmount} progressPercent={progressPercent} />
 
+            <p className="text-sm text-muted-foreground -mt-2">
+              Votre contribution est automatiquement transformée en aide concrète pour {beneficiary.alias_first_name}. Le contenu du colis s'adapte au montant choisi.
+            </p>
+
             <DonationImpact amount={donationAmount} basket={basket} />
 
             <TaxDeduction
               amount={donationAmount}
-              extraAmount={emergencyPack?.amount}
-              extraLabel={emergencyPack?.name}
             />
 
             <DonationBasket
@@ -265,8 +267,6 @@ const DonationFlow = () => {
               amount={donationAmount}
               progressPercent={progressPercent}
             />
-
-            <EmergencyUpsell selectedPack={emergencyPack} onSelectPack={setEmergencyPack} />
 
             <SocialProof
               variant="donation"
@@ -277,7 +277,9 @@ const DonationFlow = () => {
             {/* Donate button */}
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
-                onClick={() => navigate(`/checkout/${beneficiaryId}`)}
+                onClick={() => navigate(`/upsell/${beneficiaryId}`, {
+                  state: { donationAmount, beneficiaryName: beneficiary.alias_first_name },
+                })}
                 className={`w-full text-cta-foreground text-lg py-6 shadow-warm-lg transition-all ${
                   isHighTier
                     ? "bg-gradient-to-r from-cta to-cta/80 hover:from-cta/90 hover:to-cta/70 animate-[pulse_3s_ease-in-out_infinite]"
@@ -286,9 +288,11 @@ const DonationFlow = () => {
                 size="lg"
               >
                 <Heart className="h-5 w-5 mr-2" />
-                Donner {totalAmount}€ à {beneficiary.alias_first_name}
+                Aider {beneficiary.alias_first_name} avec ce colis ({totalAmount}€)
               </Button>
             </motion.div>
+
+            <ImpactTimeline />
 
             <p className="text-xs text-center text-muted-foreground">
               Paiement sécurisé. Votre don est utilisé à 100% pour le colis.

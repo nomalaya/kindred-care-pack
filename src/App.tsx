@@ -34,6 +34,7 @@ const App = () => (
             <Route path="/situations/:situationId/beneficiaries" element={<BeneficiarySelection />} />
             <Route path="/donate/:beneficiaryId" element={<DonationFlow />} />
             <Route path="/checkout/:beneficiaryId" element={<CheckoutFlow />} />
+            <Route path="/upsell/:beneficiaryId" element={<UpsellDonation />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
