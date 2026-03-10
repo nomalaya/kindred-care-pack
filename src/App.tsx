@@ -10,6 +10,7 @@ import SituationSelection from "./pages/SituationSelection";
 import BeneficiarySelection from "./pages/BeneficiarySelection";
 import DonationFlow from "./pages/DonationFlow";
 import CheckoutFlow from "./components/checkout/CheckoutFlow";
+import UpsellDonation from "./pages/UpsellDonation";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/situations/:situationId/beneficiaries" element={<BeneficiarySelection />} />
             <Route path="/donate/:beneficiaryId" element={<DonationFlow />} />
             <Route path="/checkout/:beneficiaryId" element={<CheckoutFlow />} />
+            <Route path="/upsell/:beneficiaryId" element={<UpsellDonation />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />

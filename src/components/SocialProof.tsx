@@ -44,9 +44,9 @@ const SocialProof = React.forwardRef<HTMLDivElement, Props>(({ variant, benefici
         : "Soyez le premier à aider cette semaine.",
     ],
     donation: [
-      beneficiaryName
-        ? `Les donateurs qui aident ${beneficiaryName} donnent en moyenne ${stats.avg_amount}€.`
-        : `Les donateurs donnent en moyenne ${stats.avg_amount}€.`,
+      stats.today_count > 0
+        ? `${stats.today_count} personne${stats.today_count > 1 ? "s" : ""} ${stats.today_count > 1 ? "ont" : "a"} déjà aidé aujourd'hui sur CashForCause`
+        : "Plusieurs personnes ont déjà aidé aujourd'hui",
     ],
     confirmation: [
       stats.week_count > 0

@@ -7,11 +7,11 @@ import DonationConfirmation from "@/components/DonationConfirmation";
 import DonationSlider from "@/components/DonationSlider";
 import TaxDeduction from "@/components/TaxDeduction";
 import DonationBasket from "@/components/DonationBasket";
-import EmergencyUpsell from "@/components/EmergencyUpsell";
 import DonationImpact from "@/components/DonationImpact";
 import SocialProof from "@/components/SocialProof";
+import ImpactTimeline from "@/components/ImpactTimeline";
 import { Button } from "@/components/ui/button";
-import { MIN_DONATION, MAX_DONATION, CAUSE_KEY_MAP, type EmergencyPack } from "@/lib/constants";
+import { MIN_DONATION, MAX_DONATION, CAUSE_KEY_MAP } from "@/lib/constants";
 import { composeBasket, type ProductRecord, type ProfileMapping } from "@/lib/basketEngine";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
@@ -49,9 +49,8 @@ const DonationFlow = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-  const [emergencyPack, setEmergencyPack] = useState<EmergencyPack | null>(null);
 
-  const totalAmount = donationAmount + (emergencyPack?.amount || 0);
+  const totalAmount = donationAmount;
   const progressPercent = ((donationAmount - MIN_DONATION) / (MAX_DONATION - MIN_DONATION)) * 100;
   const isHighTier = donationAmount >= 45;
 
@@ -142,10 +141,7 @@ const DonationFlow = () => {
     setSubmitting(true);
 
     try {
-      const productsSent = [
-        ...basket.map((item) => ({ id: item.product.id, name: item.product.name, qty: item.quantity })),
-        ...(emergencyPack ? [{ id: `emergency_${emergencyPack.id}`, name: emergencyPack.name, qty: 1 }] : []),
-      ];
+      const productsSent = basket.map((item) => ({ id: item.product.id, name: item.product.name, qty: item.quantity }));
 
       const { error } = await supabase.from("donations").insert({
         donor_id: user.id,
@@ -195,7 +191,7 @@ const DonationFlow = () => {
             amount={totalAmount}
             products={basket.map((i) => ({ id: i.product.id, name: i.product.name }))}
             basket={basket}
-            emergencyPack={emergencyPack}
+            emergencyPack={null}
             beneficiaryId={beneficiary.id}
           />
         </div>
@@ -250,12 +246,14 @@ const DonationFlow = () => {
 
             <DonationSlider value={donationAmount} onChange={setDonationAmount} progressPercent={progressPercent} />
 
+            <p className="text-sm text-muted-foreground -mt-2">
+              Votre contribution est automatiquement transformée en aide concrète pour {beneficiary.alias_first_name}. Le contenu du colis s'adapte au montant choisi.
+            </p>
+
             <DonationImpact amount={donationAmount} basket={basket} />
 
             <TaxDeduction
               amount={donationAmount}
-              extraAmount={emergencyPack?.amount}
-              extraLabel={emergencyPack?.name}
             />
 
             <DonationBasket
@@ -263,8 +261,6 @@ const DonationFlow = () => {
               amount={donationAmount}
               progressPercent={progressPercent}
             />
-
-            <EmergencyUpsell selectedPack={emergencyPack} onSelectPack={setEmergencyPack} />
 
             <SocialProof
               variant="donation"
@@ -275,7 +271,9 @@ const DonationFlow = () => {
             {/* Donate button */}
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
-                onClick={() => navigate(`/checkout/${beneficiaryId}`)}
+                onClick={() => navigate(`/upsell/${beneficiaryId}`, {
+                  state: { donationAmount, beneficiaryName: beneficiary.alias_first_name },
+                })}
                 className={`w-full text-cta-foreground text-lg py-6 shadow-warm-lg transition-all ${
                   isHighTier
                     ? "bg-gradient-to-r from-cta to-cta/80 hover:from-cta/90 hover:to-cta/70 animate-[pulse_3s_ease-in-out_infinite]"
@@ -284,9 +282,11 @@ const DonationFlow = () => {
                 size="lg"
               >
                 <Heart className="h-5 w-5 mr-2" />
-                Donner {totalAmount}€ à {beneficiary.alias_first_name}
+                Aider {beneficiary.alias_first_name} avec ce colis ({totalAmount}€)
               </Button>
             </motion.div>
+
+            <ImpactTimeline />
 
             <p className="text-xs text-center text-muted-foreground">
               Paiement sécurisé. Votre don est utilisé à 100% pour le colis.
