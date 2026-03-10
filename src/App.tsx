@@ -10,6 +10,7 @@ import SituationSelection from "./pages/SituationSelection";
 import BeneficiarySelection from "./pages/BeneficiarySelection";
 import DonationFlow from "./pages/DonationFlow";
 import CheckoutFlow from "./components/checkout/CheckoutFlow";
+import UpsellDonation from "./pages/UpsellDonation";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
