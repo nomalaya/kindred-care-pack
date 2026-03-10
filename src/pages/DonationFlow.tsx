@@ -191,7 +191,7 @@ const DonationFlow = () => {
             amount={totalAmount}
             products={basket.map((i) => ({ id: i.product.id, name: i.product.name }))}
             basket={basket}
-            emergencyPack={emergencyPack}
+            emergencyPack={null}
             beneficiaryId={beneficiary.id}
           />
         </div>
