@@ -176,7 +176,7 @@ const DonationBasket = ({ items, amount, progressPercent }: Props) => {
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         className="flex items-center gap-3 py-2 px-3 rounded-lg bg-background"
                       >
-                        <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
                         <span className="text-sm text-foreground flex-1">
                           {item.product.name}
                           {item.quantity > 1 && (
@@ -188,29 +188,6 @@ const DonationBasket = ({ items, amount, progressPercent }: Props) => {
                               ×{item.quantity}
                             </motion.span>
                           )}
-                        </span>
-                        {/* Diet/cultural badges */}
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {dietBadges.slice(0, 2).map((key) => {
-                            const badge = DIET_BADGES[key];
-                            return (
-                              <Tooltip key={key}>
-                                <TooltipTrigger asChild>
-                                  <span
-                                    className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${badge.color}`}
-                                  >
-                                    {badge.emoji}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  <p>{badge.label}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            );
-                          })}
-                        </div>
-                        <span className="text-xs text-muted-foreground capitalize flex-shrink-0">
-                          {item.product.subcategory || item.product.category}
                         </span>
                       </motion.div>
                     );
