@@ -10,6 +10,8 @@ import DonationBasket from "@/components/DonationBasket";
 import EmergencyUpsell from "@/components/EmergencyUpsell";
 import DonationImpact from "@/components/DonationImpact";
 import SocialProof from "@/components/SocialProof";
+import ImpactTimeline from "@/components/ImpactTimeline";
+import SocialProof from "@/components/SocialProof";
 import { Button } from "@/components/ui/button";
 import { MIN_DONATION, MAX_DONATION, CAUSE_KEY_MAP, type EmergencyPack } from "@/lib/constants";
 import { composeBasket, type ProductRecord, type ProfileMapping } from "@/lib/basketEngine";
