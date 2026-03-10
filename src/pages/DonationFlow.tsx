@@ -49,9 +49,8 @@ const DonationFlow = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-  const [emergencyPack, setEmergencyPack] = useState<EmergencyPack | null>(null);
 
-  const totalAmount = donationAmount + (emergencyPack?.amount || 0);
+  const totalAmount = donationAmount;
   const progressPercent = ((donationAmount - MIN_DONATION) / (MAX_DONATION - MIN_DONATION)) * 100;
   const isHighTier = donationAmount >= 45;
 
