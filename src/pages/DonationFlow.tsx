@@ -11,7 +11,7 @@ import DonationImpact from "@/components/DonationImpact";
 import SocialProof from "@/components/SocialProof";
 import ImpactTimeline from "@/components/ImpactTimeline";
 import { Button } from "@/components/ui/button";
-import { MIN_DONATION, MAX_DONATION, CAUSE_KEY_MAP, type EmergencyPack } from "@/lib/constants";
+import { MIN_DONATION, MAX_DONATION, CAUSE_KEY_MAP } from "@/lib/constants";
 import { composeBasket, type ProductRecord, type ProfileMapping } from "@/lib/basketEngine";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
