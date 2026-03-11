@@ -141,6 +141,26 @@ const DonationBasket = ({ items, amount, progressPercent }: Props) => {
                             </motion.span>
                           )}
                         </span>
+                        {dietBadges.length > 0 && (
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {dietBadges.map((badge) => {
+                              const config = DIET_BADGES[badge];
+                              if (!config) return null;
+                              return (
+                                <Tooltip key={badge}>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${config.color}`}>
+                                      {config.emoji} {config.label}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{config.label}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })}
+                          </div>
+                        )}
                       </motion.div>
                     );
                   })}
