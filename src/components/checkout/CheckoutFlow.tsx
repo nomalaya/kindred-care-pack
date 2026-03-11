@@ -49,7 +49,19 @@ export interface CheckoutData {
 const CheckoutFlow = () => {
   const { beneficiaryId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+
+  // Read navigation state from UpsellDonation
+  const navState = location.state as {
+    donationAmount?: number;
+    emergencyPack?: EmergencyPack | null;
+    beneficiaryName?: string;
+  } | null;
+
+  const initialDonationAmount = navState?.donationAmount || 30;
+  const initialEmergencyPack = navState?.emergencyPack || null;
+  const initialTotal = initialDonationAmount + (initialEmergencyPack?.amount || 0);
 
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("cart");
   const [loading, setLoading] = useState(true);
@@ -59,8 +71,8 @@ const CheckoutFlow = () => {
   
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({
     basketItems: [],
-    emergencyPack: null,
-    totalAmount: 0,
+    emergencyPack: initialEmergencyPack,
+    totalAmount: initialTotal,
     donorInfo: null,
   });
 
