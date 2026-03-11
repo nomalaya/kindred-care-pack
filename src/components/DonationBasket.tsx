@@ -150,16 +150,7 @@ const DonationBasket = ({ items, amount, progressPercent }: Props) => {
           </AnimatePresence>
         </div>
 
-        {/* Next unlock hint */}
-        {nextTier && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-3 text-xs text-muted-foreground text-center bg-muted/50 rounded-lg py-2 px-3"
-          >
-            🔓 +{nextTier.amount - amount}€ pour débloquer <span className="font-semibold text-foreground">{nextTier.label}</span>
-          </motion.div>
-        )}
+        {/* Next unlock hint removed — clean display */}
 
         <div className="mt-4 pt-4 border-t flex items-center justify-between">
           <AnimatePresence mode="wait">
