@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
@@ -49,7 +49,19 @@ export interface CheckoutData {
 const CheckoutFlow = () => {
   const { beneficiaryId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+
+  // Read navigation state from UpsellDonation
+  const navState = location.state as {
+    donationAmount?: number;
+    emergencyPack?: EmergencyPack | null;
+    beneficiaryName?: string;
+  } | null;
+
+  const initialDonationAmount = navState?.donationAmount || 30;
+  const initialEmergencyPack = navState?.emergencyPack || null;
+  const initialTotal = initialDonationAmount + (initialEmergencyPack?.amount || 0);
 
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("cart");
   const [loading, setLoading] = useState(true);
@@ -59,8 +71,8 @@ const CheckoutFlow = () => {
   
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({
     basketItems: [],
-    emergencyPack: null,
-    totalAmount: 0,
+    emergencyPack: initialEmergencyPack,
+    totalAmount: initialTotal,
     donorInfo: null,
   });
 
@@ -87,19 +99,19 @@ const CheckoutFlow = () => {
           if (mapping) setProfileMapping(mapping as unknown as ProfileMapping);
         }
 
-        // Initialize basket with default donation amount
+        // Initialize basket with donation amount from navigation state
         const initialBasket = composeBasket({
           products: (pRes.data as unknown as ProductRecord[]) || [],
           profileMapping: profileMapping || null,
-          causeKey: "", // Will be resolved later if needed
-          donationAmount: 30,
+          causeKey: "",
+          donationAmount: initialDonationAmount,
           dietaryFilters: b?.diet_tags || [],
         });
 
         setCheckoutData(prev => ({
           ...prev,
           basketItems: initialBasket,
-          totalAmount: 30,
+          totalAmount: initialDonationAmount + (prev.emergencyPack?.amount || 0),
         }));
       } catch (error) {
         console.error("Error loading checkout data:", error);

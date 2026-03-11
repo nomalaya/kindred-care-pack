@@ -282,7 +282,7 @@ const DonationFlow = () => {
                 size="lg"
               >
                 <Heart className="h-5 w-5 mr-2" />
-                Aider {beneficiary.alias_first_name} avec ce colis ({totalAmount}€)
+                Envoyer ce colis à {beneficiary.alias_first_name} — {totalAmount}€
               </Button>
             </motion.div>
 

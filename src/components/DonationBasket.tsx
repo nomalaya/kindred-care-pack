@@ -101,54 +101,6 @@ const DonationBasket = ({ items, amount, progressPercent }: Props) => {
           <h3 className="text-lg font-semibold text-foreground">Contenu du colis</h3>
         </div>
 
-        {/* Family completion gamification bar */}
-        <div className="flex items-center gap-1.5 mb-3">
-          {FAMILY_ORDER.map((family) => {
-            const isActive = activeFamilies.includes(family);
-            const isComplete = completedFamilies.includes(family);
-            return (
-              <Tooltip key={family}>
-                <TooltipTrigger asChild>
-                  <motion.div
-                    initial={false}
-                    animate={{
-                      scale: isComplete ? [1, 1.2, 1] : 1,
-                      opacity: isActive ? 1 : 0.3,
-                    }}
-                    transition={{ duration: 0.3 }}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border transition-colors ${
-                      isComplete
-                        ? "border-primary/40 bg-primary/10 text-primary"
-                        : isActive
-                        ? "border-border bg-muted text-foreground"
-                        : "border-border bg-muted/50 text-muted-foreground"
-                    }`}
-                  >
-                    <span>{FAMILY_ICONS[family] || "📦"}</span>
-                    {isComplete && <Check className="h-3 w-3" />}
-                  </motion.div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="font-medium">{EMOTIONAL_FAMILY_LABELS[family] || family}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {isComplete ? "Famille complète ✓" : isActive ? `${grouped[family]?.length || 0} article(s)` : "Non débloqué"}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
-          {completedFamilies.length >= 3 && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="ml-auto flex items-center gap-1 text-xs font-semibold text-primary"
-            >
-              <Trophy className="h-4 w-4" />
-              {completedFamilies.length}/{FAMILY_ORDER.length}
-            </motion.div>
-          )}
-        </div>
-
         <Progress value={progressPercent} className="h-1.5 mb-4" />
 
         <div className="space-y-4">
@@ -189,6 +141,26 @@ const DonationBasket = ({ items, amount, progressPercent }: Props) => {
                             </motion.span>
                           )}
                         </span>
+                        {dietBadges.length > 0 && (
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {dietBadges.map((badge) => {
+                              const config = DIET_BADGES[badge];
+                              if (!config) return null;
+                              return (
+                                <Tooltip key={badge}>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${config.color}`}>
+                                      {config.emoji} {config.label}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{config.label}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })}
+                          </div>
+                        )}
                       </motion.div>
                     );
                   })}
@@ -198,16 +170,7 @@ const DonationBasket = ({ items, amount, progressPercent }: Props) => {
           </AnimatePresence>
         </div>
 
-        {/* Next unlock hint */}
-        {nextTier && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-3 text-xs text-muted-foreground text-center bg-muted/50 rounded-lg py-2 px-3"
-          >
-            🔓 +{nextTier.amount - amount}€ pour débloquer <span className="font-semibold text-foreground">{nextTier.label}</span>
-          </motion.div>
-        )}
+        {/* Next unlock hint removed — clean display */}
 
         <div className="mt-4 pt-4 border-t flex items-center justify-between">
           <AnimatePresence mode="wait">
