@@ -99,19 +99,19 @@ const CheckoutFlow = () => {
           if (mapping) setProfileMapping(mapping as unknown as ProfileMapping);
         }
 
-        // Initialize basket with default donation amount
+        // Initialize basket with donation amount from navigation state
         const initialBasket = composeBasket({
           products: (pRes.data as unknown as ProductRecord[]) || [],
           profileMapping: profileMapping || null,
-          causeKey: "", // Will be resolved later if needed
-          donationAmount: 30,
+          causeKey: "",
+          donationAmount: initialDonationAmount,
           dietaryFilters: b?.diet_tags || [],
         });
 
         setCheckoutData(prev => ({
           ...prev,
           basketItems: initialBasket,
-          totalAmount: 30,
+          totalAmount: initialDonationAmount + (prev.emergencyPack?.amount || 0),
         }));
       } catch (error) {
         console.error("Error loading checkout data:", error);
