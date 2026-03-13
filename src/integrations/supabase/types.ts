@@ -26,6 +26,7 @@ export type Database = {
           avatar_url: string | null
           beneficiary_category: string | null
           children_count: number | null
+          context_badge: string | null
           country_code: string | null
           created_at: string
           culture_tags: string[] | null
@@ -71,6 +72,7 @@ export type Database = {
           avatar_url?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
+          context_badge?: string | null
           country_code?: string | null
           created_at?: string
           culture_tags?: string[] | null
@@ -116,6 +118,7 @@ export type Database = {
           avatar_url?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
+          context_badge?: string | null
           country_code?: string | null
           created_at?: string
           culture_tags?: string[] | null
@@ -698,6 +701,7 @@ export type Database = {
           avatar_url: string | null
           beneficiary_category: string | null
           children_count: number | null
+          context_badge: string | null
           culture_tags: string[] | null
           diet_tags: string[] | null
           emotional_score: number | null
@@ -724,6 +728,7 @@ export type Database = {
           avatar_url?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
+          context_badge?: string | null
           culture_tags?: string[] | null
           diet_tags?: string[] | null
           emotional_score?: number | null
@@ -750,6 +755,7 @@ export type Database = {
           avatar_url?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
+          context_badge?: string | null
           culture_tags?: string[] | null
           diet_tags?: string[] | null
           emotional_score?: number | null
