@@ -16,6 +16,7 @@ import { composeBasket, type ProductRecord, type ProfileMapping } from "@/lib/ba
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { ArrowLeft, Heart, MapPin, Quote } from "lucide-react";
+import { getAgeRange } from "@/lib/ageRange";
 import { toast } from "sonner";
 
 interface Beneficiary {
@@ -224,7 +225,7 @@ const DonationFlow = () => {
                 />
               </div>
               <h2 className="text-xl font-semibold text-foreground text-center">
-                {beneficiary.alias_first_name} – {beneficiary.approx_age} ans
+                {beneficiary.alias_first_name} – {getAgeRange(beneficiary.approx_age)}
               </h2>
               <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mt-1 mb-3">
                 <MapPin className="h-3 w-3" /> {beneficiary.region}

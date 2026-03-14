@@ -6,6 +6,7 @@ import { CheckCircle, Download, Share2, Heart, Gift, Receipt } from "lucide-reac
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import SocialProof from "@/components/SocialProof";
 import { toast } from "sonner";
+import { getAgeRange } from "@/lib/ageRange";
 import type { CheckoutData } from "./CheckoutFlow";
 
 interface Beneficiary {
@@ -120,7 +121,7 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
                 {beneficiary.alias_first_name} vous remercie !
               </h3>
               <p className="text-sm text-muted-foreground">
-                {beneficiary.approx_age} ans • {beneficiary.region}
+                {getAgeRange(beneficiary.approx_age)} • {beneficiary.region}
               </p>
             </div>
           </div>

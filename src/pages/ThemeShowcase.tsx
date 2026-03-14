@@ -203,7 +203,7 @@ const ThemeShowcase = () => {
               </div>
               <h2 className="text-3xl md:text-5xl font-bold text-foreground leading-tight mb-4">
                 Choisissez qui vous voulez{" "}
-                <span className="text-gradient-primary">aider concrètement.</span>
+                <span className="text-gradient-primary">aider.</span>
               </h2>
               <p className="text-lg text-muted-foreground mb-8 max-w-xl">
                 Choisissez une cause, découvrez quelqu'un qui a besoin d'aide, et financez un colis personnalisé.
