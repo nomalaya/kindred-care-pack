@@ -369,6 +369,42 @@ export type Database = {
           },
         ]
       }
+      followed_beneficiaries: {
+        Row: {
+          beneficiary_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          beneficiary_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          beneficiary_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followed_beneficiaries_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followed_beneficiaries_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiaries_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matching_rules: {
         Row: {
           created_at: string | null

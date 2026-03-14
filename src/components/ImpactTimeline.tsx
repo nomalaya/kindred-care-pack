@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 
 const steps = [
-  { icon: "✅", label: "Votre contribution aujourd'hui" },
-  { icon: "📦", label: "Colis préparé le lendemain" },
-  { icon: "🎁", label: "Colis distribué le surlendemain" },
+  { icon: "❤️", label: "Votre don aujourd'hui" },
+  { icon: "📦", label: "Colis préparé demain" },
+  { icon: "🎁", label: "Colis distribué après-demain" },
 ];
 
 const ImpactTimeline = () => (
@@ -13,16 +13,19 @@ const ImpactTimeline = () => (
     transition={{ duration: 0.5, delay: 0.2 }}
     className="bg-card rounded-2xl p-6 border shadow-card"
   >
-    <div className="flex flex-col items-center gap-0">
+    <div className="flex flex-col items-start gap-0 pl-4">
       {steps.map((step, i) => (
-        <div key={i} className="flex flex-col items-center">
-          {i > 0 && (
-            <div className="w-px h-6 bg-border" />
-          )}
-          <div className="flex items-center gap-3">
-            <span className="text-lg">{step.icon}</span>
-            <span className="text-sm text-foreground font-medium">{step.label}</span>
+        <div key={i} className="flex items-start gap-4">
+          {/* Vertical connector */}
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-base">
+              {step.icon}
+            </div>
+            {i < steps.length - 1 && (
+              <div className="w-0.5 h-6 bg-primary/20" />
+            )}
           </div>
+          <span className="text-sm text-foreground font-medium pt-1.5">{step.label}</span>
         </div>
       ))}
     </div>
