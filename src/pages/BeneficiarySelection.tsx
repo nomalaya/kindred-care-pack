@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { getAgeRange } from "@/lib/ageRange";
+import { getBadgeStyle, getCardBg, genderizeBadge, DEFAULT_BADGE } from "@/lib/badgeStyles";
 
 interface Beneficiary {
   id: string;
@@ -32,74 +33,6 @@ interface Beneficiary {
   proximity_label?: string;
   context_badge?: string;
   created_at?: string;
-}
-
-const BADGE_STYLES: Record<string, string> = {
-  "Proche de chez vous": "border-primary/40 text-primary bg-primary/10",
-  "Dans votre département": "border-primary/40 text-primary bg-primary/10",
-  "Dans votre région": "border-primary/40 text-primary bg-primary/10",
-  "Dans votre pays": "border-primary/40 text-primary bg-primary/10",
-  "Nouveau bénéficiaire inscrit": "border-blue-400/40 text-blue-600 bg-blue-50",
-  "Logement provisoire": "border-amber-400/40 text-amber-700 bg-amber-50",
-  "Démarches juridiques en cours": "border-indigo-400/40 text-indigo-600 bg-indigo-50",
-  "Démarches administratives en cours": "border-indigo-400/40 text-indigo-600 bg-indigo-50",
-  "Très loin de sa famille": "border-violet-400/40 text-violet-600 bg-violet-50",
-  "Désert médical": "border-rose-400/40 text-rose-600 bg-rose-50",
-  "Zone rurale isolée": "border-emerald-400/40 text-emerald-600 bg-emerald-50",
-  "Impact de l'inflation": "border-slate-400/40 text-slate-600 bg-slate-50",
-  "Apprend un nouveau métier": "border-teal-400/40 text-teal-600 bg-teal-50",
-  "1ère année universitaire": "border-cyan-400/40 text-cyan-600 bg-cyan-50",
-  "Nourrisson arrivé récemment": "border-pink-400/40 text-pink-600 bg-pink-50",
-  "1ère grossesse": "border-pink-400/40 text-pink-600 bg-pink-50",
-  "Difficile de vivre seul": "border-orange-400/40 text-orange-600 bg-orange-50",
-  "Difficile de vivre seule": "border-orange-400/40 text-orange-600 bg-orange-50",
-  "Difficile de vivre seul(e)": "border-orange-400/40 text-orange-600 bg-orange-50",
-  "Début de vie active": "border-lime-400/40 text-lime-700 bg-lime-50",
-  "Aidant familial": "border-purple-400/40 text-purple-600 bg-purple-50",
-  "Parcours de transition": "border-sky-400/40 text-sky-600 bg-sky-50",
-  "Manque de repères dans la ville": "border-stone-400/40 text-stone-600 bg-stone-50",
-  "Manque de commerces de proximité": "border-stone-400/40 text-stone-600 bg-stone-50",
-};
-
-// Card background tint per badge (very light)
-const BADGE_CARD_BG: Record<string, string> = {
-  "Proche de chez vous": "bg-primary/[0.03]",
-  "Dans votre département": "bg-primary/[0.03]",
-  "Dans votre région": "bg-primary/[0.03]",
-  "Dans votre pays": "bg-primary/[0.03]",
-  "Nouveau bénéficiaire inscrit": "bg-blue-50/40",
-  "Logement provisoire": "bg-amber-50/40",
-  "Démarches juridiques en cours": "bg-indigo-50/40",
-  "Démarches administratives en cours": "bg-indigo-50/40",
-  "Très loin de sa famille": "bg-violet-50/40",
-  "Désert médical": "bg-rose-50/40",
-  "Zone rurale isolée": "bg-emerald-50/40",
-  "Impact de l'inflation": "bg-slate-50/40",
-  "Apprend un nouveau métier": "bg-teal-50/40",
-  "1ère année universitaire": "bg-cyan-50/40",
-  "Nourrisson arrivé récemment": "bg-pink-50/40",
-  "1ère grossesse": "bg-pink-50/40",
-  "Difficile de vivre seul": "bg-orange-50/40",
-  "Difficile de vivre seule": "bg-orange-50/40",
-  "Difficile de vivre seul(e)": "bg-orange-50/40",
-  "Début de vie active": "bg-lime-50/40",
-  "Aidant familial": "bg-purple-50/40",
-  "Parcours de transition": "bg-sky-50/40",
-  "Manque de repères dans la ville": "bg-stone-50/40",
-  "Manque de commerces de proximité": "bg-stone-50/40",
-};
-
-const DEFAULT_BADGE = "Impact de l'inflation";
-
-function genderizeBadge(badge: string, gender: string): string {
-  if (badge === "Difficile de vivre seul(e)") {
-    return gender === "woman" ? "Difficile de vivre seule" : "Difficile de vivre seul";
-  }
-  return badge;
-}
-
-function getBadgeStyle(badge: string): string {
-  return BADGE_STYLES[badge] || BADGE_STYLES[DEFAULT_BADGE];
 }
 
 function isNewBeneficiary(createdAt?: string): boolean {
