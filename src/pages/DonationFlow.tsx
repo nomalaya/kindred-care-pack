@@ -4,14 +4,12 @@ import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import DonationConfirmation from "@/components/DonationConfirmation";
-import DonationSlider from "@/components/DonationSlider";
-import TaxDeduction from "@/components/TaxDeduction";
+import DonationAmountSelector from "@/components/DonationAmountSelector";
+import DonationImpactCard from "@/components/DonationImpactCard";
 import DonationBasket from "@/components/DonationBasket";
-import DonationImpact from "@/components/DonationImpact";
-import SocialProof from "@/components/SocialProof";
 import ImpactTimeline from "@/components/ImpactTimeline";
 import { Button } from "@/components/ui/button";
-import { MIN_DONATION, MAX_DONATION, CAUSE_KEY_MAP } from "@/lib/constants";
+import { DEFAULT_DONATION, CAUSE_KEY_MAP } from "@/lib/constants";
 import { composeBasket, type ProductRecord, type ProfileMapping } from "@/lib/basketEngine";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
@@ -35,6 +33,8 @@ interface Beneficiary {
   diet_tags?: string[];
   culture_tags?: string[];
   situation_id?: string;
+  children_count?: number;
+  family_members?: number;
 }
 
 const DonationFlow = () => {
@@ -46,14 +46,10 @@ const DonationFlow = () => {
   const [products, setProducts] = useState<ProductRecord[]>([]);
   const [profileMapping, setProfileMapping] = useState<ProfileMapping | null>(null);
   const [causeKey, setCauseKey] = useState<string>("");
-  const [donationAmount, setDonationAmount] = useState(MIN_DONATION);
+  const [donationAmount, setDonationAmount] = useState(DEFAULT_DONATION);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-
-  const totalAmount = donationAmount;
-  const progressPercent = ((donationAmount - MIN_DONATION) / (MAX_DONATION - MIN_DONATION)) * 100;
-  const isHighTier = donationAmount >= 45;
+  const [isFollowed, setIsFollowed] = useState(false);
 
   // ── Data Loading ─────────────────────────────────────────
 
@@ -68,7 +64,6 @@ const DonationFlow = () => {
       setBeneficiary(b);
       setProducts((pRes.data as unknown as ProductRecord[]) || []);
 
-      // Load profile mapping if beneficiary has a profile_type
       if (b?.profile_type) {
         const { data: mapping } = await supabase
           .from("profile_mappings" as any)
@@ -78,7 +73,6 @@ const DonationFlow = () => {
         if (mapping) setProfileMapping(mapping as unknown as ProfileMapping);
       }
 
-      // Resolve cause key from situation → cause
       if (b?.situation_id) {
         const { data: sit } = await supabase
           .from("situations")
@@ -106,19 +100,50 @@ const DonationFlow = () => {
     });
   }, [beneficiaryId]);
 
+  // Check follow status
+  useEffect(() => {
+    if (!user || !beneficiaryId) return;
+    supabase
+      .from("followed_beneficiaries" as any)
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("beneficiary_id", beneficiaryId)
+      .maybeSingle()
+      .then(({ data }) => setIsFollowed(!!data));
+  }, [user, beneficiaryId]);
+
+  const toggleFollow = async () => {
+    if (!user) {
+      toast.error("Connectez-vous pour suivre un bénéficiaire");
+      return;
+    }
+    if (isFollowed) {
+      await supabase
+        .from("followed_beneficiaries" as any)
+        .delete()
+        .eq("user_id", user.id)
+        .eq("beneficiary_id", beneficiaryId);
+      setIsFollowed(false);
+    } else {
+      await supabase
+        .from("followed_beneficiaries" as any)
+        .insert({ user_id: user.id, beneficiary_id: beneficiaryId } as any);
+      setIsFollowed(true);
+    }
+  };
+
   // ── Basket Computation ───────────────────────────────────
 
   const basket = useMemo(() => {
     if (!profileMapping || !causeKey || products.length === 0) {
-      // Fallback: tier-based filtering for beneficiaries without profile_type
-      const tierIndex = donationAmount >= 75 ? 3 : donationAmount >= 60 ? 2 : donationAmount >= 45 ? 1 : 0;
+      const tierIndex = donationAmount >= 75 ? 3 : donationAmount >= 60 ? 2 : donationAmount >= 36 ? 1 : 0;
       const tierValue = [1, 2, 3, 4][tierIndex];
       return products
         .filter((p) => p.tier <= tierValue)
-        .slice(0, 12)
+        .slice(0, Math.max(6, Math.floor(donationAmount / 5)))
         .map((p) => ({
           product: p,
-          quantity: p.tier === 1 && donationAmount >= 45 ? 2 : 1,
+          quantity: p.tier === 1 && donationAmount >= 36 ? 2 : 1,
         }));
     }
 
@@ -131,43 +156,13 @@ const DonationFlow = () => {
     });
   }, [products, profileMapping, causeKey, donationAmount, beneficiary?.diet_tags]);
 
-  // ── Donate Handler ───────────────────────────────────────
-
-  const handleDonate = async () => {
-    if (!user) {
-      toast.error("Veuillez vous connecter pour faire un don");
-      navigate("/auth");
-      return;
-    }
-    setSubmitting(true);
-
-    try {
-      const productsSent = basket.map((item) => ({ id: item.product.id, name: item.product.name, qty: item.quantity }));
-
-      const { error } = await supabase.from("donations").insert({
-        donor_id: user.id,
-        beneficiary_id: beneficiaryId,
-        amount: totalAmount,
-        products_sent: productsSent,
-        delivery_status: "confirmed",
-      } as any);
-
-      if (error) throw error;
-      setConfirmed(true);
-    } catch (err: any) {
-      toast.error("Une erreur est survenue : " + err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   // ── Render States ────────────────────────────────────────
 
   if (loading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12">
-          <div className="animate-pulse max-w-4xl mx-auto bg-card rounded-2xl h-96" />
+          <div className="animate-pulse max-w-2xl mx-auto bg-card rounded-2xl h-96" />
         </div>
       </Layout>
     );
@@ -189,7 +184,7 @@ const DonationFlow = () => {
         <div className="container mx-auto px-4 py-12">
           <DonationConfirmation
             beneficiaryName={beneficiary.alias_first_name}
-            amount={totalAmount}
+            amount={donationAmount}
             products={basket.map((i) => ({ id: i.product.id, name: i.product.name }))}
             basket={basket}
             emergencyPack={null}
@@ -200,7 +195,9 @@ const DonationFlow = () => {
     );
   }
 
-  // ── Main UI ──────────────────────────────────────────────
+  const hasFamily = (beneficiary.children_count ?? 0) > 0 || (beneficiary.family_members ?? 0) > 1;
+
+  // ── Main UI — Single Column ──────────────────────────────
 
   return (
     <Layout>
@@ -209,90 +206,78 @@ const DonationFlow = () => {
           <ArrowLeft className="h-4 w-4 mr-1" /> Retour
         </button>
 
-        <div className="max-w-4xl mx-auto grid md:grid-cols-5 gap-8">
-          {/* Beneficiary info */}
-          <div className="md:col-span-2">
-            <div className="bg-card rounded-2xl p-8 shadow-card border sticky top-24">
-              <div className="flex justify-center mb-4">
-                <BeneficiaryAvatar
-                  name={beneficiary.alias_first_name}
-                  gender={beneficiary.avatar_gender}
-                  ageRange={beneficiary.avatar_age_range}
-                  hairType={beneficiary.avatar_hair_type}
-                  skinTone={beneficiary.avatar_skin_tone}
-                  avatarUrl={beneficiary.avatar_url}
-                  size="lg"
-                />
-              </div>
-              <h2 className="text-xl font-semibold text-foreground text-center">
-                {beneficiary.alias_first_name} – {getAgeRange(beneficiary.approx_age)}
-              </h2>
-              <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mt-1 mb-3">
-                <MapPin className="h-3 w-3" /> {beneficiary.region}
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">{beneficiary.short_story}</p>
-              <div className="flex items-start gap-2 text-sm italic text-primary/80">
-                <Quote className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                « {beneficiary.emotional_sentence} »
-              </div>
-            </div>
-          </div>
-
-          {/* Donation options */}
-          <div className="md:col-span-3 space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Choisissez votre don</h2>
-              <p className="text-muted-foreground">Ajustez le montant pour composer le colis de {beneficiary.alias_first_name}.</p>
-            </div>
-
-            <DonationSlider value={donationAmount} onChange={setDonationAmount} progressPercent={progressPercent} />
-
-            <p className="text-sm text-muted-foreground -mt-2">
-              Votre contribution est automatiquement transformée en aide concrète pour {beneficiary.alias_first_name}. Le contenu du colis s'adapte au montant choisi.
-            </p>
-
-            <DonationImpact amount={donationAmount} basket={basket} />
-
-            <TaxDeduction
-              amount={donationAmount}
-            />
-
-            <DonationBasket
-              items={basket}
-              amount={donationAmount}
-              progressPercent={progressPercent}
-            />
-
-            <SocialProof
-              variant="donation"
-              beneficiaryName={beneficiary.alias_first_name}
-              beneficiaryId={beneficiary.id}
-            />
-
-            {/* Donate button */}
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                onClick={() => navigate(`/upsell/${beneficiaryId}`, {
-                  state: { donationAmount, beneficiaryName: beneficiary.alias_first_name },
-                })}
-                className={`w-full text-cta-foreground text-lg py-6 shadow-warm-lg transition-all ${
-                  isHighTier
-                    ? "bg-gradient-to-r from-cta to-cta/80 hover:from-cta/90 hover:to-cta/70 animate-[pulse_3s_ease-in-out_infinite]"
-                    : "bg-cta hover:bg-cta/90"
-                }`}
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* 1. Beneficiary card */}
+          <div className="bg-card rounded-2xl p-8 shadow-card border text-center relative">
+            <button
+              onClick={toggleFollow}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-rose-500 transition-colors"
+              title={isFollowed ? "Ne plus suivre" : "Suivre ce bénéficiaire"}
+            >
+              <Heart className={`h-6 w-6 ${isFollowed ? "fill-rose-500 text-rose-500" : ""}`} />
+            </button>
+            <div className="flex justify-center mb-4">
+              <BeneficiaryAvatar
+                name={beneficiary.alias_first_name}
+                gender={beneficiary.avatar_gender}
+                ageRange={beneficiary.avatar_age_range}
+                hairType={beneficiary.avatar_hair_type}
+                skinTone={beneficiary.avatar_skin_tone}
+                avatarUrl={beneficiary.avatar_url}
                 size="lg"
-              >
-                <Heart className="h-5 w-5 mr-2" />
-                Envoyer ce colis à {beneficiary.alias_first_name} — {totalAmount}€
-              </Button>
-            </motion.div>
-
-            <ImpactTimeline />
-
-            <p className="text-xs text-center text-muted-foreground">
-              Paiement sécurisé. Votre don est utilisé à 100% pour le colis.
-            </p>
+              />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground">{beneficiary.alias_first_name}</h2>
+            <p className="text-sm text-muted-foreground/80 mt-0.5">{getAgeRange(beneficiary.approx_age)}</p>
+            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-0.5 mb-3">
+              <MapPin className="h-3 w-3" /> {beneficiary.region}
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">{beneficiary.short_story}</p>
+            <div className="flex items-start gap-2 text-sm italic text-primary/80 justify-center">
+              <Quote className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              « {beneficiary.emotional_sentence} »
+            </div>
           </div>
+
+          {/* 2. Amount selector */}
+          <div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Choisissez votre don</h2>
+            <p className="text-muted-foreground mb-4 text-sm">
+              Ajustez le montant pour composer le colis de {beneficiary.alias_first_name}.
+            </p>
+            <DonationAmountSelector value={donationAmount} onChange={setDonationAmount} />
+          </div>
+
+          {/* 3. Impact card */}
+          <DonationImpactCard
+            beneficiaryName={beneficiary.alias_first_name}
+            basket={basket}
+            hasFamily={hasFamily}
+          />
+
+          {/* 4. Basket */}
+          <DonationBasket items={basket} amount={donationAmount} />
+
+          {/* 5. Timeline */}
+          <ImpactTimeline />
+
+          {/* 6. CTA */}
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              onClick={() => navigate(`/upsell/${beneficiaryId}`, {
+                state: { donationAmount, beneficiaryName: beneficiary.alias_first_name },
+              })}
+              className="w-full text-cta-foreground text-lg py-6 shadow-warm-lg bg-cta hover:bg-cta/90"
+              size="lg"
+            >
+              <Heart className="h-5 w-5 mr-2" />
+              Envoyer ce colis à {beneficiary.alias_first_name} — {donationAmount}€
+            </Button>
+          </motion.div>
+
+          <p className="text-xs text-center text-muted-foreground">
+            Paiement sécurisé. Votre don est utilisé à 100% pour le colis.
+          </p>
         </div>
       </div>
     </Layout>

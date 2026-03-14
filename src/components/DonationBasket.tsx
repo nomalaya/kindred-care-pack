@@ -1,8 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Package, Trophy, Leaf, CircleCheck } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { useState, useEffect, useMemo } from "react";
-import { EMOTIONAL_FAMILY_LABELS, DONATION_TIERS } from "@/lib/constants";
+import { Check, Package } from "lucide-react";
+import { useState, useEffect } from "react";
 import type { BasketItem } from "@/lib/basketEngine";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,10 +13,8 @@ import {
 interface Props {
   items: BasketItem[];
   amount: number;
-  progressPercent: number;
 }
 
-// Dietary/cultural badge config
 const DIET_BADGES: Record<string, { label: string; emoji: string; color: string }> = {
   halal: { label: "Halal", emoji: "☪️", color: "border-emerald-400 text-emerald-700 bg-emerald-50 dark:bg-emerald-950 dark:text-emerald-300" },
   kosher: { label: "Casher", emoji: "✡️", color: "border-blue-400 text-blue-700 bg-blue-50 dark:bg-blue-950 dark:text-blue-300" },
@@ -30,33 +26,20 @@ const DIET_BADGES: Record<string, { label: string; emoji: string; color: string 
 
 function getProductDietBadges(product: BasketItem["product"]): string[] {
   const badges: string[] = [];
-  // Only show halal badge if product is specifically halal-certified AND not just a default
   if (product.halal_compatible && (product.contains_pork === false || product.contains_alcohol === false)) {
     badges.push("halal");
   }
   if (product.kosher_compatible && product.category === "alimentaire") badges.push("kosher");
   if (product.vegan) badges.push("vegan");
   else if (product.vegetarian) badges.push("vegetarian");
-  // Show "sans porc" only for food items that explicitly exclude pork
   if (product.contains_pork === false && product.category === "alimentaire" && !badges.includes("halal")) {
     badges.push("sans_porc");
   }
-  // Show "sans alcool" only for beverages
   if (product.contains_alcohol === false && product.subcategory === "boisson") badges.push("sans_alcool");
   return badges;
 }
 
-// Family completion status
-const FAMILY_ORDER = ["survival", "dignity", "childhood", "autonomy", "comfort"];
-const FAMILY_ICONS: Record<string, string> = {
-  survival: "🍞",
-  dignity: "🧴",
-  childhood: "📚",
-  autonomy: "💼",
-  comfort: "✨",
-};
-
-const DonationBasket = ({ items, amount, progressPercent }: Props) => {
+const DonationBasket = ({ items, amount }: Props) => {
   const [flash, setFlash] = useState(false);
   const [prevCount, setPrevCount] = useState(items.length);
 
@@ -70,24 +53,7 @@ const DonationBasket = ({ items, amount, progressPercent }: Props) => {
     setPrevCount(items.length);
   }, [items.length, prevCount]);
 
-  // Group items by emotional family
-  const grouped = items.reduce<Record<string, BasketItem[]>>((acc, item) => {
-    const family = item.product.emotional_family || "other";
-    if (!acc[family]) acc[family] = [];
-    acc[family].push(item);
-    return acc;
-  }, {});
-
   const totalProducts = items.reduce((sum, i) => sum + i.quantity, 0);
-
-  // Gamification: which families are filled
-  const activeFamilies = Object.keys(grouped);
-  const completedFamilies = activeFamilies.filter(
-    (f) => f !== "other" && grouped[f].length >= 2
-  );
-
-  // Next unlock hint
-  const nextTier = DONATION_TIERS.find((t) => t.amount > amount);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -96,81 +62,62 @@ const DonationBasket = ({ items, amount, progressPercent }: Props) => {
         transition={{ duration: 0.6 }}
         className="bg-card rounded-2xl p-6 border shadow-card"
       >
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-4">
           <Package className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold text-foreground">Contenu du colis</h3>
+          <h3 className="text-base font-semibold text-foreground">Contenu du colis</h3>
         </div>
 
-        <Progress value={progressPercent} className="h-1.5 mb-4" />
-
-        <div className="space-y-4">
+        <div className="space-y-1.5">
           <AnimatePresence mode="popLayout">
-            {Object.entries(grouped).map(([family, familyItems]) => (
-              <motion.div
-                key={family}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              >
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                  {EMOTIONAL_FAMILY_LABELS[family] || family}
-                </p>
-                <div className="space-y-1.5">
-                  {familyItems.map((item) => {
-                    const dietBadges = getProductDietBadges(item.product);
-                    return (
-                      <motion.div
-                        key={item.product.id}
-                        initial={{ opacity: 0, scale: 0.8, height: 0 }}
-                        animate={{ opacity: 1, scale: 1, height: "auto" }}
-                        exit={{ opacity: 0, scale: 0.8, height: 0 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                        className="flex items-center gap-3 py-2 px-3 rounded-lg bg-background"
+            {items.map((item) => {
+              const dietBadges = getProductDietBadges(item.product);
+              return (
+                <motion.div
+                  key={item.product.id}
+                  initial={{ opacity: 0, scale: 0.8, height: 0 }}
+                  animate={{ opacity: 1, scale: 1, height: "auto" }}
+                  exit={{ opacity: 0, scale: 0.8, height: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  className="flex items-center gap-3 py-2 px-3 rounded-lg bg-background"
+                >
+                  <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span className="text-sm text-foreground flex-1">
+                    {item.product.name}
+                    {item.quantity > 1 && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="ml-1 text-xs font-medium text-primary"
                       >
-                      <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                        <span className="text-sm text-foreground flex-1">
-                          {item.product.name}
-                          {item.quantity > 1 && (
-                            <motion.span
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="ml-1 text-xs font-medium text-primary"
-                            >
-                              ×{item.quantity}
-                            </motion.span>
-                          )}
-                        </span>
-                        {dietBadges.length > 0 && (
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            {dietBadges.map((badge) => {
-                              const config = DIET_BADGES[badge];
-                              if (!config) return null;
-                              return (
-                                <Tooltip key={badge}>
-                                  <TooltipTrigger asChild>
-                                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${config.color}`}>
-                                      {config.emoji} {config.label}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{config.label}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            ))}
+                        ×{item.quantity}
+                      </motion.span>
+                    )}
+                  </span>
+                  {dietBadges.length > 0 && (
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {dietBadges.map((badge) => {
+                        const config = DIET_BADGES[badge];
+                        if (!config) return null;
+                        return (
+                          <Tooltip key={badge}>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${config.color}`}>
+                                {config.emoji} {config.label}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{config.label}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
-
-        {/* Next unlock hint removed — clean display */}
 
         <div className="mt-4 pt-4 border-t flex items-center justify-between">
           <AnimatePresence mode="wait">

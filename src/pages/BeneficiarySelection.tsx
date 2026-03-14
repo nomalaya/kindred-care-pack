@@ -4,7 +4,7 @@ import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Quote, Navigation, Sparkles } from "lucide-react";
+import { ArrowLeft, MapPin, Quote, Navigation, Sparkles, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
@@ -61,8 +61,35 @@ const BADGE_STYLES: Record<string, string> = {
   "Manque de commerces de proximité": "border-stone-400/40 text-stone-600 bg-stone-50",
 };
 
-const DEFAULT_BADGE = "Impact de l'inflation";
+// Card background tint per badge (very light)
+const BADGE_CARD_BG: Record<string, string> = {
+  "Proche de chez vous": "bg-primary/[0.03]",
+  "Dans votre département": "bg-primary/[0.03]",
+  "Dans votre région": "bg-primary/[0.03]",
+  "Dans votre pays": "bg-primary/[0.03]",
+  "Nouveau bénéficiaire inscrit": "bg-blue-50/40",
+  "Logement provisoire": "bg-amber-50/40",
+  "Démarches juridiques en cours": "bg-indigo-50/40",
+  "Démarches administratives en cours": "bg-indigo-50/40",
+  "Très loin de sa famille": "bg-violet-50/40",
+  "Désert médical": "bg-rose-50/40",
+  "Zone rurale isolée": "bg-emerald-50/40",
+  "Impact de l'inflation": "bg-slate-50/40",
+  "Apprend un nouveau métier": "bg-teal-50/40",
+  "1ère année universitaire": "bg-cyan-50/40",
+  "Nourrisson arrivé récemment": "bg-pink-50/40",
+  "1ère grossesse": "bg-pink-50/40",
+  "Difficile de vivre seul": "bg-orange-50/40",
+  "Difficile de vivre seule": "bg-orange-50/40",
+  "Difficile de vivre seul(e)": "bg-orange-50/40",
+  "Début de vie active": "bg-lime-50/40",
+  "Aidant familial": "bg-purple-50/40",
+  "Parcours de transition": "bg-sky-50/40",
+  "Manque de repères dans la ville": "bg-stone-50/40",
+  "Manque de commerces de proximité": "bg-stone-50/40",
+};
 
+const DEFAULT_BADGE = "Impact de l'inflation";
 
 function genderizeBadge(badge: string, gender: string): string {
   if (badge === "Difficile de vivre seul(e)") {
@@ -84,7 +111,6 @@ function isNewBeneficiary(createdAt?: string): boolean {
 }
 
 function getDisplayBadge(b: Beneficiary): string {
-  // Priority: proximity > new profile > context_badge > fallback
   if (b.proximity_label) return b.proximity_label;
   if (isNewBeneficiary(b.created_at)) return "Nouveau bénéficiaire inscrit";
   if (b.context_badge) return genderizeBadge(b.context_badge, b.avatar_gender);
@@ -94,18 +120,15 @@ function getDisplayBadge(b: Beneficiary): string {
 function deduplicateBadges(beneficiaries: Beneficiary[]): string[] {
   const usedBadges = new Set<string>();
   const result: string[] = [];
-
   for (const b of beneficiaries) {
     let badge = getDisplayBadge(b);
     if (usedBadges.has(badge)) {
-      // Try context_badge as alternative
       const contextBadge = b.context_badge ? genderizeBadge(b.context_badge, b.avatar_gender) : null;
       if (contextBadge && !usedBadges.has(contextBadge) && contextBadge !== badge) {
         badge = contextBadge;
       } else if (!usedBadges.has(DEFAULT_BADGE)) {
         badge = DEFAULT_BADGE;
       }
-      // If still duplicate, keep it (edge case with limited badge variety)
     }
     usedBadges.add(badge);
     result.push(badge);
@@ -118,10 +141,10 @@ const BeneficiarySelection = () => {
   const { user } = useAuth();
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchBeneficiaries = async () => {
-      // Get donor location from profile if logged in
       let donorLocation: Record<string, string> | null = null;
       if (user) {
         const { data: profile } = await supabase
@@ -139,13 +162,8 @@ const BeneficiarySelection = () => {
         }
       }
 
-      const rpcParams: any = {
-        p_situation_id: situationId,
-        p_limit: 4,
-      };
-      if (donorLocation) {
-        rpcParams.p_donor_location = donorLocation;
-      }
+      const rpcParams: any = { p_situation_id: situationId, p_limit: 4 };
+      if (donorLocation) rpcParams.p_donor_location = donorLocation;
 
       const { data, error } = await supabase.rpc("get_empathy_beneficiaries" as any, rpcParams);
 
@@ -162,15 +180,12 @@ const BeneficiarySelection = () => {
 
       const rpcBeneficiaries = data as unknown as Beneficiary[];
 
-      // Fetch context_badge + created_at for these beneficiaries (RPC doesn't return them)
       if (rpcBeneficiaries.length > 0) {
         const ids = rpcBeneficiaries.map((b) => b.id);
         const { data: extraData } = await supabase
           .from("beneficiaries_public")
           .select("id, context_badge")
           .in("id", ids);
-
-        // Also get created_at from beneficiaries table (accessible via public read policy)
         const { data: createdData } = await supabase
           .from("beneficiaries")
           .select("id, created_at")
@@ -192,6 +207,20 @@ const BeneficiarySelection = () => {
 
     fetchBeneficiaries();
   }, [situationId, user]);
+
+  // Load followed beneficiaries
+  useEffect(() => {
+    if (!user || beneficiaries.length === 0) return;
+    const ids = beneficiaries.map((b) => b.id);
+    supabase
+      .from("followed_beneficiaries" as any)
+      .select("beneficiary_id")
+      .eq("user_id", user.id)
+      .in("beneficiary_id", ids)
+      .then(({ data }) => {
+        if (data) setFollowedIds(new Set(data.map((d: any) => d.beneficiary_id)));
+      });
+  }, [user, beneficiaries]);
 
   const handleClickAider = (beneficiaryId: string) => {
     supabase.functions.invoke("track-profile-view", {
@@ -229,8 +258,10 @@ const BeneficiarySelection = () => {
             {beneficiaries.map((b, i) => {
               const badge = badges[i];
               const badgeStyle = getBadgeStyle(badge);
+              const cardBg = BADGE_CARD_BG[badge] || "bg-card";
               const isProximity = ["Proche de chez vous", "Dans votre département", "Dans votre région", "Dans votre pays"].includes(badge);
               const BadgeIcon = isProximity ? Navigation : Sparkles;
+              const followed = followedIds.has(b.id);
 
               return (
                 <motion.div
@@ -238,10 +269,33 @@ const BeneficiarySelection = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  whileHover={{ scale: 1.03, boxShadow: "0 0 0 2px hsl(var(--primary) / 0.3)" }}
-                  className="bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border text-center relative"
+                  className={`group rounded-2xl p-8 shadow-card border text-center relative cursor-pointer
+                    hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ${cardBg}`}
                 >
-                  <div className="flex justify-center mb-4">
+                  {/* Badge — top left, animated */}
+                  <motion.div
+                    className="absolute top-4 left-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.1 + 0.3, duration: 0.3 }}
+                  >
+                    <Badge
+                      variant="outline"
+                      className={`py-1.5 px-3 rounded-2xl text-xs font-semibold group-hover:brightness-110 transition-all ${badgeStyle}`}
+                    >
+                      <BadgeIcon className="h-3 w-3 mr-1" />
+                      {badge}
+                    </Badge>
+                  </motion.div>
+
+                  {/* Heart — top right */}
+                  {followed && (
+                    <div className="absolute top-4 right-4">
+                      <Heart className="h-5 w-5 fill-rose-500 text-rose-500" />
+                    </div>
+                  )}
+
+                  <div className="flex justify-center mb-4 mt-4">
                     <BeneficiaryAvatar
                       name={b.alias_first_name}
                       gender={b.avatar_gender}
@@ -252,18 +306,11 @@ const BeneficiarySelection = () => {
                       size="lg"
                     />
                   </div>
-                  {/* Contextual badge — top left */}
-                  <div className="absolute top-4 left-4">
-                    <Badge variant="outline" className={`text-xs ${badgeStyle}`}>
-                      <BadgeIcon className="h-3 w-3 mr-1" />
-                      {badge}
-                    </Badge>
-                  </div>
 
-                  <h3 className="text-xl font-semibold text-foreground">
-                    {b.alias_first_name} – {getAgeRange(b.approx_age)}
-                  </h3>
-                  <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mt-1 mb-3">
+                  {/* Visual hierarchy: name > age > region */}
+                  <h3 className="text-lg font-semibold text-foreground">{b.alias_first_name}</h3>
+                  <p className="text-sm text-muted-foreground/80 mt-0.5">{getAgeRange(b.approx_age)}</p>
+                  <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-0.5 mb-3">
                     <MapPin className="h-3 w-3" /> Région {b.region}
                   </div>
 
