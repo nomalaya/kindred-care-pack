@@ -207,7 +207,7 @@ const BeneficiarySelection = () => {
                 >
                   {/* Badge — top left, animated */}
                   <motion.div
-                    className="absolute top-4 left-4"
+                    className="absolute top-4 right-4"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.1 + 0.3, duration: 0.3 }}
