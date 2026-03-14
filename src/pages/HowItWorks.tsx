@@ -2,6 +2,7 @@ import Layout from "@/components/Layout";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Heart, Users, Package, Truck, ArrowRight, ShieldCheck, Eye } from "lucide-react";
+import { CARD_STYLES, SECTION_HEADER } from "@/lib/designSystem";
 
 const steps = [
   { icon: Heart, title: "Choisissez une cause", desc: "Enfants, femmes, étudiants, seniors, travailleurs, santé — 6 causes à soutenir." },
@@ -13,9 +14,9 @@ const steps = [
 const HowItWorks = () => (
   <Layout>
     <div className="container mx-auto px-4 py-16 max-w-3xl">
-      <div className="text-center mb-16">
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Comment ça marche</h1>
-        <p className="text-lg text-muted-foreground">
+      <div className={SECTION_HEADER.wrapper} style={{ marginBottom: "4rem" }}>
+        <h1 className={SECTION_HEADER.title}>Comment ça marche</h1>
+        <p className={SECTION_HEADER.subtitle}>
           Nous vous connectons avec de vraies personnes dans le besoin, en protégeant leur identité tout en créant un lien humain authentique.
         </p>
       </div>
@@ -35,7 +36,7 @@ const HowItWorks = () => (
         ))}
       </div>
 
-      <div className="bg-card rounded-2xl p-8 border shadow-card mb-12">
+      <div className={`${CARD_STYLES.page} mb-12`}>
         <div className="flex items-center gap-3 mb-4">
           <ShieldCheck className="h-6 w-6 text-primary" />
           <h2 className="text-xl font-semibold text-foreground">Confidentialité & Sécurité</h2>

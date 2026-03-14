@@ -3,19 +3,23 @@ import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
+import BackButton from "@/components/BackButton";
 import DonationConfirmation from "@/components/DonationConfirmation";
 import DonationAmountSelector from "@/components/DonationAmountSelector";
 import DonationImpactCard from "@/components/DonationImpactCard";
 import DonationBasket from "@/components/DonationBasket";
 import ImpactTimeline from "@/components/ImpactTimeline";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DEFAULT_DONATION, CAUSE_KEY_MAP } from "@/lib/constants";
 import { composeBasket, type ProductRecord, type ProfileMapping } from "@/lib/basketEngine";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { ArrowLeft, Heart, MapPin, Quote } from "lucide-react";
+import { Heart, MapPin, Quote, Navigation, Sparkles } from "lucide-react";
 import { getAgeRange } from "@/lib/ageRange";
 import { toast } from "sonner";
+import { CARD_STYLES, ANIM } from "@/lib/designSystem";
+import { getBadgeStyle, getCardBg, getDisplayBadge } from "@/lib/badgeStyles";
 
 interface Beneficiary {
   id: string;
@@ -35,6 +39,9 @@ interface Beneficiary {
   situation_id?: string;
   children_count?: number;
   family_members?: number;
+  context_badge?: string;
+  created_at?: string;
+  proximity_label?: string;
 }
 
 const DonationFlow = () => {
@@ -162,7 +169,7 @@ const DonationFlow = () => {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12">
-          <div className="animate-pulse max-w-2xl mx-auto bg-card rounded-2xl h-96" />
+          <div className={`animate-pulse max-w-2xl mx-auto ${CARD_STYLES.page} h-96`} />
         </div>
       </Layout>
     );
@@ -197,26 +204,47 @@ const DonationFlow = () => {
 
   const hasFamily = (beneficiary.children_count ?? 0) > 0 || (beneficiary.family_members ?? 0) > 1;
 
+  // Badge for donation flow card
+  const badge = getDisplayBadge(beneficiary);
+  const badgeStyle = getBadgeStyle(badge);
+  const cardBg = getCardBg(badge);
+  const isProximity = ["Proche de chez vous", "Dans votre département", "Dans votre région", "Dans votre pays"].includes(badge);
+  const BadgeIcon = isProximity ? Navigation : Sparkles;
+
   // ── Main UI — Single Column ──────────────────────────────
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
-        <button onClick={() => window.history.back()} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Retour
-        </button>
+        <BackButton />
 
         <div className="max-w-2xl mx-auto space-y-6">
-          {/* 1. Beneficiary card */}
-          <div className="bg-card rounded-2xl p-8 shadow-card border text-center relative">
+          {/* 1. Beneficiary card — with badge + colored background */}
+          <div className={`rounded-2xl p-8 shadow-card border text-center relative ${cardBg}`}>
+            {/* Badge — top right */}
+            <motion.div
+              className="absolute top-4 right-4"
+              {...ANIM.badgeFadeIn}
+            >
+              <Badge
+                variant="outline"
+                className={`py-1.5 px-3 rounded-2xl text-xs font-semibold ${badgeStyle}`}
+              >
+                <BadgeIcon className="h-3 w-3 mr-1" />
+                {badge}
+              </Badge>
+            </motion.div>
+
+            {/* Heart — top left */}
             <button
               onClick={toggleFollow}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-rose-500 transition-colors"
+              className="absolute top-4 left-4 text-muted-foreground hover:text-rose-500 transition-colors"
               title={isFollowed ? "Ne plus suivre" : "Suivre ce bénéficiaire"}
             >
               <Heart className={`h-6 w-6 ${isFollowed ? "fill-rose-500 text-rose-500" : ""}`} />
             </button>
-            <div className="flex justify-center mb-4">
+
+            <div className="flex justify-center mb-4 mt-4">
               <BeneficiaryAvatar
                 name={beneficiary.alias_first_name}
                 gender={beneficiary.avatar_gender}
@@ -262,7 +290,7 @@ const DonationFlow = () => {
           <ImpactTimeline />
 
           {/* 6. CTA */}
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <motion.div {...ANIM.scaleButton}>
             <Button
               onClick={() => navigate(`/upsell/${beneficiaryId}`, {
                 state: { donationAmount, beneficiaryName: beneficiary.alias_first_name },
