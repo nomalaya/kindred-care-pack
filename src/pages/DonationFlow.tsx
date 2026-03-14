@@ -16,6 +16,7 @@ import { composeBasket, type ProductRecord, type ProfileMapping } from "@/lib/ba
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { ArrowLeft, Heart, MapPin, Quote } from "lucide-react";
+import { getAgeRange } from "@/lib/ageRange";
 import { toast } from "sonner";
 
 interface Beneficiary {

@@ -6,6 +6,7 @@ import { CheckCircle, Download, Share2, Heart, Gift, Receipt } from "lucide-reac
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import SocialProof from "@/components/SocialProof";
 import { toast } from "sonner";
+import { getAgeRange } from "@/lib/ageRange";
 import type { CheckoutData } from "./CheckoutFlow";
 
 interface Beneficiary {

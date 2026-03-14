@@ -8,6 +8,7 @@ import { ArrowLeft, MapPin, Quote, Navigation, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { getAgeRange } from "@/lib/ageRange";
 
 interface Beneficiary {
   id: string;
