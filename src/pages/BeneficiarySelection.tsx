@@ -223,7 +223,7 @@ const BeneficiarySelection = () => {
 
                   {/* Heart — top right */}
                   {followed && (
-                    <div className="absolute top-4 right-4">
+                    <div className="absolute top-4 left-4">
                       <Heart className="h-5 w-5 fill-rose-500 text-rose-500" />
                     </div>
                   )}

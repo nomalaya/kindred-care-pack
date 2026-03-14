@@ -13,8 +13,10 @@ import { DEFAULT_DONATION, CAUSE_KEY_MAP } from "@/lib/constants";
 import { composeBasket, type ProductRecord, type ProfileMapping } from "@/lib/basketEngine";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { ArrowLeft, Heart, MapPin, Quote } from "lucide-react";
+import { ArrowLeft, Heart, MapPin, Quote, Navigation, Sparkles } from "lucide-react";
 import { getAgeRange } from "@/lib/ageRange";
+import { getBadgeStyle, getCardBg, genderizeBadge, DEFAULT_BADGE } from "@/lib/badgeStyles";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 interface Beneficiary {
