@@ -221,7 +221,7 @@ const DonationFlow = () => {
         <div className="max-w-2xl mx-auto space-y-6">
           {/* 1. Beneficiary card — with badge + colored background */}
           <div
-            className={`rounded-2xl p-8 shadow-card border border-l-[3px] ${borderColor} text-center relative`}
+            className={`rounded-2xl p-8 shadow-card border text-center relative`}
             style={getCardGradient(badge)}
           >
             {/* Badge — top right */}

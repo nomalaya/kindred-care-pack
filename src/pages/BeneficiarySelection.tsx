@@ -174,7 +174,7 @@ const BeneficiarySelection = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className={`group rounded-2xl p-8 shadow-card border border-l-[3px] ${borderColor} text-center relative cursor-pointer
+                  className={`group rounded-2xl p-8 shadow-card border text-center relative cursor-pointer
                     ${CARD_STYLES.hover}`}
                   style={getCardGradient(badge)}
                 >
