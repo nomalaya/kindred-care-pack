@@ -250,19 +250,19 @@ const BeneficiarySelection = () => {
                       size="lg"
                     />
                   </div>
-                  <h3 className="text-xl font-semibold text-foreground">
-                    {b.alias_first_name} – {b.approx_age} ans
-                  </h3>
-                  <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mt-1 mb-2">
-                    <MapPin className="h-3 w-3" /> Région {b.region}
-                  </div>
-
-                  {/* Contextual badge */}
-                  <div className="flex justify-center mb-3">
+                  {/* Contextual badge — top left */}
+                  <div className="absolute top-4 left-4">
                     <Badge variant="outline" className={`text-xs ${badgeStyle}`}>
                       <BadgeIcon className="h-3 w-3 mr-1" />
                       {badge}
                     </Badge>
+                  </div>
+
+                  <h3 className="text-xl font-semibold text-foreground">
+                    {b.alias_first_name} – {getAgeRange(b.approx_age)}
+                  </h3>
+                  <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mt-1 mb-3">
+                    <MapPin className="h-3 w-3" /> Région {b.region}
                   </div>
 
                   <p className="text-sm text-muted-foreground mb-4">{b.short_story}</p>
