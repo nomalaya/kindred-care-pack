@@ -13,7 +13,8 @@ import { getAgeRange } from "@/lib/ageRange";
 import { CARD_STYLES, SECTION_HEADER } from "@/lib/designSystem";
 import {
   getBadgeStyle,
-  getCardBg,
+  getBorderColor,
+  getCardGradient,
   deduplicateBadges,
   DEFAULT_BADGE,
 } from "@/lib/badgeStyles";
@@ -162,7 +163,7 @@ const BeneficiarySelection = () => {
             {beneficiaries.map((b, i) => {
               const badge = badges[i];
               const badgeStyle = getBadgeStyle(badge);
-              const cardBg = getCardBg(badge);
+              const borderColor = getBorderColor(badge);
               const isProximity = ["Proche de chez vous", "Dans votre département", "Dans votre région", "Dans votre pays"].includes(badge);
               const BadgeIcon = isProximity ? Navigation : Sparkles;
               const followed = followedIds.has(b.id);
@@ -173,19 +174,20 @@ const BeneficiarySelection = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className={`group rounded-2xl p-8 shadow-card border text-center relative cursor-pointer
-                    ${CARD_STYLES.hover} ${cardBg}`}
+                  className={`group rounded-2xl p-8 shadow-card border border-l-[3px] ${borderColor} text-center relative cursor-pointer
+                    ${CARD_STYLES.hover}`}
+                  style={getCardGradient(badge)}
                 >
                   {/* Heart — top left */}
                   {followed && (
-                    <div className="absolute top-4 left-4">
+                    <div className="absolute top-3 left-4">
                       <Heart className="h-5 w-5 fill-rose-500 text-rose-500" />
                     </div>
                   )}
 
                   {/* Badge — top right */}
                   <motion.div
-                    className="absolute top-4 right-4"
+                    className="absolute top-3 right-3"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.1 + 0.3, duration: 0.3 }}

@@ -19,7 +19,7 @@ import { Heart, MapPin, Quote, Navigation, Sparkles } from "lucide-react";
 import { getAgeRange } from "@/lib/ageRange";
 import { toast } from "sonner";
 import { CARD_STYLES, ANIM } from "@/lib/designSystem";
-import { getBadgeStyle, getCardBg, getDisplayBadge } from "@/lib/badgeStyles";
+import { getBadgeStyle, getBorderColor, getCardGradient, getDisplayBadge } from "@/lib/badgeStyles";
 
 interface Beneficiary {
   id: string;
@@ -207,7 +207,7 @@ const DonationFlow = () => {
   // Badge for donation flow card
   const badge = getDisplayBadge(beneficiary);
   const badgeStyle = getBadgeStyle(badge);
-  const cardBg = getCardBg(badge);
+  const borderColor = getBorderColor(badge);
   const isProximity = ["Proche de chez vous", "Dans votre département", "Dans votre région", "Dans votre pays"].includes(badge);
   const BadgeIcon = isProximity ? Navigation : Sparkles;
 
@@ -220,10 +220,13 @@ const DonationFlow = () => {
 
         <div className="max-w-2xl mx-auto space-y-6">
           {/* 1. Beneficiary card — with badge + colored background */}
-          <div className={`rounded-2xl p-8 shadow-card border text-center relative ${cardBg}`}>
+          <div
+            className={`rounded-2xl p-8 shadow-card border border-l-[3px] ${borderColor} text-center relative`}
+            style={getCardGradient(badge)}
+          >
             {/* Badge — top right */}
             <motion.div
-              className="absolute top-4 right-4"
+              className="absolute top-3 right-3"
               {...ANIM.badgeFadeIn}
             >
               <Badge
