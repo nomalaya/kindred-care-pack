@@ -197,7 +197,13 @@ const DonationFlow = () => {
     );
   }
 
-  const hasFamily = (beneficiary.children_count ?? 0) > 0 || (beneficiary.family_members ?? 0) > 1;
+  const contextBadge = beneficiary.context_badge
+    ? genderizeBadge(beneficiary.context_badge, beneficiary.avatar_gender)
+    : DEFAULT_BADGE;
+  const isProximity = ["Proche de chez vous", "Dans votre département", "Dans votre région", "Dans votre pays"].includes(contextBadge);
+  const BadgeIcon = isProximity ? Navigation : Sparkles;
+  const badgeStyle = getBadgeStyle(contextBadge);
+  const cardBg = getCardBg(contextBadge);
 
   // ── Main UI — Single Column ──────────────────────────────
 
@@ -210,14 +216,25 @@ const DonationFlow = () => {
 
         <div className="max-w-2xl mx-auto space-y-6">
           {/* 1. Beneficiary card */}
-          <div className="bg-card rounded-2xl p-8 shadow-card border text-center relative">
+          <div className={`rounded-2xl p-8 shadow-card border text-center relative ${cardBg}`}>
             <button
               onClick={toggleFollow}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-rose-500 transition-colors"
+              className="absolute top-4 left-4 text-muted-foreground hover:text-rose-500 transition-colors"
               title={isFollowed ? "Ne plus suivre" : "Suivre ce bénéficiaire"}
             >
               <Heart className={`h-6 w-6 ${isFollowed ? "fill-rose-500 text-rose-500" : ""}`} />
             </button>
+
+            {/* Badge — top right */}
+            <div className="absolute top-4 right-4">
+              <Badge
+                variant="outline"
+                className={`py-1.5 px-3 rounded-2xl text-xs font-semibold ${badgeStyle}`}
+              >
+                <BadgeIcon className="h-3 w-3 mr-1" />
+                {contextBadge}
+              </Badge>
+            </div>
             <div className="flex justify-center mb-4">
               <BeneficiaryAvatar
                 name={beneficiary.alias_first_name}
