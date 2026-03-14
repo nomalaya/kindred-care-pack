@@ -1,124 +1,173 @@
 
 
-## Plan: Advanced Donation Conversion Mechanisms
+# Plan : Refonte UX page don + badges bénéficiaires
 
-### 1. Emergency Micro-Donation Upsell
-
-**New component: `src/components/EmergencyUpsell.tsx`**
-- Displays 3 toggleable pack cards (5€ alimentaire, 8€ hygiène, 10€ bébé) with subtle pulse animation on the heart icon
-- Only one pack selectable at a time (radio-style toggle)
-- framer-motion scale-in animation when pack is selected
-- Props: `selectedPack`, `onSelectPack`, callback pattern
-
-**Update `DonationFlow.tsx`**:
-- Add state `emergencyPack: { name, amount } | null`
-- Insert `EmergencyUpsell` between `DonationBasket` and the donate button
-- Update `TaxDeduction` to receive `amount + emergencyPack.amount`
-- Update donate button text to show total: "Donner {total}€"
-- On submit, store emergency pack info in the `products_sent` JSONB field alongside main products
-
-**Update `TaxDeduction.tsx`**:
-- Accept optional `extraAmount` and `extraLabel` props to show the breakdown (Don actuel / Ajout pack / Total / Déduction / Coût réel) — switch from 3-col to 5-row layout when extra is present
-
-### 2. Social Proof System
-
-**New component: `src/components/SocialProof.tsx`**
-- Accepts a `variant` prop: `"homepage"`, `"cause"`, `"donation"`, `"confirmation"`
-- Queries donation stats from DB via a lightweight RPC or direct count query on `donations` table
-- Displays contextual messages in French:
-  - Homepage: "{X} personnes ont aidé quelqu'un aujourd'hui." + "Plus de {Y} colis solidaires envoyés."
-  - Donation page: "Les donateurs qui aident {name} donnent en moyenne {avg}€." near the CTA
-  - Confirmation: "{X} donateurs ont déjà aidé cette semaine."
-- Subtle fade-in animation, muted styling, small Users icon
-
-**DB function (migration)**: `get_donation_stats()` — returns `today_count`, `week_count`, `total_count`, `avg_amount_for_beneficiary(id)` using simple aggregates on the donations table. Security definer, accessible to anon.
-
-**Integration points**:
-- `Index.tsx`: Add `<SocialProof variant="homepage" />` in the stats section
-- `CauseSelection.tsx`: Add below the header
-- `DonationFlow.tsx`: Add near the donate button
-- `DonationConfirmation.tsx`: Add after the delivery timeline
-
-### 3. Visible Impact System
-
-**New component: `src/components/DonationImpact.tsx`**
-- Receives `amount` prop
-- Computes and displays impact metrics based on amount thresholds:
-  - Products count (interpolated: ~6 at 32€, ~10 at 45€, ~14 at 60€, ~18 at 75€)
-  - Meals supported (~4 at 32€, scaling up)
-  - Days of essential support (~3 at 32€, ~7 at 75€)
-- Each metric shown with an icon (Package, UtensilsCrossed, Calendar) and animated counter
-- Progress bars fill as amount increases
-- framer-motion `AnimatePresence` for smooth transitions when values change
-
-**Integration**: Insert in `DonationFlow.tsx` between the slider and tax deduction sections
-
-### 4. Enhanced Impact Storytelling (Confirmation)
-
-**Update `DonationConfirmation.tsx`**:
-- Accept `emergencyPack` prop to show it if selected
-- Add `<SocialProof variant="confirmation" />` 
-- Add impact summary section (reuse `DonationImpact` or inline): "Votre don de {X}€ permet {Y} produits essentiels et {Z} jours de soutien."
-- Enhance delivery timeline with connecting line between steps (vertical line with dots)
-
-### 5. Conversion-Optimized UI Polish
-
-**Update `DonationSlider.tsx`**:
-- Add tier-reached celebration: when slider crosses a tier threshold, briefly highlight the tier label with a scale animation and color pulse
-- Add a subtle glow effect on the active tier marker
-
-**Update `DonationBasket.tsx`**:
-- Add a gentle background color transition when new products appear (brief green tint)
-- Enhance the basket total with a counting animation
-
-**Update donate button in `DonationFlow.tsx`**:
-- Add a subtle pulse animation class when amount >= 45€ (higher tiers)
-- Warm gradient background shift based on donation amount
+Ce plan couvre deux grands axes demandés dans le même message :
+1. **Refonte de la page "Choisissez votre don"** (DonationFlow)
+2. **Amélioration des badges et cartes bénéficiaires** (BeneficiarySelection)
 
 ---
 
-### Files to Create/Edit
+## A. Refonte DonationFlow
 
-| File | Action |
-|---|---|
-| `src/components/EmergencyUpsell.tsx` | Create — micro-donation pack selector |
-| `src/components/SocialProof.tsx` | Create — social proof messages |
-| `src/components/DonationImpact.tsx` | Create — visible impact metrics |
-| `src/components/TaxDeduction.tsx` | Edit — support extra pack amount in breakdown |
-| `src/pages/DonationFlow.tsx` | Edit — integrate upsell, impact, social proof |
-| `src/components/DonationConfirmation.tsx` | Edit — enhanced storytelling + social proof |
-| `src/components/DonationSlider.tsx` | Edit — tier celebration animations |
-| `src/components/DonationBasket.tsx` | Edit — enhanced entry animations |
-| `src/pages/Index.tsx` | Edit — add social proof |
-| `src/pages/CauseSelection.tsx` | Edit — add social proof |
-| `src/lib/constants.ts` | Edit — add emergency pack definitions + impact thresholds |
-| SQL migration | Create `get_donation_stats` RPC function |
+### A1. Nouveau sélecteur de montant (remplace DonationSlider)
 
-### DB Migration
+Créer `src/components/DonationAmountSelector.tsx` :
+- Boutons `[ − ]` **montant** `[ + ]` avec animation sur le montant
+- Paliers : `[18, 24, 30, 36, 45, 60, 75, 90]` puis incréments de 15€ au-delà
+- `−` descend au palier inférieur, `+` monte au suivant (ou +15 au-delà de 90)
+- Montant par défaut : **36€**
+- Pas de limite haute
 
+**Supprimer** : `DonationSlider.tsx` (composant entier), l'import dans DonationFlow, et les constantes `MIN_DONATION` / `MAX_DONATION` de `constants.ts` (remplacées par le tableau de paliers).
+
+### A2. Affichage fiscal intégré sous le montant
+
+Directement sous le sélecteur de montant (dans DonationAmountSelector ou en dessous dans DonationFlow) :
+- **Déduction fiscale** `−X€` + **Coût réel** `Y€` (gros, animés)
+- En petit : "Réduction de 66% pour les dons aux associations d'intérêt général."
+
+L'actuel `TaxDeduction` en version "3 colonnes" reste utilisable, mais on le simplifie pour n'afficher que déduction + coût réel (sans la colonne "Don" redondante).
+
+### A3. Nouvelle carte impact (remplace DonationImpact)
+
+**Supprimer** `DonationImpact.tsx` (la carte "Votre don permet" avec progress bars abstraites).
+
+Créer `src/components/DonationImpactCard.tsx` :
+- Titre : "Votre aide pour {prénom}"
+- Lignes dynamiques calculées depuis le basket :
+  - 🍽️ X repas essentiels (produits catégorie "alimentaire" avec subcategory liée aux repas)
+  - 🥫 X produits alimentaires (total catégorie "alimentaire")
+  - 🧴 X produits d'hygiène (catégorie "hygiene")
+  - 👨‍👩‍👧 Soutien pour sa famille (affiché si children_count > 0 ou family_members > 1)
+- Valeurs animées avec framer-motion
+
+### A4. Carte contenu du colis (DonationBasket simplifié)
+
+Modifier `DonationBasket.tsx` :
+- **Supprimer** les headers de famille émotionnelle ("Survie & Alimentation", etc.)
+- **Supprimer** les labels de variantes
+- Afficher uniquement : nom du produit + badges alimentaires (halal, végan, végétarien)
+- Conserver les badges diet existants (déjà implémentés avec tooltips)
+- Le panier continue à évoluer dynamiquement sans limite
+
+### A5. Supprimer SocialProof sur la page don
+
+Retirer `<SocialProof variant="donation" />` de DonationFlow. Le composant SocialProof reste pour les autres pages.
+
+### A6. Réorganisation verticale de la page
+
+Passer de la grille 2+3 colonnes à une **colonne unique centrée** (`max-w-2xl mx-auto`) :
+
+1. Carte bénéficiaire (avatar + nom + âge + région + histoire + citation)
+2. Sélecteur de montant `[ − ] 36€ [ + ]` + fiscal
+3. Carte impact "Votre aide pour {prénom}"
+4. Contenu du colis
+5. Timeline visuelle
+6. CTA : "Envoyer ce colis à {prénom} — {montant}€"
+
+### A7. Timeline visuelle améliorée
+
+Modifier `ImpactTimeline.tsx` :
+- ❤️ Votre don aujourd'hui
+- 📦 Colis préparé demain
+- 🎁 Colis distribué après-demain
+- Ajouter des cercles colorés connectés par une ligne verticale pour un effet timeline plus visuel
+
+### A8. Mise à jour des constantes
+
+Dans `constants.ts` :
+- Ajouter `DONATION_STEPS = [18, 24, 30, 36, 45, 60, 75, 90]`
+- Garder `DONATION_TIERS` (utilisé par le basket engine) mais ajuster les seuils pour supporter les montants inférieurs à 30€
+- Le basket engine fonctionne déjà sans limite haute (il remplit le budget restant)
+
+### A9. Système de suivi bénéficiaire (coeur)
+
+**DB** : Créer une table `followed_beneficiaries` :
 ```sql
-CREATE OR REPLACE FUNCTION public.get_donation_stats(p_beneficiary_id uuid DEFAULT NULL)
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE result jsonb;
-BEGIN
-  SELECT jsonb_build_object(
-    'today_count', (SELECT count(*) FROM donations WHERE created_at >= CURRENT_DATE),
-    'week_count', (SELECT count(*) FROM donations WHERE created_at >= date_trunc('week', now())),
-    'total_count', (SELECT count(*) FROM donations),
-    'avg_amount', COALESCE(
-      (SELECT round(avg(amount)::numeric, 0) FROM donations WHERE beneficiary_id = p_beneficiary_id),
-      55
-    )
-  ) INTO result;
-  RETURN result;
-END;
-$$;
+CREATE TABLE followed_beneficiaries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  beneficiary_id uuid REFERENCES beneficiaries(id) ON DELETE CASCADE NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, beneficiary_id)
+);
+ALTER TABLE followed_beneficiaries ENABLE ROW LEVEL SECURITY;
+-- RLS: users can only see/manage their own follows
 ```
 
-No other schema changes needed — emergency packs are stored in the existing `products_sent` JSONB column and `amount` includes the pack total.
+**Frontend** :
+- Icône coeur (Heart outline / Heart filled) sur la carte bénéficiaire dans DonationFlow
+- Toggle follow/unfollow via insert/delete dans `followed_beneficiaries`
+- Sur BeneficiarySelection : afficher coeur plein si bénéficiaire est suivi
+- Dashboard : ajouter section "Personnes suivies" (query joined avec beneficiaries_public)
+
+---
+
+## B. Amélioration badges et cartes bénéficiaires (BeneficiarySelection)
+
+### B1. Badges plus grands et visibles
+
+Modifier le badge dans BeneficiarySelection :
+- Height : 28-32px (`py-1.5 px-3`)
+- Border radius : 16px (`rounded-2xl`)
+- Font : `text-xs font-semibold` (au lieu de `text-xs`)
+- Garde `absolute top-4 left-4`
+
+### B2. Micro-animation au chargement
+
+Ajouter au badge une animation framer-motion :
+```tsx
+<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.1 + 0.3, duration: 0.3 }}>
+```
+
+### B3. Effet hover sur carte et badge
+
+- Carte : `hover:shadow-lg hover:-translate-y-1 transition-all duration-300`
+- Badge : `group-hover:brightness-110` (carte avec className `group`)
+
+### B4. Hiérarchie prénom / âge / région
+
+Remplacer `{b.alias_first_name} – {getAgeRange(b.approx_age)}` par :
+```tsx
+<h3 className="text-lg font-semibold text-foreground">{b.alias_first_name}</h3>
+<p className="text-sm text-muted-foreground/80">{getAgeRange(b.approx_age)}</p>
+<div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-0.5">
+  <MapPin className="h-3 w-3" /> {b.region}
+</div>
+```
+
+Appliquer aussi dans DonationFlow et OrderConfirmation.
+
+### B5. Fond coloré par badge
+
+Extraire la couleur de fond du badge (ex: `bg-amber-50`) et l'appliquer comme fond de la carte entière en version encore plus claire :
+```tsx
+const cardBg = BADGE_CARD_BG[badge] || "bg-card";
+// Map: "Logement provisoire" → "bg-amber-50/30", "Désert médical" → "bg-rose-50/30", etc.
+```
+
+---
+
+## Fichiers modifiés / créés / supprimés
+
+| Action | Fichier |
+|--------|---------|
+| Créer | `src/components/DonationAmountSelector.tsx` |
+| Créer | `src/components/DonationImpactCard.tsx` |
+| Supprimer | `src/components/DonationSlider.tsx` |
+| Supprimer | `src/components/DonationImpact.tsx` |
+| Modifier | `src/pages/DonationFlow.tsx` (layout vertical, nouveaux composants, coeur) |
+| Modifier | `src/components/DonationBasket.tsx` (supprimer headers famille) |
+| Modifier | `src/components/ImpactTimeline.tsx` (textes + style timeline) |
+| Modifier | `src/components/TaxDeduction.tsx` (simplifier version sans extra) |
+| Modifier | `src/lib/constants.ts` (DONATION_STEPS, ajuster MIN) |
+| Modifier | `src/pages/BeneficiarySelection.tsx` (badges, hiérarchie, fond coloré, hover, coeur) |
+| Modifier | `src/pages/Dashboard.tsx` (section "Personnes suivies") |
+| Migration | Table `followed_beneficiaries` + RLS |
+
+## Ce qui ne change PAS
+- `basketEngine.ts`, matching RPC, edge functions, checkout flow, paiement
+- Tables existantes (sauf ajout `followed_beneficiaries`)
+- `SocialProof` (reste pour homepage/confirmation, retiré uniquement de DonationFlow)
 
