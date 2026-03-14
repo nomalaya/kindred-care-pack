@@ -13,7 +13,8 @@ import { getAgeRange } from "@/lib/ageRange";
 import { CARD_STYLES, SECTION_HEADER } from "@/lib/designSystem";
 import {
   getBadgeStyle,
-  getCardBg,
+  getBorderColor,
+  getCardGradient,
   deduplicateBadges,
   DEFAULT_BADGE,
 } from "@/lib/badgeStyles";
