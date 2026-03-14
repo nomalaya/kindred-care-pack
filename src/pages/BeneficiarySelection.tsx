@@ -13,7 +13,6 @@ import { getAgeRange } from "@/lib/ageRange";
 import { CARD_STYLES, SECTION_HEADER } from "@/lib/designSystem";
 import {
   getBadgeStyle,
-  getBorderColor,
   getCardGradient,
   deduplicateBadges,
   DEFAULT_BADGE,
@@ -163,7 +162,6 @@ const BeneficiarySelection = () => {
             {beneficiaries.map((b, i) => {
               const badge = badges[i];
               const badgeStyle = getBadgeStyle(badge);
-              const borderColor = getBorderColor(badge);
               const isProximity = ["Proche de chez vous", "Dans votre département", "Dans votre région", "Dans votre pays"].includes(badge);
               const BadgeIcon = isProximity ? Navigation : Sparkles;
               const followed = followedIds.has(b.id);

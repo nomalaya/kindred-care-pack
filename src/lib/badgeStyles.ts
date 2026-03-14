@@ -83,35 +83,6 @@ export const BADGE_CARD_BG: Record<string, string> = {
 
 export const DEFAULT_BADGE = "Impact de l'inflation";
 
-// ─── Left border color per badge ────────────────────────
-
-export const BADGE_BORDER_COLOR: Record<string, string> = {
-  "Proche de chez vous":                "border-l-emerald-500",
-  "Dans votre département":             "border-l-emerald-500",
-  "Dans votre région":                  "border-l-emerald-500",
-  "Dans votre pays":                    "border-l-emerald-500",
-  "Nouveau bénéficiaire inscrit":       "border-l-blue-500",
-  "Logement provisoire":                "border-l-amber-500",
-  "Démarches juridiques en cours":      "border-l-indigo-500",
-  "Démarches administratives en cours": "border-l-indigo-500",
-  "Très loin de sa famille":            "border-l-fuchsia-500",
-  "Désert médical":                     "border-l-red-500",
-  "Zone rurale isolée":                 "border-l-teal-500",
-  "Impact de l'inflation":              "border-l-slate-400",
-  "Apprend un nouveau métier":          "border-l-cyan-500",
-  "1ère année universitaire":           "border-l-violet-500",
-  "Nourrisson arrivé récemment":        "border-l-pink-500",
-  "1ère grossesse":                     "border-l-pink-500",
-  "Difficile de vivre seul":            "border-l-orange-500",
-  "Difficile de vivre seule":           "border-l-orange-500",
-  "Difficile de vivre seul(e)":         "border-l-orange-500",
-  "Début de vie active":                "border-l-lime-500",
-  "Aidant familial":                    "border-l-purple-500",
-  "Parcours de transition":             "border-l-sky-500",
-  "Manque de repères dans la ville":    "border-l-stone-400",
-  "Manque de commerces de proximité":   "border-l-stone-400",
-};
-
 // ─── Card gradient per badge ────────────────────────────
 
 const BADGE_GRADIENT: Record<string, string> = {
@@ -156,10 +127,6 @@ export function getBadgeStyle(badge: string): string {
 
 export function getCardBg(badge: string): string {
   return BADGE_CARD_BG[badge] || "bg-card";
-}
-
-export function getBorderColor(badge: string): string {
-  return BADGE_BORDER_COLOR[badge] || "border-l-slate-400";
 }
 
 export function getCardGradient(badge: string): React.CSSProperties {
