@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { DELIVERY_STATUSES } from "@/lib/constants";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
-import { Navigate } from "react-router-dom";
-import { Package } from "lucide-react";
+import { Navigate, Link } from "react-router-dom";
+import { Package, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface DonationRow {
@@ -26,27 +26,57 @@ interface DonationRow {
   };
 }
 
+interface FollowedBeneficiary {
+  id: string;
+  alias_first_name: string;
+  region: string;
+  avatar_gender: string;
+  avatar_age_range: string;
+  avatar_hair_type: string;
+  avatar_skin_tone: string;
+  avatar_url?: string;
+}
+
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const [donations, setDonations] = useState<DonationRow[]>([]);
+  const [followed, setFollowed] = useState<FollowedBeneficiary[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("donations")
-      .select("id, amount, delivery_status, created_at, products_sent, beneficiaries_public!beneficiary_id(alias_first_name, approx_age, region, avatar_gender, avatar_age_range, avatar_hair_type, avatar_skin_tone, avatar_url)")
-      .eq("donor_id", user.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (data) {
-          setDonations(data.map((d: any) => ({
-            ...d,
-            beneficiary: d.beneficiaries_public,
-          })));
-        }
-        setLoading(false);
-      });
+
+    const loadData = async () => {
+      const [donRes, followRes] = await Promise.all([
+        supabase
+          .from("donations")
+          .select("id, amount, delivery_status, created_at, products_sent, beneficiaries_public!beneficiary_id(alias_first_name, approx_age, region, avatar_gender, avatar_age_range, avatar_hair_type, avatar_skin_tone, avatar_url)")
+          .eq("donor_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("followed_beneficiaries" as any)
+          .select("beneficiary_id")
+          .eq("user_id", user.id),
+      ]);
+
+      if (donRes.data) {
+        setDonations(donRes.data.map((d: any) => ({ ...d, beneficiary: d.beneficiaries_public })));
+      }
+
+      // Load followed beneficiary details
+      if (followRes.data && (followRes.data as any[]).length > 0) {
+        const ids = (followRes.data as any[]).map((f: any) => f.beneficiary_id);
+        const { data: bData } = await supabase
+          .from("beneficiaries_public")
+          .select("id, alias_first_name, region, avatar_gender, avatar_age_range, avatar_hair_type, avatar_skin_tone, avatar_url")
+          .in("id", ids);
+        if (bData) setFollowed(bData as unknown as FollowedBeneficiary[]);
+      }
+
+      setLoading(false);
+    };
+
+    loadData();
   }, [user]);
 
   if (authLoading) return null;
@@ -59,6 +89,34 @@ const Dashboard = () => {
       <div className="container mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold text-foreground mb-2">Mes dons</h1>
         <p className="text-muted-foreground mb-8">Suivez toutes vos contributions et leur impact.</p>
+
+        {/* Followed beneficiaries */}
+        {followed.length > 0 && (
+          <div className="mb-10">
+            <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Heart className="h-5 w-5 text-rose-500" /> Personnes suivies
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {followed.map((b) => (
+                <Link key={b.id} to={`/donate/${b.id}`} className="bg-card rounded-2xl p-4 border shadow-card text-center hover:shadow-lg transition-shadow">
+                  <div className="flex justify-center mb-2">
+                    <BeneficiaryAvatar
+                      name={b.alias_first_name}
+                      gender={b.avatar_gender}
+                      ageRange={b.avatar_age_range}
+                      hairType={b.avatar_hair_type}
+                      skinTone={b.avatar_skin_tone}
+                      avatarUrl={b.avatar_url}
+                      size="sm"
+                    />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">{b.alias_first_name}</p>
+                  <p className="text-xs text-muted-foreground">{b.region}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="space-y-4">
@@ -104,8 +162,6 @@ const Dashboard = () => {
                       <p className="text-xs text-muted-foreground mb-3">
                         {new Date(d.created_at).toLocaleDateString("fr-FR", { year: "numeric", month: "long", day: "numeric" })}
                       </p>
-
-                      {/* Progress bar */}
                       <div className="flex items-center gap-1">
                         {DELIVERY_STATUSES.map((s, i) => (
                           <div key={s.key} className="flex items-center gap-1 flex-1">
