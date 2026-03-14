@@ -198,6 +198,8 @@ const DonationFlow = () => {
     );
   }
 
+  const hasFamily = (beneficiary.children_count ?? 0) > 0 || (beneficiary.family_members ?? 0) > 1;
+
   const contextBadge = beneficiary.context_badge
     ? genderizeBadge(beneficiary.context_badge, beneficiary.avatar_gender)
     : DEFAULT_BADGE;
