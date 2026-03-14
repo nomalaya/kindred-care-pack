@@ -13,8 +13,8 @@ interface Props {
 const STEP_INCREMENT = 15;
 
 function getPrevAmount(current: number): number {
-  const idx = DONATION_STEPS.indexOf(current);
-  if (idx > 0) return DONATION_STEPS[idx - 1];
+  const idx = STEPS.indexOf(current);
+  if (idx > 0) return STEPS[idx - 1];
   if (idx === 0) return current; // already at minimum
   // Beyond predefined steps — go down by increment
   const prev = current - STEP_INCREMENT;
