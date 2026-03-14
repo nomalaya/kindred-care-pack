@@ -19,7 +19,7 @@ import { Heart, MapPin, Quote, Navigation, Sparkles } from "lucide-react";
 import { getAgeRange } from "@/lib/ageRange";
 import { toast } from "sonner";
 import { CARD_STYLES, ANIM } from "@/lib/designSystem";
-import { getBadgeStyle, getBorderColor, getCardGradient, getDisplayBadge } from "@/lib/badgeStyles";
+import { getBadgeStyle, getCardGradient, getDisplayBadge } from "@/lib/badgeStyles";
 
 interface Beneficiary {
   id: string;
