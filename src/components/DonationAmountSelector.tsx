@@ -23,13 +23,11 @@ function getPrevAmount(current: number): number {
 }
 
 function getNextAmount(current: number): number {
-  const idx = DONATION_STEPS.indexOf(current);
-  if (idx >= 0 && idx < DONATION_STEPS.length - 1) return DONATION_STEPS[idx + 1];
-  // At or beyond last step — increment by STEP_INCREMENT
-  const lastStep = DONATION_STEPS[DONATION_STEPS.length - 1];
+  const idx = STEPS.indexOf(current);
+  if (idx >= 0 && idx < STEPS.length - 1) return STEPS[idx + 1];
+  const lastStep = STEPS[STEPS.length - 1];
   if (current < lastStep) {
-    // Find next step above current
-    const next = DONATION_STEPS.find((s) => s > current);
+    const next = STEPS.find((s) => s > current);
     return next || current + STEP_INCREMENT;
   }
   return current + STEP_INCREMENT;
