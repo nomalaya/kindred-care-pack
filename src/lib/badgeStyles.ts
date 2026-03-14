@@ -1,3 +1,5 @@
+import type React from "react";
+
 /**
  * Badge styling system for beneficiary context badges.
  *
