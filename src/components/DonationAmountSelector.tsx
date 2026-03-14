@@ -18,7 +18,7 @@ function getPrevAmount(current: number): number {
   if (idx === 0) return current; // already at minimum
   // Beyond predefined steps — go down by increment
   const prev = current - STEP_INCREMENT;
-  const lastStep = DONATION_STEPS[DONATION_STEPS.length - 1];
+  const lastStep = STEPS[STEPS.length - 1];
   return prev >= lastStep ? prev : lastStep;
 }
 
