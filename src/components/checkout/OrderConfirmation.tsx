@@ -120,7 +120,7 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
                 {beneficiary.alias_first_name} vous remercie !
               </h3>
               <p className="text-sm text-muted-foreground">
-                {beneficiary.approx_age} ans • {beneficiary.region}
+                {getAgeRange(beneficiary.approx_age)} • {beneficiary.region}
               </p>
             </div>
           </div>
