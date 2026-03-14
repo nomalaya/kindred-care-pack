@@ -3,6 +3,8 @@ import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DONATION_STEPS, TAX_DEDUCTION_RATE } from "@/lib/constants";
 
+const STEPS = DONATION_STEPS as unknown as number[];
+
 interface Props {
   value: number;
   onChange: (value: number) => void;
