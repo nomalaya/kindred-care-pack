@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CAUSE_ICONS } from "@/lib/constants";
 import { motion } from "framer-motion";
 import SocialProof from "@/components/SocialProof";
+import { CARD_STYLES, SECTION_HEADER } from "@/lib/designSystem";
 
 interface Cause {
   id: string;
@@ -27,9 +28,9 @@ const CauseSelection = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Choisissez une cause</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
+        <div className={SECTION_HEADER.wrapper}>
+          <h1 className={SECTION_HEADER.title}>Choisissez une cause</h1>
+          <p className={`${SECTION_HEADER.subtitle} max-w-2xl mx-auto mb-4`}>
             Chaque cause représente de vraies personnes confrontées à de vrais défis. Choisissez celle qui vous parle.
           </p>
           <SocialProof variant="cause" />
@@ -38,7 +39,7 @@ const CauseSelection = () => {
         {loading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-card rounded-2xl p-8 animate-pulse h-48" />
+              <div key={i} className={`${CARD_STYLES.page} animate-pulse h-48`} />
             ))}
           </div>
         ) : (
@@ -52,10 +53,10 @@ const CauseSelection = () => {
               >
                 <Link
                   to={`/causes/${cause.id}/situations`}
-                  className="block bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 border group"
+                  className={`block ${CARD_STYLES.page} ${CARD_STYLES.hover} group`}
                 >
                   <div className="text-4xl mb-4">{CAUSE_ICONS[cause.icon || "Heart"] || "❤️"}</div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+                  <h3 className={`text-lg font-semibold text-foreground mb-2 ${CARD_STYLES.titleHover}`}>
                     {cause.title}
                   </h3>
                   <p className="text-sm text-muted-foreground">{cause.description}</p>
