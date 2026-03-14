@@ -36,7 +36,7 @@ function getNextAmount(current: number): number {
 const DonationAmountSelector = ({ value, onChange }: Props) => {
   const deduction = Math.round(value * TAX_DEDUCTION_RATE);
   const realCost = value - deduction;
-  const isMin = value <= DONATION_STEPS[0];
+  const isMin = value <= STEPS[0];
 
   return (
     <div className="bg-card rounded-2xl p-6 border shadow-card">
