@@ -37,6 +37,7 @@ interface Beneficiary {
   situation_id?: string;
   children_count?: number;
   family_members?: number;
+  context_badge?: string;
 }
 
 const DonationFlow = () => {
