@@ -207,7 +207,6 @@ const DonationFlow = () => {
   // Badge for donation flow card
   const badge = getDisplayBadge(beneficiary);
   const badgeStyle = getBadgeStyle(badge);
-  const borderColor = getBorderColor(badge);
   const isProximity = ["Proche de chez vous", "Dans votre département", "Dans votre région", "Dans votre pays"].includes(badge);
   const BadgeIcon = isProximity ? Navigation : Sparkles;
 
