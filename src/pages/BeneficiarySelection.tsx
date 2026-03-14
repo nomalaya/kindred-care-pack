@@ -191,7 +191,7 @@ const BeneficiarySelection = () => {
             {beneficiaries.map((b, i) => {
               const badge = badges[i];
               const badgeStyle = getBadgeStyle(badge);
-              const cardBg = BADGE_CARD_BG[badge] || "bg-card";
+              const cardBg = getCardBg(badge);
               const isProximity = ["Proche de chez vous", "Dans votre département", "Dans votre région", "Dans votre pays"].includes(badge);
               const BadgeIcon = isProximity ? Navigation : Sparkles;
               const followed = followedIds.has(b.id);
