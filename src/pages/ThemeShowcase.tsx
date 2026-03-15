@@ -322,7 +322,7 @@ const ThemeShowcase = () => {
           </div>
           <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
             {["Logement provisoire", "Désert médical", "1ère année universitaire", "Aidant familial"].map((b) => (
-              <div key={b} className={`rounded-2xl p-4 border ${getCardBg(b)}`}>
+              <div key={b} className="rounded-2xl p-4 border" style={getCardGradient()}>
                 <Badge variant="outline" className={`py-1 px-2 rounded-xl text-[10px] font-semibold ${getBadgeStyle(b)}`}>
                   <Sparkles className="h-2.5 w-2.5 mr-1" />{b}
                 </Badge>
