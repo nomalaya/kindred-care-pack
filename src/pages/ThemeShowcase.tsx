@@ -21,7 +21,7 @@ import {
   TYPOGRAPHY, FONT_SIZES, SPACING_TOKENS, RADIUS, SHADOWS,
   ANIM, CARD_STYLES, BADGE_SIZES, BUTTON_PRESETS, SECTION_HEADER, COLOR_ROLES,
 } from "@/lib/designSystem";
-import { BADGE_STYLES, getBadgeStyle, getCardBg, DEFAULT_BADGE } from "@/lib/badgeStyles";
+import { BADGE_STYLES, getBadgeStyle, getCardGradient, DEFAULT_BADGE } from "@/lib/badgeStyles";
 
 const ThemeShowcase = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -322,7 +322,7 @@ const ThemeShowcase = () => {
           </div>
           <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
             {["Logement provisoire", "Désert médical", "1ère année universitaire", "Aidant familial"].map((b) => (
-              <div key={b} className={`rounded-2xl p-4 border ${getCardBg(b)}`}>
+              <div key={b} className="rounded-2xl p-4 border" style={getCardGradient()}>
                 <Badge variant="outline" className={`py-1 px-2 rounded-xl text-[10px] font-semibold ${getBadgeStyle(b)}`}>
                   <Sparkles className="h-2.5 w-2.5 mr-1" />{b}
                 </Badge>
@@ -454,7 +454,7 @@ const ThemeShowcase = () => {
         {/* ===== 14. BENEFICIARY CARD (reference) ===== */}
         <Section title="Carte bénéficiaire complète (référence)">
           <div className="max-w-md mx-auto">
-            <div className={`group rounded-2xl p-8 shadow-card border text-center relative ${CARD_STYLES.hover} ${getCardBg("Logement provisoire")}`}>
+            <div className={`group rounded-2xl p-8 shadow-card border text-center relative ${CARD_STYLES.hover}`} style={getCardGradient()}>
               <div className="absolute top-4 left-4">
                 <Heart className="h-5 w-5 fill-rose-500 text-rose-500" />
               </div>
