@@ -405,6 +405,67 @@ export type Database = {
           },
         ]
       }
+      impact_profiles: {
+        Row: {
+          id: string
+          impact_type_1: string
+          impact_type_2: string
+          impact_type_3: string
+          situation_id: string
+        }
+        Insert: {
+          id?: string
+          impact_type_1: string
+          impact_type_2: string
+          impact_type_3: string
+          situation_id: string
+        }
+        Update: {
+          id?: string
+          impact_type_1?: string
+          impact_type_2?: string
+          impact_type_3?: string
+          situation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_profiles_situation_id_fkey"
+            columns: ["situation_id"]
+            isOneToOne: true
+            referencedRelation: "situations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      impact_units: {
+        Row: {
+          id: string
+          impact_type: string
+          impact_value: number
+          product_id: string
+        }
+        Insert: {
+          id?: string
+          impact_type: string
+          impact_value?: number
+          product_id: string
+        }
+        Update: {
+          id?: string
+          impact_type?: string
+          impact_value?: number
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_units_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matching_rules: {
         Row: {
           created_at: string | null

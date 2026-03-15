@@ -1,11 +1,57 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import type { BasketItem } from "@/lib/basketEngine";
 
 interface Props {
-  beneficiaryName: string;
   basket: BasketItem[];
-  hasFamily?: boolean;
+  situationId?: string;
+}
+
+interface ImpactUnit {
+  product_id: string;
+  impact_type: string;
+  impact_value: number;
+}
+
+interface ImpactProfile {
+  impact_type_1: string;
+  impact_type_2: string;
+  impact_type_3: string;
+}
+
+const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => string }> = {
+  meals: {
+    emoji: "🍽️",
+    label: (v) => `${formatDuration(v)} de repas essentiels`,
+  },
+  breakfasts: {
+    emoji: "☕",
+    label: (v) => `${v} petit${v > 1 ? "s" : ""}-déjeuner${v > 1 ? "s" : ""}`,
+  },
+  kids_snacks: {
+    emoji: "🧒",
+    label: (v) => `${v} goûter${v > 1 ? "s" : ""} pour les enfants`,
+  },
+  hygiene_days: {
+    emoji: "🧼",
+    label: (v) => `${formatDuration(v)} d'hygiène`,
+  },
+  daily_products: {
+    emoji: "🧹",
+    label: (v) => `${v} produit${v > 1 ? "s" : ""} du quotidien`,
+  },
+  quick_meals: {
+    emoji: "🥫",
+    label: (v) => `${v} repas rapide${v > 1 ? "s" : ""}`,
+  },
+};
+
+function formatDuration(days: number): string {
+  if (days >= 14 && days < 21) return "2 semaines";
+  if (days >= 7 && days < 14) return "1 semaine";
+  if (days >= 21) return `${Math.floor(days / 7)} semaines`;
+  return `${days} jour${days > 1 ? "s" : ""}`;
 }
 
 const AnimatedNum = ({ value }: { value: number }) => (
@@ -23,46 +69,72 @@ const AnimatedNum = ({ value }: { value: number }) => (
   </AnimatePresence>
 );
 
-const DonationImpactCard = ({ beneficiaryName, basket, hasFamily }: Props) => {
-  const metrics = useMemo(() => {
-    let foodProducts = 0;
-    let mealProducts = 0;
-    let hygieneProducts = 0;
+const DonationImpactCard = ({ basket, situationId }: Props) => {
+  const [impactUnits, setImpactUnits] = useState<ImpactUnit[]>([]);
+  const [profile, setProfile] = useState<ImpactProfile | null>(null);
 
-    for (const item of basket) {
-      const cat = item.product.category;
-      const sub = item.product.subcategory || "";
-      if (cat === "alimentaire") {
-        foodProducts += item.quantity;
-        // Count meal-like products
-        if (["conserve", "féculent", "plat", "céréale", "légumineuse"].some((k) => sub.includes(k)) || item.product.name.toLowerCase().includes("repas")) {
-          mealProducts += item.quantity;
-        }
-      }
-      if (cat === "hygiene" || cat === "hygiène") {
-        hygieneProducts += item.quantity;
-      }
-    }
+  useEffect(() => {
+    if (!situationId) return;
+    supabase
+      .from("impact_profiles" as any)
+      .select("impact_type_1, impact_type_2, impact_type_3")
+      .eq("situation_id", situationId)
+      .single()
+      .then(({ data }) => {
+        if (data) setProfile(data as unknown as ImpactProfile);
+      });
+  }, [situationId]);
 
-    // Estimate meals: at least food products / 2, minimum 1 if food exists
-    const meals = foodProducts > 0 ? Math.max(Math.round(foodProducts * 0.7), 1) : 0;
-
-    return { meals, foodProducts, hygieneProducts };
+  useEffect(() => {
+    const productIds = basket.map((i) => i.product.id);
+    if (productIds.length === 0) return;
+    supabase
+      .from("impact_units" as any)
+      .select("product_id, impact_type, impact_value")
+      .in("product_id", productIds)
+      .then(({ data }) => {
+        if (data) setImpactUnits(data as unknown as ImpactUnit[]);
+      });
   }, [basket]);
 
-  const lines = [
-    metrics.meals > 0 && { emoji: "🍽️", text: `${metrics.meals} repas essentiels`, value: metrics.meals },
-    metrics.foodProducts > 0 && { emoji: "🥫", text: `${metrics.foodProducts} produits alimentaires`, value: metrics.foodProducts },
-    metrics.hygieneProducts > 0 && { emoji: "🧴", text: `${metrics.hygieneProducts} produits d'hygiène`, value: metrics.hygieneProducts },
-    hasFamily && { emoji: "👨‍👩‍👧", text: "Soutien pour sa famille", value: 0 },
-  ].filter(Boolean) as { emoji: string; text: string; value: number }[];
+  const lines = useMemo(() => {
+    if (!profile || impactUnits.length === 0) return [];
+
+    const types = [profile.impact_type_1, profile.impact_type_2, profile.impact_type_3];
+    const result: { emoji: string; text: string; value: number }[] = [];
+
+    for (const type of types) {
+      let total = 0;
+      for (const item of basket) {
+        const units = impactUnits.filter(
+          (u) => u.product_id === item.product.id && u.impact_type === type
+        );
+        for (const u of units) {
+          total += Math.floor(Number(u.impact_value) * item.quantity);
+        }
+      }
+      total = Math.floor(total);
+      if (total <= 0) continue;
+
+      const config = IMPACT_LABELS[type];
+      if (!config) continue;
+
+      result.push({
+        emoji: config.emoji,
+        text: config.label(total),
+        value: total,
+      });
+    }
+
+    return result;
+  }, [profile, impactUnits, basket]);
 
   if (lines.length === 0) return null;
 
   return (
     <div className="bg-card rounded-2xl p-6 border shadow-card">
       <h3 className="text-base font-semibold text-foreground mb-4">
-        Votre aide pour {beneficiaryName}
+        Impact de votre aide
       </h3>
       <div className="space-y-3">
         {lines.map((line) => (
@@ -73,16 +145,7 @@ const DonationImpactCard = ({ beneficiaryName, basket, hasFamily }: Props) => {
             className="flex items-center gap-3"
           >
             <span className="text-xl">{line.emoji}</span>
-            <span className="text-sm text-foreground">
-              {line.value > 0 ? (
-                <>
-                  <AnimatedNum value={line.value} />{" "}
-                  {line.text.replace(/^\d+\s/, "")}
-                </>
-              ) : (
-                line.text
-              )}
-            </span>
+            <span className="text-sm text-foreground">{line.text}</span>
           </motion.div>
         ))}
       </div>

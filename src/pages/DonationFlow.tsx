@@ -202,7 +202,7 @@ const DonationFlow = () => {
     );
   }
 
-  const hasFamily = (beneficiary.children_count ?? 0) > 0 || (beneficiary.family_members ?? 0) > 1;
+  
 
   // Badge for donation flow card
   const badge = getDisplayBadge(beneficiary);
@@ -280,9 +280,8 @@ const DonationFlow = () => {
 
           {/* 3. Impact card */}
           <DonationImpactCard
-            beneficiaryName={beneficiary.alias_first_name}
             basket={basket}
-            hasFamily={hasFamily}
+            situationId={beneficiary.situation_id}
           />
 
           {/* 4. Basket */}
