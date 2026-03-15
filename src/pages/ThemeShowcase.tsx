@@ -21,7 +21,7 @@ import {
   TYPOGRAPHY, FONT_SIZES, SPACING_TOKENS, RADIUS, SHADOWS,
   ANIM, CARD_STYLES, BADGE_SIZES, BUTTON_PRESETS, SECTION_HEADER, COLOR_ROLES,
 } from "@/lib/designSystem";
-import { BADGE_STYLES, getBadgeStyle, getCardBg, DEFAULT_BADGE } from "@/lib/badgeStyles";
+import { BADGE_STYLES, getBadgeStyle, getCardGradient, DEFAULT_BADGE } from "@/lib/badgeStyles";
 
 const ThemeShowcase = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
