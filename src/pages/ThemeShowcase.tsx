@@ -454,7 +454,7 @@ const ThemeShowcase = () => {
         {/* ===== 14. BENEFICIARY CARD (reference) ===== */}
         <Section title="Carte bénéficiaire complète (référence)">
           <div className="max-w-md mx-auto">
-            <div className={`group rounded-2xl p-8 shadow-card border text-center relative ${CARD_STYLES.hover} ${getCardBg("Logement provisoire")}`}>
+            <div className={`group rounded-2xl p-8 shadow-card border text-center relative ${CARD_STYLES.hover}`} style={getCardGradient()}>
               <div className="absolute top-4 left-4">
                 <Heart className="h-5 w-5 fill-rose-500 text-rose-500" />
               </div>
