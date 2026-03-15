@@ -54,33 +54,6 @@ export const BADGE_STYLES: Record<string, string> = {
 
 // ─── Card background tint per badge ─────────────────────
 
-export const BADGE_CARD_BG: Record<string, string> = {
-  "Proche de chez vous":                "bg-emerald-50/60",
-  "Dans votre département":             "bg-emerald-50/60",
-  "Dans votre région":                  "bg-emerald-50/60",
-  "Dans votre pays":                    "bg-emerald-50/60",
-  "Nouveau bénéficiaire inscrit":       "bg-blue-50/60",
-  "Logement provisoire":                "bg-amber-50/60",
-  "Démarches juridiques en cours":      "bg-indigo-50/60",
-  "Démarches administratives en cours": "bg-indigo-50/60",
-  "Très loin de sa famille":            "bg-fuchsia-50/60",
-  "Désert médical":                     "bg-red-50/60",
-  "Zone rurale isolée":                 "bg-teal-50/60",
-  "Impact de l'inflation":              "bg-slate-50/60",
-  "Apprend un nouveau métier":          "bg-cyan-50/60",
-  "1ère année universitaire":           "bg-violet-50/60",
-  "Nourrisson arrivé récemment":        "bg-pink-50/60",
-  "1ère grossesse":                     "bg-pink-50/60",
-  "Difficile de vivre seul":            "bg-orange-50/60",
-  "Difficile de vivre seule":           "bg-orange-50/60",
-  "Difficile de vivre seul(e)":         "bg-orange-50/60",
-  "Début de vie active":                "bg-lime-50/60",
-  "Aidant familial":                    "bg-purple-50/60",
-  "Parcours de transition":             "bg-sky-50/60",
-  "Manque de repères dans la ville":    "bg-stone-100/60",
-  "Manque de commerces de proximité":   "bg-stone-100/60",
-};
-
 export const DEFAULT_BADGE = "Impact de l'inflation";
 
 // ─── Card gradient per badge ────────────────────────────
