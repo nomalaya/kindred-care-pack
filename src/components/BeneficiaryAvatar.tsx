@@ -48,7 +48,7 @@ const BeneficiaryAvatar = ({ gender, ageRange, skinTone, hairType, size = "md", 
 
   return (
     <svg width={dim} height={dim} viewBox="0 0 100 100" className="rounded-full" aria-label={`Avatar de ${name}`}>
-      <circle cx="50" cy="50" r="50" fill="hsl(157, 68%, 93%)" />
+      <circle cx="50" cy="50" r="50" fill="white" />
       <circle cx="50" cy="40" r="22" fill={skin} />
       {hairType !== "bald" && hairType !== "covered" && (
         <ellipse cx="50" cy="28" rx={hairType === "curly" || hairType === "coily" ? 24 : 22} ry={hairType === "curly" || hairType === "coily" ? 16 : 12} fill={hair} />

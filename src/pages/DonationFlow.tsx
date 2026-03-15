@@ -221,7 +221,7 @@ const DonationFlow = () => {
           {/* 1. Beneficiary card — with badge + colored background */}
           <div
             className={`rounded-2xl p-8 shadow-card border text-center relative`}
-            style={getCardGradient(badge)}
+            style={getCardGradient()}
           >
             {/* Badge — top right */}
             <motion.div

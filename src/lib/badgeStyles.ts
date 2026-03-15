@@ -58,33 +58,6 @@ export const DEFAULT_BADGE = "Impact de l'inflation";
 
 // ─── Card gradient per badge ────────────────────────────
 
-const BADGE_GRADIENT: Record<string, string> = {
-  "Proche de chez vous":                "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, transparent 100%)",
-  "Dans votre département":             "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, transparent 100%)",
-  "Dans votre région":                  "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, transparent 100%)",
-  "Dans votre pays":                    "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, transparent 100%)",
-  "Nouveau bénéficiaire inscrit":       "linear-gradient(180deg, rgba(59,130,246,0.12) 0%, transparent 100%)",
-  "Logement provisoire":                "linear-gradient(180deg, rgba(245,158,11,0.12) 0%, transparent 100%)",
-  "Démarches juridiques en cours":      "linear-gradient(180deg, rgba(99,102,241,0.12) 0%, transparent 100%)",
-  "Démarches administratives en cours": "linear-gradient(180deg, rgba(99,102,241,0.12) 0%, transparent 100%)",
-  "Très loin de sa famille":            "linear-gradient(180deg, rgba(217,70,239,0.12) 0%, transparent 100%)",
-  "Désert médical":                     "linear-gradient(180deg, rgba(239,68,68,0.12) 0%, transparent 100%)",
-  "Zone rurale isolée":                 "linear-gradient(180deg, rgba(20,184,166,0.12) 0%, transparent 100%)",
-  "Impact de l'inflation":              "linear-gradient(180deg, rgba(148,163,184,0.12) 0%, transparent 100%)",
-  "Apprend un nouveau métier":          "linear-gradient(180deg, rgba(6,182,212,0.12) 0%, transparent 100%)",
-  "1ère année universitaire":           "linear-gradient(180deg, rgba(139,92,246,0.12) 0%, transparent 100%)",
-  "Nourrisson arrivé récemment":        "linear-gradient(180deg, rgba(236,72,153,0.12) 0%, transparent 100%)",
-  "1ère grossesse":                     "linear-gradient(180deg, rgba(236,72,153,0.12) 0%, transparent 100%)",
-  "Difficile de vivre seul":            "linear-gradient(180deg, rgba(249,115,22,0.12) 0%, transparent 100%)",
-  "Difficile de vivre seule":           "linear-gradient(180deg, rgba(249,115,22,0.12) 0%, transparent 100%)",
-  "Difficile de vivre seul(e)":         "linear-gradient(180deg, rgba(249,115,22,0.12) 0%, transparent 100%)",
-  "Début de vie active":                "linear-gradient(180deg, rgba(132,204,22,0.12) 0%, transparent 100%)",
-  "Aidant familial":                    "linear-gradient(180deg, rgba(168,85,247,0.12) 0%, transparent 100%)",
-  "Parcours de transition":             "linear-gradient(180deg, rgba(14,165,233,0.12) 0%, transparent 100%)",
-  "Manque de repères dans la ville":    "linear-gradient(180deg, rgba(168,162,158,0.12) 0%, transparent 100%)",
-  "Manque de commerces de proximité":   "linear-gradient(180deg, rgba(168,162,158,0.12) 0%, transparent 100%)",
-};
-
 // ─── Helpers ─────────────────────────────────────────────
 
 export function genderizeBadge(badge: string, gender: string): string {
@@ -98,12 +71,8 @@ export function getBadgeStyle(badge: string): string {
   return BADGE_STYLES[badge] || BADGE_STYLES[DEFAULT_BADGE];
 }
 
-export function getCardBg(badge: string): string {
-  return BADGE_CARD_BG[badge] || "bg-card";
-}
-
-export function getCardGradient(badge: string): React.CSSProperties {
-  return { background: BADGE_GRADIENT[badge] || BADGE_GRADIENT[DEFAULT_BADGE] };
+export function getCardGradient(): React.CSSProperties {
+  return { background: "linear-gradient(180deg, hsla(157, 68%, 33%, 0.10) 0%, transparent 100%)" };
 }
 
 export function isNewBeneficiary(createdAt?: string): boolean {
