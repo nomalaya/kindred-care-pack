@@ -280,9 +280,8 @@ const DonationFlow = () => {
 
           {/* 3. Impact card */}
           <DonationImpactCard
-            beneficiaryName={beneficiary.alias_first_name}
             basket={basket}
-            hasFamily={hasFamily}
+            situationId={beneficiary.situation_id}
           />
 
           {/* 4. Basket */}
