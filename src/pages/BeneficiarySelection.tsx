@@ -222,7 +222,7 @@ const BeneficiarySelection = () => {
                     <Quote className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     « {b.emotional_sentence} »
                   </div>
-                  <Link to={`/donate/${b.id}`} onClick={() => handleClickAider(b.id)}>
+                  <Link to={`/donate/${b.id}`} state={{ displayBadge: badge }} onClick={() => handleClickAider(b.id)}>
                     <Button className="w-full bg-cta hover:bg-cta/90 text-cta-foreground">
                       Aider {b.alias_first_name}
                     </Button>

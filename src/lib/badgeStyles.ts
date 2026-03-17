@@ -92,22 +92,27 @@ interface BeneficiaryBadgeInput {
 
 export function getDisplayBadge(b: BeneficiaryBadgeInput): string {
   if (b.proximity_label) return b.proximity_label;
-  if (isNewBeneficiary(b.created_at)) return "Nouveau bénéficiaire inscrit";
   if (b.context_badge) return genderizeBadge(b.context_badge, b.avatar_gender);
+  if (isNewBeneficiary(b.created_at)) return "Nouveau bénéficiaire inscrit";
   return DEFAULT_BADGE;
 }
 
 export function deduplicateBadges(beneficiaries: BeneficiaryBadgeInput[]): string[] {
   const usedBadges = new Set<string>();
   const result: string[] = [];
+  const allBadgeKeys = Object.keys(BADGE_STYLES);
+
   for (const b of beneficiaries) {
     let badge = getDisplayBadge(b);
     if (usedBadges.has(badge)) {
-      const contextBadge = b.context_badge ? genderizeBadge(b.context_badge, b.avatar_gender) : null;
-      if (contextBadge && !usedBadges.has(contextBadge) && contextBadge !== badge) {
-        badge = contextBadge;
+      const newLabel = isNewBeneficiary(b.created_at) ? "Nouveau bénéficiaire inscrit" : null;
+      if (newLabel && !usedBadges.has(newLabel)) {
+        badge = newLabel;
       } else if (!usedBadges.has(DEFAULT_BADGE)) {
         badge = DEFAULT_BADGE;
+      } else {
+        const fallback = allBadgeKeys.find(k => !usedBadges.has(k));
+        if (fallback) badge = fallback;
       }
     }
     usedBadges.add(badge);

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
@@ -47,6 +47,8 @@ interface Beneficiary {
 const DonationFlow = () => {
   const { beneficiaryId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navBadge = (location.state as { displayBadge?: string } | null)?.displayBadge;
   const { user } = useAuth();
 
   const [beneficiary, setBeneficiary] = useState<Beneficiary | null>(null);
@@ -205,7 +207,7 @@ const DonationFlow = () => {
   
 
   // Badge for donation flow card
-  const badge = getDisplayBadge(beneficiary);
+  const badge = navBadge || getDisplayBadge(beneficiary);
   const badgeStyle = getBadgeStyle(badge);
   const isProximity = ["Proche de chez vous", "Dans votre département", "Dans votre région", "Dans votre pays"].includes(badge);
   const BadgeIcon = isProximity ? Navigation : Sparkles;
