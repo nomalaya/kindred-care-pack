@@ -47,6 +47,8 @@ interface Beneficiary {
 const DonationFlow = () => {
   const { beneficiaryId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navBadge = (location.state as { displayBadge?: string } | null)?.displayBadge;
   const { user } = useAuth();
 
   const [beneficiary, setBeneficiary] = useState<Beneficiary | null>(null);
