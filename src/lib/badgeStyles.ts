@@ -5,6 +5,9 @@ import type React from "react";
  *
  * Centralized here so BeneficiarySelection and DonationFlow share
  * the same visual logic. Colors use high-contrast pairings.
+ *
+ * Badge determination now analyses short_story + emotional_sentence
+ * to pick the most relevant badge, with coherence checks.
  */
 
 // ─── Badge text/border/bg styles ─────────────────────────
@@ -52,11 +55,9 @@ export const BADGE_STYLES: Record<string, string> = {
   "Manque de commerces de proximité":   "border-stone-400/60 text-stone-800 bg-stone-200",
 };
 
-// ─── Card background tint per badge ─────────────────────
+// ─── Defaults ────────────────────────────────────────────
 
 export const DEFAULT_BADGE = "Impact de l'inflation";
-
-// ─── Card gradient per badge ────────────────────────────
 
 // ─── Helpers ─────────────────────────────────────────────
 
@@ -83,40 +84,166 @@ export function isNewBeneficiary(createdAt?: string): boolean {
   return created > thirtyDaysAgo;
 }
 
-interface BeneficiaryBadgeInput {
+// ─── Text Analysis ───────────────────────────────────────
+
+export interface BeneficiaryBadgeInput {
   proximity_label?: string;
   created_at?: string;
   context_badge?: string;
   avatar_gender: string;
+  children_count?: number;
+  short_story?: string;
+  emotional_sentence?: string;
 }
 
+/** Keyword groups ordered by detection priority */
+const TEXT_SIGNALS: { keywords: RegExp; badge: string | ((b: BeneficiaryBadgeInput) => string) }[] = [
+  {
+    // Parentalité / famille
+    keywords: /\b(enfants?|adolescents?|bébé|maman|papa|fils|fille|famille|élever|mère|père|maternel|paternel|maternité)\b/i,
+    badge: "Aidant familial",
+  },
+  {
+    // Grossesse / nourrisson
+    keywords: /\b(grossesse|enceinte|nourrisson|naissance|accouchement)\b/i,
+    badge: (b) => b.avatar_gender === "man" ? "Aidant familial" : "1ère grossesse",
+  },
+  {
+    // Isolement
+    keywords: /\b(seule?|isolée?|solitude|coupée? du monde)\b/i,
+    badge: (b) => genderizeBadge("Difficile de vivre seul(e)", b.avatar_gender),
+  },
+  {
+    // Logement
+    keywords: /\b(logement|hébergement|SDF|sans.?domicile|relogement|expulsée?|sans.?abri)\b/i,
+    badge: "Logement provisoire",
+  },
+  {
+    // Démarches admin / juridique
+    keywords: /\b(administratif|juridique|démarches|papiers|titre.?de.?séjour|régularisation|tribunal)\b/i,
+    badge: "Démarches administratives en cours",
+  },
+  {
+    // Santé / médical
+    keywords: /\b(médical|hôpital|traitement|maladie|diagnostic|médicaments|santé|opération|chirurgie)\b/i,
+    badge: "Désert médical",
+  },
+  {
+    // Formation / études
+    keywords: /\b(étudiant|formation|université|diplôme|apprentissage|reconversion|études)\b/i,
+    badge: "Apprend un nouveau métier",
+  },
+  {
+    // Rural
+    keywords: /\b(rural|campagne|isolée?.géographiquement)\b/i,
+    badge: "Zone rurale isolée",
+  },
+];
+
+/**
+ * Analyse `short_story` + `emotional_sentence` to infer a contextual badge.
+ * Returns the first matching badge or null.
+ */
+export function analyzeProfileContext(b: BeneficiaryBadgeInput): string | null {
+  const text = `${b.short_story || ""} ${b.emotional_sentence || ""}`;
+  if (!text.trim()) return null;
+
+  for (const signal of TEXT_SIGNALS) {
+    if (signal.keywords.test(text)) {
+      const candidate = typeof signal.badge === "function" ? signal.badge(b) : signal.badge;
+      if (isBadgeCoherent(candidate, b)) return candidate;
+    }
+  }
+  return null;
+}
+
+// ─── Coherence Guard ─────────────────────────────────────
+
+/**
+ * Returns false if the badge contradicts hard profile facts.
+ */
+export function isBadgeCoherent(badge: string, b: BeneficiaryBadgeInput): boolean {
+  const children = b.children_count ?? 0;
+  const text = `${b.short_story || ""} ${b.emotional_sentence || ""}`;
+
+  // "Living alone" is incoherent if the person has children
+  if (badge.startsWith("Difficile de vivre seul") && children > 0) return false;
+
+  // "Family carer" without children AND no family mention in text
+  if (badge === "Aidant familial" && children === 0 && !/\b(famille|enfant|fils|fille|mère|père|parent)\b/i.test(text)) {
+    return false;
+  }
+
+  // Pregnancy / baby badges incoherent for men (unless text explicitly mentions it)
+  if ((badge === "1ère grossesse" || badge === "Nourrisson arrivé récemment") && b.avatar_gender === "man") {
+    return false;
+  }
+
+  return true;
+}
+
+// ─── Main Badge Determination ────────────────────────────
+
+/**
+ * New priority:
+ * 1. proximity_label (geographic)
+ * 2. Text analysis (short_story + emotional_sentence)
+ * 3. context_badge from DB (if coherent)
+ * 4. "Nouveau bénéficiaire inscrit" (< 30 days)
+ * 5. DEFAULT_BADGE fallback
+ */
 export function getDisplayBadge(b: BeneficiaryBadgeInput): string {
+  // 1. Proximity — always takes priority
   if (b.proximity_label) return b.proximity_label;
-  if (b.context_badge) return genderizeBadge(b.context_badge, b.avatar_gender);
+
+  // 2. Text analysis — most relevant signal
+  const textBadge = analyzeProfileContext(b);
+  if (textBadge) return textBadge;
+
+  // 3. context_badge from DB — only if coherent
+  if (b.context_badge) {
+    const gendered = genderizeBadge(b.context_badge, b.avatar_gender);
+    if (isBadgeCoherent(gendered, b)) return gendered;
+  }
+
+  // 4. Recency
   if (isNewBeneficiary(b.created_at)) return "Nouveau bénéficiaire inscrit";
+
+  // 5. Default
   return DEFAULT_BADGE;
 }
 
+// ─── Deduplication (soft) ────────────────────────────────
+
+/**
+ * Tries to give unique badges but NEVER forces an incoherent/random one.
+ * Duplicates are accepted rather than showing absurd labels.
+ */
 export function deduplicateBadges(beneficiaries: BeneficiaryBadgeInput[]): string[] {
-  const usedBadges = new Set<string>();
   const result: string[] = [];
-  const allBadgeKeys = Object.keys(BADGE_STYLES);
+  const usedBadges = new Set<string>();
 
   for (const b of beneficiaries) {
     let badge = getDisplayBadge(b);
+
     if (usedBadges.has(badge)) {
-      const newLabel = isNewBeneficiary(b.created_at) ? "Nouveau bénéficiaire inscrit" : null;
-      if (newLabel && !usedBadges.has(newLabel)) {
-        badge = newLabel;
-      } else if (!usedBadges.has(DEFAULT_BADGE)) {
-        badge = DEFAULT_BADGE;
-      } else {
-        const fallback = allBadgeKeys.find(k => !usedBadges.has(k));
-        if (fallback) badge = fallback;
+      // Try context_badge as alternative
+      if (b.context_badge) {
+        const alt = genderizeBadge(b.context_badge, b.avatar_gender);
+        if (!usedBadges.has(alt) && isBadgeCoherent(alt, b)) {
+          badge = alt;
+        }
       }
+      // If still a duplicate, try "Nouveau bénéficiaire" as last resort
+      if (usedBadges.has(badge) && isNewBeneficiary(b.created_at) && !usedBadges.has("Nouveau bénéficiaire inscrit")) {
+        badge = "Nouveau bénéficiaire inscrit";
+      }
+      // Accept the duplicate rather than picking a random badge
     }
+
     usedBadges.add(badge);
     result.push(badge);
   }
+
   return result;
 }

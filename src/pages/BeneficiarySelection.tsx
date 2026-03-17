@@ -90,7 +90,7 @@ const BeneficiarySelection = () => {
         const ids = rpcBeneficiaries.map((b) => b.id);
         const { data: extraData } = await supabase
           .from("beneficiaries_public")
-          .select("id, context_badge")
+          .select("id, context_badge, children_count, short_story, emotional_sentence")
           .in("id", ids);
         const { data: createdData } = await supabase
           .from("beneficiaries")
@@ -98,10 +98,14 @@ const BeneficiarySelection = () => {
           .in("id", ids);
 
         if (extraData) {
-          const extraMap = new Map(extraData.map((e: any) => [e.id, e.context_badge]));
+          const extraMap = new Map(extraData.map((e: any) => [e.id, e]));
           const createdMap = new Map((createdData || []).map((e: any) => [e.id, e.created_at]));
           for (const b of rpcBeneficiaries) {
-            b.context_badge = extraMap.get(b.id) || undefined;
+            const extra = extraMap.get(b.id);
+            b.context_badge = extra?.context_badge || undefined;
+            b.children_count = extra?.children_count ?? undefined;
+            if (!b.short_story) b.short_story = extra?.short_story || "";
+            if (!b.emotional_sentence) b.emotional_sentence = extra?.emotional_sentence || "";
             b.created_at = createdMap.get(b.id) || undefined;
           }
         }
