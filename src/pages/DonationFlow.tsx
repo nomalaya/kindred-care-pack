@@ -222,7 +222,7 @@ const DonationFlow = () => {
         <div className="max-w-2xl mx-auto space-y-6">
           {/* 1. Beneficiary card — with badge + colored background */}
           <div
-            className={`rounded-2xl p-8 shadow-card border text-center relative`}
+            className={`group rounded-2xl p-8 shadow-card border text-center relative`}
             style={getCardGradient()}
           >
             {/* Badge — top right */}
@@ -232,7 +232,7 @@ const DonationFlow = () => {
             >
               <Badge
                 variant="outline"
-                className={`py-1.5 px-3 rounded-2xl text-xs font-semibold ${badgeStyle}`}
+                className={`py-1.5 px-3 rounded-2xl text-xs font-semibold group-hover:brightness-110 transition-all ${badgeStyle}`}
               >
                 <BadgeIcon className="h-3 w-3 mr-1" />
                 {badge}
