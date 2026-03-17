@@ -232,7 +232,7 @@ const DonationFlow = () => {
             >
               <Badge
                 variant="outline"
-                className={`py-1.5 px-3 rounded-2xl text-xs font-semibold ${badgeStyle}`}
+                className={`py-1.5 px-3 rounded-2xl text-xs font-semibold group-hover:brightness-110 transition-all ${badgeStyle}`}
               >
                 <BadgeIcon className="h-3 w-3 mr-1" />
                 {badge}
