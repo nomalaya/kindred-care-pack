@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { BasketItem } from "@/lib/basketEngine";
 
@@ -72,6 +72,12 @@ const AnimatedNum = ({ value }: { value: number }) => (
 const DonationImpactCard = ({ basket, situationId }: Props) => {
   const [impactUnits, setImpactUnits] = useState<ImpactUnit[]>([]);
   const [profile, setProfile] = useState<ImpactProfile | null>(null);
+  const highWaterMark = useRef<Record<string, number>>({});
+
+  // Reset high-water mark when switching beneficiary
+  useEffect(() => {
+    highWaterMark.current = {};
+  }, [situationId]);
 
   useEffect(() => {
     if (!situationId) return;
@@ -85,17 +91,15 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
       });
   }, [situationId]);
 
+  // Fetch ALL impact_units once on mount — ~219 rows, negligible payload
   useEffect(() => {
-    const productIds = basket.map((i) => i.product.id);
-    if (productIds.length === 0) return;
     supabase
       .from("impact_units" as any)
       .select("product_id, impact_type, impact_value")
-      .in("product_id", productIds)
       .then(({ data }) => {
         if (data) setImpactUnits(data as unknown as ImpactUnit[]);
       });
-  }, [basket]);
+  }, []);
 
   const lines = useMemo(() => {
     if (!profile || impactUnits.length === 0) return [];
@@ -114,15 +118,20 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
         }
       }
       total = Math.floor(total);
-      if (total <= 0) continue;
+
+      // High-water mark: impact never decreases during a session
+      const displayed = Math.max(total, highWaterMark.current[type] || 0);
+      highWaterMark.current[type] = displayed;
+
+      if (displayed <= 0) continue;
 
       const config = IMPACT_LABELS[type];
       if (!config) continue;
 
       result.push({
         emoji: config.emoji,
-        text: config.label(total),
-        value: total,
+        text: config.label(displayed),
+        value: displayed,
       });
     }
 
