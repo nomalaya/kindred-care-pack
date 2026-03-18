@@ -1,0 +1,1 @@
+ALTER TABLE impact_profiles ADD COLUMN impact_type_4 text;
