@@ -133,7 +133,7 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
           (u) => u.product_id === item.product.id && u.impact_type === type
         );
         for (const u of units) {
-          total += Math.floor(Number(u.impact_value) * item.quantity);
+          total += Number(u.impact_value) * item.quantity;
         }
       }
       total = Math.floor(total);
