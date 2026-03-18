@@ -18,6 +18,7 @@ interface ImpactProfile {
   impact_type_1: string;
   impact_type_2: string;
   impact_type_3: string;
+  impact_type_4?: string;
 }
 
 const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => string }> = {
@@ -33,9 +34,13 @@ const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => strin
     emoji: "🧒",
     label: (v) => `${v} goûter${v > 1 ? "s" : ""} pour les enfants`,
   },
-  hygiene_days: {
+  hygiene_corps: {
     emoji: "🧼",
-    label: (v) => `${formatDuration(v)} d'hygiène`,
+    label: (v) => `${formatDuration(v)} de soins corporels`,
+  },
+  entretien_maison: {
+    emoji: "🏠",
+    label: (v) => `${v} produit${v > 1 ? "s" : ""} d'entretien ménager`,
   },
   daily_products: {
     emoji: "🧹",
@@ -53,13 +58,19 @@ const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => strin
     emoji: "👶",
     label: (v) => `${formatDuration(v)} de soins bébé`,
   },
+  vetements: {
+    emoji: "👕",
+    label: (v) => `${v} vêtement${v > 1 ? "s" : ""}`,
+  },
+  jouets: {
+    emoji: "🧸",
+    label: (v) => `${v} jouet${v > 1 ? "s" : ""} pour les enfants`,
+  },
 };
 
 function formatDuration(days: number): string {
-  if (days >= 14 && days < 21) return "2 semaines";
-  if (days >= 7 && days < 14) return "1 semaine";
-  if (days >= 21) return `${Math.floor(days / 7)} semaines`;
-  return `${days} jour${days > 1 ? "s" : ""}`;
+  if (days <= 1) return "1 jour";
+  return `${days} jours`;
 }
 
 const AnimatedNum = ({ value }: { value: number }) => (
@@ -91,7 +102,7 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
     if (!situationId) return;
     supabase
       .from("impact_profiles" as any)
-      .select("impact_type_1, impact_type_2, impact_type_3")
+      .select("impact_type_1, impact_type_2, impact_type_3, impact_type_4")
       .eq("situation_id", situationId)
       .single()
       .then(({ data }) => {
@@ -112,7 +123,7 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
   const lines = useMemo(() => {
     if (!profile || impactUnits.length === 0) return [];
 
-    const types = [profile.impact_type_1, profile.impact_type_2, profile.impact_type_3];
+    const types = [profile.impact_type_1, profile.impact_type_2, profile.impact_type_3, profile.impact_type_4].filter(Boolean) as string[];
     const result: { emoji: string; text: string; value: number }[] = [];
 
     for (const type of types) {
@@ -122,7 +133,7 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
           (u) => u.product_id === item.product.id && u.impact_type === type
         );
         for (const u of units) {
-          total += Math.floor(Number(u.impact_value) * item.quantity);
+          total += Number(u.impact_value) * item.quantity;
         }
       }
       total = Math.floor(total);

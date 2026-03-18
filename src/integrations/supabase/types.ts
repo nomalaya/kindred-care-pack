@@ -411,6 +411,7 @@ export type Database = {
           impact_type_1: string
           impact_type_2: string
           impact_type_3: string
+          impact_type_4: string | null
           situation_id: string
         }
         Insert: {
@@ -418,6 +419,7 @@ export type Database = {
           impact_type_1: string
           impact_type_2: string
           impact_type_3: string
+          impact_type_4?: string | null
           situation_id: string
         }
         Update: {
@@ -425,6 +427,7 @@ export type Database = {
           impact_type_1?: string
           impact_type_2?: string
           impact_type_3?: string
+          impact_type_4?: string | null
           situation_id?: string
         }
         Relationships: [
