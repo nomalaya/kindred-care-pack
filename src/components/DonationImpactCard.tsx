@@ -102,7 +102,7 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
     if (!situationId) return;
     supabase
       .from("impact_profiles" as any)
-      .select("impact_type_1, impact_type_2, impact_type_3")
+      .select("impact_type_1, impact_type_2, impact_type_3, impact_type_4")
       .eq("situation_id", situationId)
       .single()
       .then(({ data }) => {
