@@ -119,6 +119,7 @@ export function composeBasket({
   dietaryFilters = [],
   situationId,
   emotionalNudge,
+  cultureTags = [],
 }: BasketInput): BasketItem[] {
   // 1. Filter products by cause relevance, stock, and visibility
   let pool = products.filter(
