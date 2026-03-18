@@ -28,10 +28,20 @@ const VALUE_BADGES: Record<string, { label: string; emoji: string; color: string
 // ── Cultural region → country mapping ───────────────────────
 const CULTURE_REGION_MAP: Record<string, string[]> = {
   maghreb: ["Maroc", "Tunisie", "Algérie"],
-  asie: ["Chine", "Inde", "Japon", "Vietnam", "Thaïlande", "Sri Lanka", "Corée du Sud"],
-  afrique_sub: ["Sénégal", "Mali", "Cameroun", "Côte d'Ivoire", "Guinée", "Ghana", "Burkina Faso"],
-  europe_est: ["Turquie"],
-  portugal: ["Portugal"],
+  afrique_ouest: ["Sénégal", "Mali", "Côte d'Ivoire", "Guinée", "Cap-Vert", "Togo", "Bénin", "Burkina Faso", "Ghana"],
+  afrique_centre: ["Cameroun", "Congo", "RD Congo", "Gabon"],
+  afrique_est: ["Comores", "Madagascar", "Maurice"],
+  dom: ["Guadeloupe", "Martinique", "Guyane", "Réunion", "Mayotte"],
+  portugal: ["Portugal", "Cap-Vert"],
+  europe_sud: ["Italie", "Espagne", "Grèce"],
+  europe_est: ["Roumanie", "Pologne", "Serbie", "Bulgarie", "Moldavie", "Albanie"],
+  turquie: ["Turquie"],
+  armenie: ["Arménie", "Géorgie"],
+  asie_sud_est: ["Vietnam", "Cambodge", "Laos", "Thaïlande", "Philippines"],
+  asie_sud: ["Inde", "Sri Lanka", "Pakistan", "Bangladesh", "Afghanistan"],
+  asie_est: ["Chine", "Japon", "Corée du Sud"],
+  moyen_orient: ["Liban", "Syrie", "Iran", "Irak", "Égypte", "Palestine", "Jordanie"],
+  caraibes: ["Haïti", "Brésil", "Colombie", "Suriname"],
   france: ["France"],
 };
 

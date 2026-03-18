@@ -162,8 +162,9 @@ const DonationFlow = () => {
       causeKey,
       donationAmount,
       dietaryFilters: beneficiary?.diet_tags || [],
+      cultureTags: beneficiary?.culture_tags || [],
     });
-  }, [products, profileMapping, causeKey, donationAmount, beneficiary?.diet_tags]);
+  }, [products, profileMapping, causeKey, donationAmount, beneficiary?.diet_tags, beneficiary?.culture_tags]);
 
   // ── Render States ────────────────────────────────────────
 
