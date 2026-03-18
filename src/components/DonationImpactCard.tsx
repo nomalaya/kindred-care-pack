@@ -45,6 +45,14 @@ const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => strin
     emoji: "🥫",
     label: (v) => `${v} repas rapide${v > 1 ? "s" : ""}`,
   },
+  wellbeing: {
+    emoji: "🌿",
+    label: (v) => `${v} moment${v > 1 ? "s" : ""} de bien-être`,
+  },
+  baby_care: {
+    emoji: "👶",
+    label: (v) => `${formatDuration(v)} de soins bébé`,
+  },
 };
 
 function formatDuration(days: number): string {
