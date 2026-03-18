@@ -29,6 +29,8 @@ export interface ProductRecord {
   stock_quantity: number | null;
   priority_score: number | null;
   situation_relevance: string[] | null;
+  labels: string[] | null;
+  cultural_origin_tags: string[] | null;
 }
 
 export interface ProfileMapping {

@@ -287,7 +287,12 @@ const DonationFlow = () => {
           />
 
           {/* 4. Basket */}
-          <DonationBasket items={basket} amount={donationAmount} />
+          <DonationBasket
+            items={basket}
+            amount={donationAmount}
+            beneficiaryCultureTags={beneficiary.culture_tags || []}
+            beneficiaryName={beneficiary.alias_first_name}
+          />
 
           {/* 5. Timeline */}
           <ImpactTimeline />
