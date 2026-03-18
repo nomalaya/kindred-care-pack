@@ -110,11 +110,12 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
       });
   }, [situationId]);
 
-  // Fetch ALL impact_units once on mount — ~219 rows, negligible payload
+  // Fetch ALL impact_units once on mount — ~2000 rows, still small payload
   useEffect(() => {
     supabase
       .from("impact_units" as any)
       .select("product_id, impact_type, impact_value")
+      .limit(5000)
       .then(({ data }) => {
         if (data) setImpactUnits(data as unknown as ImpactUnit[]);
       });
