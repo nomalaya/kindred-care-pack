@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Package } from "lucide-react";
+import { Check, Package, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { BasketItem } from "@/lib/basketEngine";
 import { Badge } from "@/components/ui/badge";
@@ -13,33 +13,51 @@ import {
 interface Props {
   items: BasketItem[];
   amount: number;
+  beneficiaryCultureTags?: string[];
+  beneficiaryName?: string;
 }
 
-const DIET_BADGES: Record<string, { label: string; emoji: string; color: string }> = {
-  halal: { label: "Halal", emoji: "☪️", color: "border-emerald-400 text-emerald-700 bg-emerald-50 dark:bg-emerald-950 dark:text-emerald-300" },
-  kosher: { label: "Casher", emoji: "✡️", color: "border-blue-400 text-blue-700 bg-blue-50 dark:bg-blue-950 dark:text-blue-300" },
-  vegan: { label: "Végan", emoji: "🌱", color: "border-green-400 text-green-700 bg-green-50 dark:bg-green-950 dark:text-green-300" },
-  vegetarian: { label: "Végétarien", emoji: "🥬", color: "border-lime-400 text-lime-700 bg-lime-50 dark:bg-lime-950 dark:text-lime-300" },
-  sans_porc: { label: "Sans porc", emoji: "🚫🐷", color: "border-orange-400 text-orange-700 bg-orange-50 dark:bg-orange-950 dark:text-orange-300" },
-  sans_alcool: { label: "Sans alcool", emoji: "🚫🍷", color: "border-rose-400 text-rose-700 bg-rose-50 dark:bg-rose-950 dark:text-rose-300" },
+// ── Value badges from product.labels[] ──────────────────────
+const VALUE_BADGES: Record<string, { label: string; emoji: string; color: string }> = {
+  bio: { label: "Bio", emoji: "🌿", color: "border-green-400 text-green-700 bg-green-50 dark:bg-green-950 dark:text-green-300" },
+  equitable: { label: "Équitable", emoji: "🤝", color: "border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-950 dark:text-amber-300" },
+  made_in_france: { label: "France", emoji: "🇫🇷", color: "border-blue-400 text-blue-700 bg-blue-50 dark:bg-blue-950 dark:text-blue-300" },
+  eco: { label: "Éco", emoji: "♻️", color: "border-teal-400 text-teal-700 bg-teal-50 dark:bg-teal-950 dark:text-teal-300" },
 };
 
-function getProductDietBadges(product: BasketItem["product"]): string[] {
-  const badges: string[] = [];
-  if (product.halal_compatible && (product.contains_pork === false || product.contains_alcohol === false)) {
-    badges.push("halal");
-  }
-  if (product.kosher_compatible && product.category === "alimentaire") badges.push("kosher");
-  if (product.vegan) badges.push("vegan");
-  else if (product.vegetarian) badges.push("vegetarian");
-  if (product.contains_pork === false && product.category === "alimentaire" && !badges.includes("halal")) {
-    badges.push("sans_porc");
-  }
-  if (product.contains_alcohol === false && product.subcategory === "boisson") badges.push("sans_alcool");
-  return badges;
+// ── Cultural region → country mapping ───────────────────────
+const CULTURE_REGION_MAP: Record<string, string[]> = {
+  maghreb: ["Maroc", "Tunisie", "Algérie"],
+  asie: ["Chine", "Inde", "Japon", "Vietnam", "Thaïlande", "Sri Lanka", "Corée du Sud"],
+  afrique_sub: ["Sénégal", "Mali", "Cameroun", "Côte d'Ivoire", "Guinée", "Ghana", "Burkina Faso"],
+  europe_est: ["Turquie"],
+  portugal: ["Portugal"],
+  france: ["France"],
+};
+
+function getValueBadges(product: BasketItem["product"]): string[] {
+  return (product.labels ?? [])
+    .filter((l) => l in VALUE_BADGES)
+    .slice(0, 2);
 }
 
-const DonationBasket = ({ items, amount }: Props) => {
+function hasCulturalMatch(
+  product: BasketItem["product"],
+  beneficiaryCultureTags: string[]
+): boolean {
+  const productOrigins = product.cultural_origin_tags ?? [];
+  if (productOrigins.length === 0 || beneficiaryCultureTags.length === 0) return false;
+
+  const expandedCountries = beneficiaryCultureTags.flatMap(
+    (tag) => CULTURE_REGION_MAP[tag] ?? [tag]
+  );
+
+  return productOrigins.some((origin) =>
+    expandedCountries.some((c) => c.toLowerCase() === origin.toLowerCase())
+  );
+}
+
+const DonationBasket = ({ items, amount, beneficiaryCultureTags = [], beneficiaryName = "" }: Props) => {
   const [flash, setFlash] = useState(false);
   const [prevCount, setPrevCount] = useState(items.length);
 
@@ -70,7 +88,8 @@ const DonationBasket = ({ items, amount }: Props) => {
         <div className="space-y-1.5">
           <AnimatePresence mode="popLayout">
             {items.map((item) => {
-              const dietBadges = getProductDietBadges(item.product);
+              const valueBadges = getValueBadges(item.product);
+              const isCulturalMatch = hasCulturalMatch(item.product, beneficiaryCultureTags);
               return (
                 <motion.div
                   key={item.product.id}
@@ -93,26 +112,36 @@ const DonationBasket = ({ items, amount }: Props) => {
                       </motion.span>
                     )}
                   </span>
-                  {dietBadges.length > 0 && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {dietBadges.map((badge) => {
-                        const config = DIET_BADGES[badge];
-                        if (!config) return null;
-                        return (
-                          <Tooltip key={badge}>
-                            <TooltipTrigger asChild>
-                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${config.color}`}>
-                                {config.emoji} {config.label}
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{config.label}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {valueBadges.map((badge) => {
+                      const config = VALUE_BADGES[badge];
+                      if (!config) return null;
+                      return (
+                        <Tooltip key={badge}>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${config.color}`}>
+                              {config.emoji} {config.label}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{config.label}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                    {isCulturalMatch && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center text-amber-500 cursor-default">
+                            <Sparkles className="h-3.5 w-3.5" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Choisi pour {beneficiaryName || "ce bénéficiaire"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                 </motion.div>
               );
             })}
