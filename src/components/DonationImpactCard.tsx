@@ -135,9 +135,7 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
       }
       total = Math.floor(total);
 
-      // High-water mark: impact never decreases during a session
-      const displayed = Math.max(total, highWaterMark.current[type] || 0);
-      highWaterMark.current[type] = displayed;
+      const displayed = total;
 
       if (displayed <= 0) continue;
 
