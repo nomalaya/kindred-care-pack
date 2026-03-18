@@ -91,12 +91,6 @@ const AnimatedNum = ({ value }: { value: number }) => (
 const DonationImpactCard = ({ basket, situationId }: Props) => {
   const [impactUnits, setImpactUnits] = useState<ImpactUnit[]>([]);
   const [profile, setProfile] = useState<ImpactProfile | null>(null);
-  const highWaterMark = useRef<Record<string, number>>({});
-
-  // Reset high-water mark when switching beneficiary
-  useEffect(() => {
-    highWaterMark.current = {};
-  }, [situationId]);
 
   useEffect(() => {
     if (!situationId) return;
