@@ -146,7 +146,7 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
           {/* Items */}
           {checkoutData.basketItems.map((item) => (
             <div key={item.product.id} className="flex justify-between text-sm">
-              <span>{item.product.name} × {item.quantity}</span>
+              <span>{(item.product as any).display_name || item.product.name} × {item.quantity}</span>
               <span>{(item.product.price * item.quantity).toFixed(2)}€</span>
             </div>
           ))}

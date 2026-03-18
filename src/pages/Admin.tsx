@@ -217,7 +217,7 @@ const Admin = () => {
                 {products.map(p => (
                   <div key={p.id} className="bg-card rounded-xl p-4 border flex items-center gap-4">
                     <div className="flex-1">
-                      <p className="font-medium text-foreground">{p.name}</p>
+                      <p className="font-medium text-foreground">{p.display_name || p.name}</p>
                       <p className="text-sm text-muted-foreground">Palier {p.tier} · {p.category} · {p.price}€</p>
                     </div>
                     <div className="flex items-center gap-2">

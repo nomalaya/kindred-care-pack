@@ -82,7 +82,7 @@ const DonationBasket = ({ items, amount }: Props) => {
                 >
                   <Check className="h-4 w-4 text-primary flex-shrink-0" />
                   <span className="text-sm text-foreground flex-1">
-                    {item.product.name}
+                    {item.product.display_name || item.product.name}
                     {item.quantity > 1 && (
                       <motion.span
                         initial={{ scale: 0 }}
