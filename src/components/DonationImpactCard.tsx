@@ -123,7 +123,7 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
   const lines = useMemo(() => {
     if (!profile || impactUnits.length === 0) return [];
 
-    const types = [profile.impact_type_1, profile.impact_type_2, profile.impact_type_3];
+    const types = [profile.impact_type_1, profile.impact_type_2, profile.impact_type_3, profile.impact_type_4].filter(Boolean) as string[];
     const result: { emoji: string; text: string; value: number }[] = [];
 
     for (const type of types) {
