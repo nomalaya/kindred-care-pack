@@ -140,7 +140,22 @@ export function composeBasket({
     }));
   }
 
-  // 2. Apply dietary filters from beneficiary preferences
+  // 1c. Boost products matching the beneficiary's cultural background
+  if (cultureTags.length > 0) {
+    const expandedCountries = cultureTags.flatMap(
+      (tag) => CULTURE_REGION_MAP[tag] ?? [tag]
+    );
+    pool = pool.map((p) => {
+      const origins = p.cultural_origin_tags ?? [];
+      const hasMatch = origins.some((o) =>
+        expandedCountries.some((c) => c.toLowerCase() === o.toLowerCase())
+      );
+      return hasMatch
+        ? { ...p, priority_score: Math.min((p.priority_score ?? 3) + 1, 5) }
+        : p;
+    });
+  }
+
   if (dietaryFilters.includes("halal")) {
     pool = pool.filter(
       (p) => p.halal_compatible && !p.contains_pork && !p.contains_alcohol
