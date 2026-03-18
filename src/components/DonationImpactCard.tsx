@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { BasketItem } from "@/lib/basketEngine";
 
@@ -91,12 +91,6 @@ const AnimatedNum = ({ value }: { value: number }) => (
 const DonationImpactCard = ({ basket, situationId }: Props) => {
   const [impactUnits, setImpactUnits] = useState<ImpactUnit[]>([]);
   const [profile, setProfile] = useState<ImpactProfile | null>(null);
-  const highWaterMark = useRef<Record<string, number>>({});
-
-  // Reset high-water mark when switching beneficiary
-  useEffect(() => {
-    highWaterMark.current = {};
-  }, [situationId]);
 
   useEffect(() => {
     if (!situationId) return;
@@ -141,9 +135,7 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
       }
       total = Math.floor(total);
 
-      // High-water mark: impact never decreases during a session
-      const displayed = Math.max(total, highWaterMark.current[type] || 0);
-      highWaterMark.current[type] = displayed;
+      const displayed = total;
 
       if (displayed <= 0) continue;
 

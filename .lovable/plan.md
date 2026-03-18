@@ -1,20 +1,20 @@
+## Plan : Impact réaliste, progressif et différenciant — TERMINÉ ✅
 
+### Implémenté
 
-# Fix: Les impacts doivent refléter le montant actuel du don
+- ✅ Prix produits augmentés (coût logistique global) : tier 1 avg 6€, tier 2 avg 11€, tier 3 avg 18€, tier 4 avg 24€
+- ✅ Types d'impact granulaires : `hygiene_days` → `hygiene_corps` + `entretien_maison`, `daily_products` vêtements → `vetements`
+- ✅ Colonne `impact_type_4` ajoutée à `impact_profiles` (bonus qui apparaît à 60€+)
+- ✅ Impact values recalibrées (÷3 à ÷10 selon le type)
+- ✅ `formatDuration` affiche toujours en jours (jamais en semaines)
+- ✅ Nouveaux labels frontend : soins corporels, entretien ménager, vêtements, jouets
 
-## Problème
-Le composant `DonationImpactCard` utilise un mécanisme "high-water mark" qui empêche les valeurs d'impact de baisser quand le donateur réduit son don. Les chiffres restent bloqués au maximum atteint.
+### Résultat attendu par palier (exemple Aïcha)
 
-## Solution
-Supprimer la logique high-water mark pour que les impacts reflètent fidèlement le panier actuel.
-
-## Changements
-
-**`src/components/DonationImpactCard.tsx`** — 4 suppressions :
-1. Supprimer le `useRef` de `highWaterMark` (ligne 94)
-2. Supprimer le `useEffect` de reset (lignes 96-99)
-3. Remplacer `const displayed = Math.max(total, highWaterMark.current[type] || 0);` par `const displayed = total;`
-4. Supprimer `highWaterMark.current[type] = displayed;`
-
-Aucun autre fichier modifié.
-
+| Palier | 🍽️ Repas | 🧒 Goûters | 👶 Soins bébé | 👕 Vêtements |
+|--------|----------|------------|---------------|-------------|
+| 18€ | ~2 jours | 1 | 1 jour | — |
+| 36€ | ~4 jours | 3 | 2 jours | — |
+| 45€ | ~5 jours | 4 | 3 jours | — |
+| 60€ | ~7 jours | 5 | 4 jours | **1 vêtement** ✨ |
+| 90€ | ~10 jours | 8 | 6 jours | **3 vêtements** |
