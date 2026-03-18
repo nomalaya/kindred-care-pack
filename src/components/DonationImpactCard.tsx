@@ -110,15 +110,18 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
       });
   }, [situationId]);
 
-  // Fetch ALL impact_units once on mount — ~219 rows, negligible payload
+  // Fetch impact_units only for products in the basket (avoids 1000-row limit)
   useEffect(() => {
+    const productIds = basket.map((item) => item.product.id);
+    if (productIds.length === 0) return;
     supabase
       .from("impact_units" as any)
       .select("product_id, impact_type, impact_value")
+      .in("product_id", productIds)
       .then(({ data }) => {
         if (data) setImpactUnits(data as unknown as ImpactUnit[]);
       });
-  }, []);
+  }, [basket]);
 
   const lines = useMemo(() => {
     if (!profile || impactUnits.length === 0) return [];
