@@ -1,26 +1,20 @@
-## Plan: Refonte base produits — TERMINÉ ✅
+## Plan : Impact réaliste, progressif et différenciant — TERMINÉ ✅
 
 ### Implémenté
 
-- ✅ Migration schéma : ajout colonnes `display_name`, `labels`, `cultural_origin_tags`, `territory_usage`, `climate_tags`, `usage_context`
-- ✅ Nettoyage : suppression des 536 anciens produits incohérents + impact_units
-- ✅ Insertion de 587 produits neufs répartis sur 10 catégories normalisées
-- ✅ 587 impact_units correspondants (meals, breakfasts, hygiene_days, kids_care_days, kids_items, daily_products)
-- ✅ Produits culturels : Maghreb, Afrique subsaharienne, Asie, DOM, Europe
-- ✅ Frontend : utilisation de `display_name || name` dans DonationBasket, CartSummary, OrderConfirmation, DonationConfirmation, Admin
-- ✅ ProductRecord type mis à jour avec `display_name`
+- ✅ Prix produits augmentés (coût logistique global) : tier 1 avg 6€, tier 2 avg 11€, tier 3 avg 18€, tier 4 avg 24€
+- ✅ Types d'impact granulaires : `hygiene_days` → `hygiene_corps` + `entretien_maison`, `daily_products` vêtements → `vetements`
+- ✅ Colonne `impact_type_4` ajoutée à `impact_profiles` (bonus qui apparaît à 60€+)
+- ✅ Impact values recalibrées (÷3 à ÷10 selon le type)
+- ✅ `formatDuration` affiche toujours en jours (jamais en semaines)
+- ✅ Nouveaux labels frontend : soins corporels, entretien ménager, vêtements, jouets
 
-### Répartition finale
+### Résultat attendu par palier (exemple Aïcha)
 
-| Catégorie | emotional_family | Nb |
-|---|---|---|
-| alimentaire | survival + comfort | 190 |
-| hygiène | dignity | 97 |
-| vêtements | autonomy | 50 |
-| entretien | dignity | 50 |
-| bébé | childhood | 50 |
-| boissons | comfort | 40 |
-| enfant | childhood | 30 |
-| santé | survival | 30 |
-| bien-être | comfort | 30 |
-| autonomie | autonomy | 20 |
+| Palier | 🍽️ Repas | 🧒 Goûters | 👶 Soins bébé | 👕 Vêtements |
+|--------|----------|------------|---------------|-------------|
+| 18€ | ~2 jours | 1 | 1 jour | — |
+| 36€ | ~4 jours | 3 | 2 jours | — |
+| 45€ | ~5 jours | 4 | 3 jours | — |
+| 60€ | ~7 jours | 5 | 4 jours | **1 vêtement** ✨ |
+| 90€ | ~10 jours | 8 | 6 jours | **3 vêtements** |
