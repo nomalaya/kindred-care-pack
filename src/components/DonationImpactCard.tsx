@@ -34,9 +34,13 @@ const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => strin
     emoji: "🧒",
     label: (v) => `${v} goûter${v > 1 ? "s" : ""} pour les enfants`,
   },
-  hygiene_days: {
+  hygiene_corps: {
     emoji: "🧼",
-    label: (v) => `${formatDuration(v)} d'hygiène`,
+    label: (v) => `${formatDuration(v)} de soins corporels`,
+  },
+  entretien_maison: {
+    emoji: "🏠",
+    label: (v) => `${v} produit${v > 1 ? "s" : ""} d'entretien ménager`,
   },
   daily_products: {
     emoji: "🧹",
@@ -53,6 +57,14 @@ const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => strin
   baby_care: {
     emoji: "👶",
     label: (v) => `${formatDuration(v)} de soins bébé`,
+  },
+  vetements: {
+    emoji: "👕",
+    label: (v) => `${v} vêtement${v > 1 ? "s" : ""}`,
+  },
+  jouets: {
+    emoji: "🧸",
+    label: (v) => `${v} jouet${v > 1 ? "s" : ""} pour les enfants`,
   },
 };
 
