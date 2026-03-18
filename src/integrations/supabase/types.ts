@@ -517,11 +517,14 @@ export type Database = {
         Row: {
           category: string
           cause_relevance: string[] | null
+          climate_tags: string[] | null
           contains_alcohol: boolean | null
           contains_pork: boolean | null
           created_at: string
+          cultural_origin_tags: string[] | null
           culture_tags: string[] | null
           diet_tags: string[] | null
+          display_name: string | null
           emotion_tags: string[] | null
           emotional_family: string | null
           emotional_intensity: number | null
@@ -531,6 +534,7 @@ export type Database = {
           is_active_product: boolean | null
           is_visible_public: boolean | null
           kosher_compatible: boolean | null
+          labels: string[] | null
           name: string
           price: number
           priority_score: number | null
@@ -541,18 +545,23 @@ export type Database = {
           stock_quantity: number | null
           subcategory: string | null
           target_groups: string[] | null
+          territory_usage: string[] | null
           tier: number
+          usage_context: string | null
           vegan: boolean | null
           vegetarian: boolean | null
         }
         Insert: {
           category: string
           cause_relevance?: string[] | null
+          climate_tags?: string[] | null
           contains_alcohol?: boolean | null
           contains_pork?: boolean | null
           created_at?: string
+          cultural_origin_tags?: string[] | null
           culture_tags?: string[] | null
           diet_tags?: string[] | null
+          display_name?: string | null
           emotion_tags?: string[] | null
           emotional_family?: string | null
           emotional_intensity?: number | null
@@ -562,6 +571,7 @@ export type Database = {
           is_active_product?: boolean | null
           is_visible_public?: boolean | null
           kosher_compatible?: boolean | null
+          labels?: string[] | null
           name: string
           price?: number
           priority_score?: number | null
@@ -572,18 +582,23 @@ export type Database = {
           stock_quantity?: number | null
           subcategory?: string | null
           target_groups?: string[] | null
+          territory_usage?: string[] | null
           tier?: number
+          usage_context?: string | null
           vegan?: boolean | null
           vegetarian?: boolean | null
         }
         Update: {
           category?: string
           cause_relevance?: string[] | null
+          climate_tags?: string[] | null
           contains_alcohol?: boolean | null
           contains_pork?: boolean | null
           created_at?: string
+          cultural_origin_tags?: string[] | null
           culture_tags?: string[] | null
           diet_tags?: string[] | null
+          display_name?: string | null
           emotion_tags?: string[] | null
           emotional_family?: string | null
           emotional_intensity?: number | null
@@ -593,6 +608,7 @@ export type Database = {
           is_active_product?: boolean | null
           is_visible_public?: boolean | null
           kosher_compatible?: boolean | null
+          labels?: string[] | null
           name?: string
           price?: number
           priority_score?: number | null
@@ -603,7 +619,9 @@ export type Database = {
           stock_quantity?: number | null
           subcategory?: string | null
           target_groups?: string[] | null
+          territory_usage?: string[] | null
           tier?: number
+          usage_context?: string | null
           vegan?: boolean | null
           vegetarian?: boolean | null
         }
