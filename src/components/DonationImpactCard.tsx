@@ -69,10 +69,8 @@ const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => strin
 };
 
 function formatDuration(days: number): string {
-  if (days >= 14 && days < 21) return "2 semaines";
-  if (days >= 7 && days < 14) return "1 semaine";
-  if (days >= 21) return `${Math.floor(days / 7)} semaines`;
-  return `${days} jour${days > 1 ? "s" : ""}`;
+  if (days <= 1) return "1 jour";
+  return `${days} jours`;
 }
 
 const AnimatedNum = ({ value }: { value: number }) => (
