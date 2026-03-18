@@ -99,7 +99,7 @@ const CartSummary = ({ beneficiary, checkoutData, onUpdateData, onNext }: Props)
               className="flex items-center justify-between p-4 bg-muted/30 rounded-lg"
             >
               <div className="flex-1">
-                <h4 className="font-medium">{item.product.name}</h4>
+                <h4 className="font-medium">{item.product.display_name || item.product.name}</h4>
                 <p className="text-sm text-muted-foreground">{item.product.category}</p>
               </div>
               

@@ -104,7 +104,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
           {products.map((p) => (
             <div key={p.id} className="flex items-center gap-2 text-sm text-foreground py-1">
               <Check className="h-3 w-3 text-primary flex-shrink-0" />
-              {p.name}
+              {(p as any).display_name || p.name}
             </div>
           ))}
         </div>

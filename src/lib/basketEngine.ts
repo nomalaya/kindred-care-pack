@@ -5,6 +5,7 @@ import { DONATION_TIERS } from "./constants";
 export interface ProductRecord {
   id: string;
   name: string;
+  display_name: string | null;
   category: string;
   subcategory: string | null;
   price: number;
