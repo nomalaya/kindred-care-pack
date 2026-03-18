@@ -18,6 +18,7 @@ interface ImpactProfile {
   impact_type_1: string;
   impact_type_2: string;
   impact_type_3: string;
+  impact_type_4?: string;
 }
 
 const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => string }> = {
