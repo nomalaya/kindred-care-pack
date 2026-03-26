@@ -1,51 +1,60 @@
 
 
-# Nouveaux paliers de don + upsells dynamiques
+# Corriger l'affichage des impacts
 
-## Matrice finale
+## Problèmes identifiés
 
-| Don principal | U1 | Total | U2 | Total | U3 | Total |
-|---|---|---|---|---|---|---|
-| **20€** | 10€ | 30€ | 20€ | 40€ | — | — |
-| **35€** | 5€ | 40€ | 15€ | 50€ | 25€ | 60€ |
-| **50€** | 10€ | 60€ | 20€ | 70€ | 30€ | 80€ |
-| **75€** | 5€ | 80€ | 15€ | 90€ | 25€ | 100€ |
-| **100€** | 10€ | 110€ | 20€ | 120€ | 30€ | 130€ |
+### P1 — 135 produits sans impact_units (19% du catalogue)
+Les produits ajoutés lors de l'expansion du catalogue n'ont jamais reçu d'entrées dans `impact_units`. Quand le basket engine les sélectionne, l'impact card ne peut rien calculer.
 
-Au-dela de 100€ : incréments de 25€ (125€, 150€ max). Upsells calculés dynamiquement avec la même logique (montants finissant en 0/5, totaux en 0).
+Exemple concret — panier de Fatima à 35€ :
+- Henné neutre → **0 impact_units**
+- Savon de Marseille → **0 impact_units**
+- Concentré de tomates → **0 impact_units**
+- Haricots rouges secs → **0 impact_units**
+- Ghassoul → **0 impact_units**
+- Gant exfoliant traditionnel → 3 impact_units ✓
 
-## Fichiers modifiés
+Résultat : seul 1 produit sur 6 contribue aux impacts → valeurs très basses, indicateur "meals" absent.
 
-### 1. `src/lib/constants.ts`
-- `DONATION_STEPS` → `[20, 35, 50, 75, 100]`
-- `DEFAULT_DONATION` → `35`
-- `MIN_DONATION` → `20`
-- `MAX_DONATION` → `150`
-- Supprimer `EMERGENCY_PACKS` statiques
-- Ajouter `UPSELL_MATRIX` : map don principal → tableau d'upsells `{amount, icon, description}`
-- Ajouter `STEP_INCREMENT = 25`
-- Mettre à jour `DONATION_TIERS` avec les nouveaux seuils (20/35/50/75)
-- Adapter le type `EmergencyPack` pour supporter les montants dynamiques
+### P2 — Fallback basket avec anciens seuils
+`DonationFlow.tsx` ligne 148 utilise `>= 36` (ancien palier) au lieu de `>= 35` (nouveau). À 35€ le tier calculé est trop bas.
 
-### 2. `src/components/DonationAmountSelector.tsx`
-- Importer les nouvelles constantes
-- `STEP_INCREMENT` → 25 (au lieu de 15)
-- Les fonctions `getPrevAmount`/`getNextAmount` s'adaptent automatiquement via `DONATION_STEPS`
+### P3 — Impact_units incohérents
+Des produits d'hygiène ont un impact_type `meals` (ex: Gant exfoliant → meals: 0.75). Des produits alimentaires ont `hygiene_corps`. Ces associations faussent les résultats.
 
-### 3. `src/pages/UpsellDonation.tsx`
-- Importer `UPSELL_MATRIX` au lieu de `EMERGENCY_PACKS`
-- Lire `donationAmount` du state de navigation pour déterminer les upsells à afficher
-- Pour 20€ : afficher seulement 2 options (grille `grid-cols-2`)
-- Pour les autres : 3 options (grille `grid-cols-3`)
-- Afficher sous chaque option : "Total de votre don : XX€"
+## Plan de correction
 
-### 4. `src/components/EmergencyUpsell.tsx`
-- Même adaptation : recevoir `donationAmount` en prop, calculer les upsells via `UPSELL_MATRIX`
-- Adapter la grille (2 ou 3 colonnes selon le nombre d'options)
+### 1. Migration SQL : peupler les 135 produits manquants
+Générer automatiquement des impact_units basés sur la catégorie du produit :
 
-### 5. `src/pages/Index.tsx`
-- Ligne 123 : "À partir de 32€" → "Dès 20€"
+| Catégorie | impact_type principal | impact_value | impact_type secondaire | impact_value |
+|---|---|---|---|---|
+| alimentaire | meals | 1.5 | breakfasts | 1.0 |
+| hygiène | hygiene_corps | 2.0 | wellbeing | 1.5 |
+| entretien | entretien_maison | 2.0 | daily_products | 1.5 |
+| bébé | baby_care | 2.0 | — | — |
+| vêtements | vetements | 1.5 | — | — |
+| enfants | kids_snacks | 1.5 | — | — |
+| confort | wellbeing | 1.5 | — | — |
+| beauté | wellbeing | 2.0 | hygiene_corps | 1.0 |
+| maison | daily_products | 2.0 | entretien_maison | 1.0 |
 
-### 6. `src/pages/DonationFlow.tsx`
-- Le `DEFAULT_DONATION` importé passe automatiquement à 35€
+### 2. Migration SQL : nettoyer les impact_units incohérents
+- Supprimer `meals` des produits non-alimentaires
+- Supprimer `hygiene_corps` des produits alimentaires
+- Supprimer `breakfasts` des produits non-alimentaires
+- Conserver uniquement les associations logiques catégorie → impact_type
+
+### 3. Corriger le fallback dans DonationFlow.tsx
+Ligne 148 : aligner les seuils sur les nouveaux paliers (20, 35, 50, 75).
+
+```
+Avant : donationAmount >= 75 ? 3 : donationAmount >= 60 ? 2 : donationAmount >= 36 ? 1 : 0
+Après : donationAmount >= 75 ? 3 : donationAmount >= 50 ? 2 : donationAmount >= 35 ? 1 : 0
+```
+
+### Fichiers modifiés
+- **1 migration SQL** : peuplement des 135 produits + nettoyage des associations incohérentes
+- **`src/pages/DonationFlow.tsx`** : correction seuils ligne 148
 
