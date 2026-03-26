@@ -59,7 +59,7 @@ const CheckoutFlow = () => {
     beneficiaryName?: string;
   } | null;
 
-  const initialDonationAmount = navState?.donationAmount || 30;
+  const initialDonationAmount = navState?.donationAmount || 35;
   const initialEmergencyPack = navState?.emergencyPack || null;
   const initialTotal = initialDonationAmount + (initialEmergencyPack?.amount || 0);
 
