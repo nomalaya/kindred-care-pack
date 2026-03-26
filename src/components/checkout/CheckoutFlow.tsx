@@ -34,7 +34,7 @@ interface Beneficiary {
 
 export interface CheckoutData {
   basketItems: Array<{ product: ProductRecord; quantity: number }>;
-  emergencyPack: EmergencyPack | null;
+  emergencyPack: UpsellOption | null;
   totalAmount: number;
   donorInfo: {
     name: string;
