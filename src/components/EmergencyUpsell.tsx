@@ -1,15 +1,18 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart } from "lucide-react";
-import { EMERGENCY_PACKS, type EmergencyPack } from "@/lib/constants";
+import { getUpsellsForAmount, type UpsellOption } from "@/lib/constants";
 
 interface Props {
-  selectedPack: EmergencyPack | null;
-  onSelectPack: (pack: EmergencyPack | null) => void;
+  donationAmount: number;
+  selectedPack: UpsellOption | null;
+  onSelectPack: (pack: UpsellOption | null) => void;
 }
 
-const EmergencyUpsell = ({ selectedPack, onSelectPack }: Props) => {
-  const handleToggle = (pack: EmergencyPack) => {
-    onSelectPack(selectedPack?.id === pack.id ? null : pack);
+const EmergencyUpsell = ({ donationAmount, selectedPack, onSelectPack }: Props) => {
+  const upsellOptions = getUpsellsForAmount(donationAmount);
+
+  const handleToggle = (option: UpsellOption) => {
+    onSelectPack(selectedPack?.id === option.id ? null : option);
   };
 
   return (
@@ -27,13 +30,14 @@ const EmergencyUpsell = ({ selectedPack, onSelectPack }: Props) => {
         Aidez aussi une autre personne en situation d'urgence.
       </p>
 
-      <div className="grid grid-cols-3 gap-3">
-        {EMERGENCY_PACKS.map((pack) => {
-          const isSelected = selectedPack?.id === pack.id;
+      <div className={`grid gap-3 ${upsellOptions.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+        {upsellOptions.map((option) => {
+          const isSelected = selectedPack?.id === option.id;
+          const optionTotal = donationAmount + option.amount;
           return (
             <motion.button
-              key={pack.id}
-              onClick={() => handleToggle(pack)}
+              key={option.id}
+              onClick={() => handleToggle(option)}
               whileTap={{ scale: 0.95 }}
               className={`relative rounded-xl p-4 border-2 transition-colors text-center ${
                 isSelected
@@ -53,9 +57,12 @@ const EmergencyUpsell = ({ selectedPack, onSelectPack }: Props) => {
                   </motion.div>
                 )}
               </AnimatePresence>
-              <div className="text-2xl mb-2">{pack.icon}</div>
-              <div className="text-sm font-semibold text-foreground mb-1">{pack.amount}€</div>
-              <div className="text-[10px] text-muted-foreground leading-tight">{pack.description}</div>
+              <div className="text-2xl mb-2">{option.icon}</div>
+              <div className="text-sm font-semibold text-foreground mb-1">{option.amount}€</div>
+              <div className="text-[10px] text-muted-foreground leading-tight">{option.description}</div>
+              <div className="text-[10px] text-primary font-medium mt-1">
+                Total : {optionTotal}€
+              </div>
             </motion.button>
           );
         })}

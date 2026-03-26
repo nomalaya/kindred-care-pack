@@ -120,7 +120,7 @@ const Index = () => {
               Prêt à faire la différence ?
             </h2>
             <p className="text-primary-foreground/80 text-lg mb-8">
-              À partir de 32€, offrez des produits essentiels à quelqu'un qui en a vraiment besoin.
+              Dès 20€, offrez des produits essentiels à quelqu'un qui en a vraiment besoin.
             </p>
             <Link to="/causes">
               <Button size="lg" className="bg-cta hover:bg-cta/90 text-cta-foreground text-lg px-8 py-6">

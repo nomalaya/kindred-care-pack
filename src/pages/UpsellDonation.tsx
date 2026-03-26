@@ -3,7 +3,7 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Heart, ArrowRight } from "lucide-react";
-import { EMERGENCY_PACKS, type EmergencyPack } from "@/lib/constants";
+import { getUpsellsForAmount, type UpsellOption } from "@/lib/constants";
 import { useState } from "react";
 
 const UpsellDonation = () => {
@@ -11,13 +11,15 @@ const UpsellDonation = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Receive donation data from DonationFlow via navigation state
   const state = location.state as {
     donationAmount: number;
     beneficiaryName: string;
   } | null;
 
-  const [selectedPack, setSelectedPack] = useState<EmergencyPack | null>(null);
+  const donationAmount = state?.donationAmount || 35;
+  const upsellOptions = getUpsellsForAmount(donationAmount);
+
+  const [selectedOption, setSelectedOption] = useState<UpsellOption | null>(null);
 
   const handleSkip = () => {
     navigate(`/checkout/${beneficiaryId}`, {
@@ -27,9 +29,11 @@ const UpsellDonation = () => {
 
   const handleContinue = () => {
     navigate(`/checkout/${beneficiaryId}`, {
-      state: { emergencyPack: selectedPack, ...(location.state || {}) },
+      state: { emergencyPack: selectedOption, ...(location.state || {}) },
     });
   };
+
+  const totalAmount = donationAmount + (selectedOption?.amount || 0);
 
   return (
     <Layout>
@@ -57,13 +61,16 @@ const UpsellDonation = () => {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            {EMERGENCY_PACKS.map((pack) => {
-              const isSelected = selectedPack?.id === pack.id;
+          <div className={`grid grid-cols-1 gap-4 mb-8 ${
+            upsellOptions.length === 2 ? "sm:grid-cols-2 max-w-md mx-auto" : "sm:grid-cols-3"
+          }`}>
+            {upsellOptions.map((option) => {
+              const isSelected = selectedOption?.id === option.id;
+              const optionTotal = donationAmount + option.amount;
               return (
                 <motion.button
-                  key={pack.id}
-                  onClick={() => setSelectedPack(isSelected ? null : pack)}
+                  key={option.id}
+                  onClick={() => setSelectedOption(isSelected ? null : option)}
                   whileTap={{ scale: 0.95 }}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -82,11 +89,14 @@ const UpsellDonation = () => {
                       <span className="text-cta-foreground text-xs">✓</span>
                     </motion.div>
                   )}
-                  <div className="text-3xl mb-3">{pack.icon}</div>
+                  <div className="text-3xl mb-3">{option.icon}</div>
                   <div className="text-base font-semibold text-foreground mb-1">
-                    {pack.description}
+                    {option.description}
                   </div>
-                  <div className="text-lg font-bold text-primary">{pack.amount}€</div>
+                  <div className="text-lg font-bold text-primary">{option.amount}€</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Total du don : {optionTotal}€
+                  </div>
                 </motion.button>
               );
             })}
@@ -102,7 +112,7 @@ const UpsellDonation = () => {
               Non merci, continuer
             </Button>
 
-            {selectedPack && (
+            {selectedOption && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -112,7 +122,7 @@ const UpsellDonation = () => {
                   onClick={handleContinue}
                   className="bg-cta text-cta-foreground hover:bg-cta/90"
                 >
-                  Ajouter {selectedPack.amount}€ <ArrowRight className="ml-2 h-4 w-4" />
+                  Ajouter {selectedOption.amount}€ — Total {totalAmount}€ <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </motion.div>
             )}
