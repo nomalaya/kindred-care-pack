@@ -13,7 +13,7 @@ interface Props {
   amount: number;
   products: { id: string; name: string }[];
   basket?: BasketItem[];
-  emergencyPack?: EmergencyPack | null;
+  emergencyPack?: UpsellOption | null;
   beneficiaryId?: string;
 }
 
