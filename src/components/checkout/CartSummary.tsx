@@ -45,8 +45,8 @@ const CartSummary = ({ beneficiary, checkoutData, onUpdateData, onNext }: Props)
     });
   };
 
-  const basketSubtotal = checkoutData.basketItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const emergencyPack = checkoutData.emergencyPack;
+  const basketSubtotal = checkoutData.totalAmount - (emergencyPack?.amount || 0);
 
   return (
     <div className="space-y-6">
