@@ -145,7 +145,7 @@ const DonationFlow = () => {
 
   const basket = useMemo(() => {
     if (!profileMapping || !causeKey || products.length === 0) {
-      const tierIndex = donationAmount >= 75 ? 3 : donationAmount >= 60 ? 2 : donationAmount >= 36 ? 1 : 0;
+      const tierIndex = donationAmount >= 75 ? 3 : donationAmount >= 50 ? 2 : donationAmount >= 35 ? 1 : 0;
       const tierValue = [1, 2, 3, 4][tierIndex];
       return products
         .filter((p) => p.tier <= tierValue)
