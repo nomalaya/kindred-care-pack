@@ -8,12 +8,6 @@ interface Props {
   situationId?: string;
 }
 
-interface ImpactUnit {
-  product_id: string;
-  impact_type: string;
-  impact_value: number;
-}
-
 interface ImpactProfile {
   impact_type_1: string;
   impact_type_2: string;
@@ -21,81 +15,71 @@ interface ImpactProfile {
   impact_type_4?: string;
 }
 
-const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => string }> = {
-  meals: {
-    emoji: "🍽️",
-    label: (v) => `${formatDuration(v)} de repas essentiels`,
-  },
-  breakfasts: {
-    emoji: "☕",
-    label: (v) => `${v} petit${v > 1 ? "s" : ""}-déjeuner${v > 1 ? "s" : ""}`,
-  },
-  kids_snacks: {
-    emoji: "🧒",
-    label: (v) => `${v} goûter${v > 1 ? "s" : ""} pour les enfants`,
-  },
-  hygiene_corps: {
-    emoji: "🧼",
-    label: (v) => `${formatDuration(v)} de soins corporels`,
-  },
-  entretien_maison: {
-    emoji: "🏠",
-    label: (v) => `${v} produit${v > 1 ? "s" : ""} d'entretien ménager`,
-  },
-  daily_products: {
-    emoji: "🧹",
-    label: (v) => `${v} produit${v > 1 ? "s" : ""} du quotidien`,
-  },
-  quick_meals: {
-    emoji: "🥫",
-    label: (v) => `${v} repas rapide${v > 1 ? "s" : ""}`,
-  },
-  wellbeing: {
-    emoji: "🌿",
-    label: (v) => `${v} moment${v > 1 ? "s" : ""} de bien-être`,
-  },
-  baby_care: {
-    emoji: "👶",
-    label: (v) => `${formatDuration(v)} de soins bébé`,
-  },
-  vetements: {
-    emoji: "👕",
-    label: (v) => `${v} vêtement${v > 1 ? "s" : ""}`,
-  },
-  jouets: {
-    emoji: "🧸",
-    label: (v) => `${v} jouet${v > 1 ? "s" : ""} pour les enfants`,
-  },
+/** Map impact_type → which product categories/subcategories to count */
+const CATEGORY_MAP: Record<string, { categories: string[]; subcategories?: string[]; excludeSubcategories?: string[] }> = {
+  meals: { categories: ["alimentaire"], excludeSubcategories: ["biscuit", "confiserie", "snack", "snack_salé", "chocolat"] },
+  breakfasts: { categories: [], subcategories: ["céréales_pdj", "céréales", "tartine", "boisson_chaude", "lait"] },
+  quick_meals: { categories: [], subcategories: ["conserve", "pâtes", "légumineuses", "sauce"] },
+  kids_snacks: { categories: [], subcategories: ["biscuit", "confiserie", "chocolat", "snack"] },
+  hygiene_corps: { categories: ["hygiène"] },
+  entretien_maison: { categories: ["entretien"] },
+  daily_products: { categories: ["autonomie", "santé"] },
+  baby_care: { categories: ["bébé"] },
+  wellbeing: { categories: ["bien-être", "boissons"] },
+  vetements: { categories: ["vêtements"] },
+  jouets: { categories: ["enfant"] },
 };
 
-function formatDuration(days: number): string {
-  if (days <= 1) return "1 jour";
-  return `${days} jours`;
+const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => string }> = {
+  meals: { emoji: "🍽️", label: (v) => `${v} produit${v > 1 ? "s" : ""} alimentaire${v > 1 ? "s" : ""}` },
+  breakfasts: { emoji: "☕", label: (v) => `${v} petit${v > 1 ? "s" : ""}-déjeuner${v > 1 ? "s" : ""}` },
+  quick_meals: { emoji: "🥫", label: (v) => `${v} repas rapide${v > 1 ? "s" : ""}` },
+  kids_snacks: { emoji: "🧒", label: (v) => `${v} goûter${v > 1 ? "s" : ""} pour les enfants` },
+  hygiene_corps: { emoji: "🧼", label: (v) => `${v} produit${v > 1 ? "s" : ""} d'hygiène` },
+  entretien_maison: { emoji: "🏠", label: (v) => `${v} produit${v > 1 ? "s" : ""} ménager${v > 1 ? "s" : ""}` },
+  daily_products: { emoji: "🧹", label: (v) => `${v} produit${v > 1 ? "s" : ""} du quotidien` },
+  baby_care: { emoji: "👶", label: (v) => `${v} produit${v > 1 ? "s" : ""} bébé` },
+  wellbeing: { emoji: "🌿", label: (v) => `${v} produit${v > 1 ? "s" : ""} bien-être` },
+  vetements: { emoji: "👕", label: (v) => `${v} vêtement${v > 1 ? "s" : ""}` },
+  jouets: { emoji: "🧸", label: (v) => `${v} article${v > 1 ? "s" : ""} enfant${v > 1 ? "s" : ""}` },
+};
+
+function countForType(basket: BasketItem[], type: string): number {
+  const mapping = CATEGORY_MAP[type];
+  if (!mapping) return 0;
+
+  let total = 0;
+  for (const item of basket) {
+    const cat = item.product.category;
+    const sub = item.product.subcategory || "";
+
+    // If subcategories are specified, only count matching subcategories
+    if (mapping.subcategories && mapping.subcategories.length > 0) {
+      if (mapping.subcategories.includes(sub)) {
+        total += item.quantity;
+      }
+      continue;
+    }
+
+    // Category match
+    if (mapping.categories.includes(cat)) {
+      // Exclude specific subcategories if specified
+      if (mapping.excludeSubcategories && mapping.excludeSubcategories.includes(sub)) {
+        continue;
+      }
+      total += item.quantity;
+    }
+  }
+  return total;
 }
 
-const AnimatedNum = ({ value }: { value: number }) => (
-  <AnimatePresence mode="wait">
-    <motion.span
-      key={value}
-      initial={{ y: -6, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 6, opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="font-bold text-foreground"
-    >
-      {value}
-    </motion.span>
-  </AnimatePresence>
-);
-
 const DonationImpactCard = ({ basket, situationId }: Props) => {
-  const [impactUnits, setImpactUnits] = useState<ImpactUnit[]>([]);
   const [profile, setProfile] = useState<ImpactProfile | null>(null);
 
   useEffect(() => {
     if (!situationId) return;
     supabase
-      .from("impact_profiles" as any)
+      .from("impact_profiles")
       .select("impact_type_1, impact_type_2, impact_type_3, impact_type_4")
       .eq("situation_id", situationId)
       .single()
@@ -104,53 +88,28 @@ const DonationImpactCard = ({ basket, situationId }: Props) => {
       });
   }, [situationId]);
 
-  // Fetch impact_units only for products in the basket (avoids 1000-row limit)
-  useEffect(() => {
-    const productIds = basket.map((item) => item.product.id);
-    if (productIds.length === 0) return;
-    supabase
-      .from("impact_units" as any)
-      .select("product_id, impact_type, impact_value")
-      .in("product_id", productIds)
-      .then(({ data }) => {
-        if (data) setImpactUnits(data as unknown as ImpactUnit[]);
-      });
-  }, [basket]);
-
   const lines = useMemo(() => {
-    if (!profile || impactUnits.length === 0) return [];
+    if (!profile || basket.length === 0) return [];
 
     const types = [profile.impact_type_1, profile.impact_type_2, profile.impact_type_3, profile.impact_type_4].filter(Boolean) as string[];
     const result: { emoji: string; text: string; value: number }[] = [];
 
     for (const type of types) {
-      let total = 0;
-      for (const item of basket) {
-        const units = impactUnits.filter(
-          (u) => u.product_id === item.product.id && u.impact_type === type
-        );
-        for (const u of units) {
-          total += Number(u.impact_value) * item.quantity;
-        }
-      }
-      total = Math.floor(total);
-
-      const displayed = total;
-
-      if (displayed <= 0) continue;
+      const count = countForType(basket, type);
+      if (count <= 0) continue;
 
       const config = IMPACT_LABELS[type];
       if (!config) continue;
 
       result.push({
         emoji: config.emoji,
-        text: config.label(displayed),
-        value: displayed,
+        text: config.label(count),
+        value: count,
       });
     }
 
     return result;
-  }, [profile, impactUnits, basket]);
+  }, [profile, basket]);
 
   if (lines.length === 0) return null;
 
