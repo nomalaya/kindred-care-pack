@@ -79,12 +79,6 @@ export function getUpsellsForAmount(amount: number): UpsellOption[] {
   });
 }
 
-export const IMPACT_METRICS = {
-  products: { min: 6, max: 18 },
-  meals: { min: 4, max: 10 },
-  days: { min: 3, max: 7 },
-} as const;
-
 export const CAUSE_KEY_MAP: Record<string, string> = {
   "Aider un enfant en aidant sa famille": "child_family",
   "Aider une femme à se reconstruire": "women_recovery",
