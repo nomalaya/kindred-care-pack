@@ -113,7 +113,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
           <div className="mt-4 pt-4 border-t">
             <div className="flex items-center gap-2 text-sm text-cta font-medium">
               <Heart className="h-3 w-3 fill-cta/30" />
-              {emergencyPack.icon} {emergencyPack.name} (+{emergencyPack.amount}€)
+              {emergencyPack.icon} {emergencyPack.description} (+{emergencyPack.amount}€)
             </div>
           </div>
         )}

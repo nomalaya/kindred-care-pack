@@ -55,7 +55,7 @@ const CheckoutFlow = () => {
   // Read navigation state from UpsellDonation
   const navState = location.state as {
     donationAmount?: number;
-    emergencyPack?: EmergencyPack | null;
+    emergencyPack?: UpsellOption | null;
     beneficiaryName?: string;
   } | null;
 
