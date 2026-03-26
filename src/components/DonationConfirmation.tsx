@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Check, Package, Truck, Heart, PartyPopper, Layers } from "lucide-react";
 import { Link } from "react-router-dom";
-import { DELIVERY_STATUSES, EMOTIONAL_FAMILY_LABELS, type EmergencyPack } from "@/lib/constants";
+import { DELIVERY_STATUSES, EMOTIONAL_FAMILY_LABELS, type UpsellOption } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import SocialProof from "@/components/SocialProof";
 import type { BasketItem } from "@/lib/basketEngine";
@@ -13,7 +13,7 @@ interface Props {
   amount: number;
   products: { id: string; name: string }[];
   basket?: BasketItem[];
-  emergencyPack?: EmergencyPack | null;
+  emergencyPack?: UpsellOption | null;
   beneficiaryId?: string;
 }
 
@@ -113,7 +113,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
           <div className="mt-4 pt-4 border-t">
             <div className="flex items-center gap-2 text-sm text-cta font-medium">
               <Heart className="h-3 w-3 fill-cta/30" />
-              {emergencyPack.icon} {emergencyPack.name} (+{emergencyPack.amount}€)
+              {emergencyPack.icon} {emergencyPack.description} (+{emergencyPack.amount}€)
             </div>
           </div>
         )}

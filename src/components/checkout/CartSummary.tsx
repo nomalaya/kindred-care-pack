@@ -68,7 +68,7 @@ const CartSummary = ({ beneficiary, checkoutData, onUpdateData, onNext }: Props)
               <div className="flex items-center gap-2">
                 <Heart className="h-4 w-4 text-cta" />
                 <span className="text-sm font-medium text-foreground">
-                  {emergencyPack.name || "Soutien immédiat situation urgente"}
+                  {emergencyPack.description || "Soutien immédiat situation urgente"}
                 </span>
               </div>
               <span className="font-semibold text-cta">{emergencyPack.amount}€</span>

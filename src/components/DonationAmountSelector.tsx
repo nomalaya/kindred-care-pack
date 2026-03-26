@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DONATION_STEPS, TAX_DEDUCTION_RATE } from "@/lib/constants";
+import { DONATION_STEPS, TAX_DEDUCTION_RATE, STEP_INCREMENT, MAX_DONATION } from "@/lib/constants";
 
 const STEPS = DONATION_STEPS as unknown as number[];
 
@@ -10,13 +10,10 @@ interface Props {
   onChange: (value: number) => void;
 }
 
-const STEP_INCREMENT = 15;
-
 function getPrevAmount(current: number): number {
   const idx = STEPS.indexOf(current);
   if (idx > 0) return STEPS[idx - 1];
-  if (idx === 0) return current; // already at minimum
-  // Beyond predefined steps — go down by increment
+  if (idx === 0) return current;
   const prev = current - STEP_INCREMENT;
   const lastStep = STEPS[STEPS.length - 1];
   return prev >= lastStep ? prev : lastStep;
@@ -30,13 +27,14 @@ function getNextAmount(current: number): number {
     const next = STEPS.find((s) => s > current);
     return next || current + STEP_INCREMENT;
   }
-  return current + STEP_INCREMENT;
+  return Math.min(current + STEP_INCREMENT, MAX_DONATION);
 }
 
 const DonationAmountSelector = ({ value, onChange }: Props) => {
   const deduction = Math.round(value * TAX_DEDUCTION_RATE);
   const realCost = value - deduction;
   const isMin = value <= STEPS[0];
+  const isMax = value >= MAX_DONATION;
 
   return (
     <div className="bg-card rounded-2xl p-6 border shadow-card">
@@ -69,6 +67,7 @@ const DonationAmountSelector = ({ value, onChange }: Props) => {
           size="icon"
           className="h-12 w-12 rounded-full border-2 shrink-0"
           onClick={() => onChange(getNextAmount(value))}
+          disabled={isMax}
         >
           <Plus className="h-5 w-5" />
         </Button>

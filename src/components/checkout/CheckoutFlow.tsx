@@ -9,7 +9,7 @@ import PaymentMethods from "./PaymentMethods";
 import OrderConfirmation from "./OrderConfirmation";
 import { ArrowLeft, Check } from "lucide-react";
 import { motion } from "framer-motion";
-import type { EmergencyPack } from "@/lib/constants";
+import type { UpsellOption } from "@/lib/constants";
 import { composeBasket, type ProductRecord, type ProfileMapping } from "@/lib/basketEngine";
 
 type CheckoutStep = "cart" | "info" | "payment" | "confirmation";
@@ -34,7 +34,7 @@ interface Beneficiary {
 
 export interface CheckoutData {
   basketItems: Array<{ product: ProductRecord; quantity: number }>;
-  emergencyPack: EmergencyPack | null;
+  emergencyPack: UpsellOption | null;
   totalAmount: number;
   donorInfo: {
     name: string;
@@ -55,7 +55,7 @@ const CheckoutFlow = () => {
   // Read navigation state from UpsellDonation
   const navState = location.state as {
     donationAmount?: number;
-    emergencyPack?: EmergencyPack | null;
+    emergencyPack?: UpsellOption | null;
     beneficiaryName?: string;
   } | null;
 

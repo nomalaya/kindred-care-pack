@@ -154,7 +154,7 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
           {checkoutData.emergencyPack && (
             <div className="flex justify-between text-sm">
               <span>
-                {checkoutData.emergencyPack.name}
+                {checkoutData.emergencyPack.description}
                 {checkoutData.emergencyBeneficiary && (
                   <span className="text-muted-foreground"> — pour <strong>{checkoutData.emergencyBeneficiary.alias_first_name}</strong></span>
                 )}
