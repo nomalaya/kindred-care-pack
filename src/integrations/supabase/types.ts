@@ -412,6 +412,10 @@ export type Database = {
           impact_type_2: string
           impact_type_3: string
           impact_type_4: string | null
+          narrative_tier1: string | null
+          narrative_tier2: string | null
+          narrative_tier3: string | null
+          narrative_tier4: string | null
           situation_id: string
         }
         Insert: {
@@ -420,6 +424,10 @@ export type Database = {
           impact_type_2: string
           impact_type_3: string
           impact_type_4?: string | null
+          narrative_tier1?: string | null
+          narrative_tier2?: string | null
+          narrative_tier3?: string | null
+          narrative_tier4?: string | null
           situation_id: string
         }
         Update: {
@@ -428,6 +436,10 @@ export type Database = {
           impact_type_2?: string
           impact_type_3?: string
           impact_type_4?: string | null
+          narrative_tier1?: string | null
+          narrative_tier2?: string | null
+          narrative_tier3?: string | null
+          narrative_tier4?: string | null
           situation_id?: string
         }
         Relationships: [
