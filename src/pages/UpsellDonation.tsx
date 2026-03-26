@@ -1,5 +1,6 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
+import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Heart, ArrowRight } from "lucide-react";
@@ -37,8 +38,9 @@ const UpsellDonation = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto text-center">
+      <div className="container mx-auto px-4 py-8">
+        <BackButton />
+        <div className="max-w-2xl mx-auto text-center pt-4">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
