@@ -123,7 +123,7 @@ const PaymentForm = ({ beneficiary, checkoutData, onUpdateData, onNext, onPrevio
               </div>
               {checkoutData.emergencyPack && (
                 <div className="flex justify-between text-sm">
-                  <span>{checkoutData.emergencyPack.name} :</span>
+                  <span>{checkoutData.emergencyPack.description} :</span>
                   <span>{checkoutData.emergencyPack.amount.toFixed(2)}€</span>
                 </div>
               )}
