@@ -1,60 +1,74 @@
 
 
-# Corriger l'affichage des impacts
+# Impact = comptage réel du panier + phrases narratives par situation
 
-## Problèmes identifiés
+## Partie 1 — Comptage direct (identique au plan précédent)
 
-### P1 — 135 produits sans impact_units (19% du catalogue)
-Les produits ajoutés lors de l'expansion du catalogue n'ont jamais reçu d'entrées dans `impact_units`. Quand le basket engine les sélectionne, l'impact card ne peut rien calculer.
+Compter les produits réels du panier par catégorie (`product.category`). Mapping catégorie → emoji + label pluriel/singulier.
 
-Exemple concret — panier de Fatima à 35€ :
-- Henné neutre → **0 impact_units**
-- Savon de Marseille → **0 impact_units**
-- Concentré de tomates → **0 impact_units**
-- Haricots rouges secs → **0 impact_units**
-- Ghassoul → **0 impact_units**
-- Gant exfoliant traditionnel → 3 impact_units ✓
+## Partie 2 — Phrases narratives contextualisées par situation
 
-Résultat : seul 1 produit sur 6 contribue aux impacts → valeurs très basses, indicateur "meals" absent.
+Au lieu de 4 phrases génériques, stocker **une phrase par palier par situation** dans la table `impact_profiles` (24 situations × 4 paliers = 96 phrases).
 
-### P2 — Fallback basket avec anciens seuils
-`DonationFlow.tsx` ligne 148 utilise `>= 36` (ancien palier) au lieu de `>= 35` (nouveau). À 35€ le tier calculé est trop bas.
+### Nouvelle structure `impact_profiles`
 
-### P3 — Impact_units incohérents
-Des produits d'hygiène ont un impact_type `meals` (ex: Gant exfoliant → meals: 0.75). Des produits alimentaires ont `hygiene_corps`. Ces associations faussent les résultats.
+Ajouter 4 colonnes à `impact_profiles` :
 
-## Plan de correction
+| Colonne | Type | Description |
+|---|---|---|
+| `narrative_tier1` | text | Phrase pour palier 20€ |
+| `narrative_tier2` | text | Phrase pour palier 35€ |
+| `narrative_tier3` | text | Phrase pour palier 50€ |
+| `narrative_tier4` | text | Phrase pour palier 75€+ |
 
-### 1. Migration SQL : peupler les 135 produits manquants
-Générer automatiquement des impact_units basés sur la catégorie du produit :
+### Exemples de phrases par situation
 
-| Catégorie | impact_type principal | impact_value | impact_type secondaire | impact_value |
+| Situation | 20€ | 35€ | 50€ | 75€+ |
 |---|---|---|---|---|
-| alimentaire | meals | 1.5 | breakfasts | 1.0 |
-| hygiène | hygiene_corps | 2.0 | wellbeing | 1.5 |
-| entretien | entretien_maison | 2.0 | daily_products | 1.5 |
-| bébé | baby_care | 2.0 | — | — |
-| vêtements | vetements | 1.5 | — | — |
-| enfants | kids_snacks | 1.5 | — | — |
-| confort | wellbeing | 1.5 | — | — |
-| beauté | wellbeing | 2.0 | hygiene_corps | 1.0 |
-| maison | daily_products | 2.0 | entretien_maison | 1.0 |
+| 1.1 Mère célibataire | "Des repas pour elle et ses enfants" | "Repas et goûters pour toute la famille" | "Alimentation, hygiène et goûters enfants" | "Un colis familial complet, pensé pour chaque membre" |
+| 1.3 Famille réfugiée | "L'essentiel pour nourrir les enfants" | "Alimentation et produits enfants au quotidien" | "Un colis complet avec repères du quotidien" | "Tout le nécessaire pour retrouver une stabilité" |
+| 2.1 Femme violences | "Hygiène et alimentation de première nécessité" | "Alimentation simple et soins essentiels" | "Un colis de reconstruction personnelle" | "Dignité, alimentation et reconstruction au complet" |
+| 2.2 Jeune mère sans logement | "Nourrir maman et bébé" | "Alimentation, hygiène et soins bébé" | "Un colis mère-enfant complet" | "Tout pour le quotidien de maman et bébé" |
+| 3.1 Étudiant qui travaille | "Des repas rapides pour tenir la semaine" | "Repas et petits-déjeuners pour plusieurs jours" | "Alimentation complète et confort minimal" | "Un colis étudiant complet, pensé pour le quotidien" |
+| 4.1 Personne âgée seule | "Des repas simples pour quelques jours" | "Repas et produits d'hygiène essentiels" | "Un colis complet pour le quotidien" | "Alimentation, hygiène et petits plaisirs" |
+| 4.3 En établissement | "Petits plaisirs et confort personnel" | "Confort et douceurs du quotidien" | "Un colis de bien-être complet" | "Tout pour se sentir chez soi" |
+| 5.1 SMIC avec famille | "Des repas pour toute la famille" | "Repas familiaux et goûters enfants" | "Alimentation, hygiène et quotidien familial" | "Un colis famille complet" |
+| 6.1 Maladie chronique | "Une alimentation adaptée pour quelques jours" | "Repas adaptés et hygiène essentielle" | "Un colis adapté aux besoins de santé" | "Alimentation, hygiène et confort au complet" |
+| 6.3 Troubles psychiques | "Des repas simples et des repères" | "Alimentation et repères du quotidien" | "Un colis apaisant et structurant" | "Tout pour retrouver un quotidien serein" |
 
-### 2. Migration SQL : nettoyer les impact_units incohérents
-- Supprimer `meals` des produits non-alimentaires
-- Supprimer `hygiene_corps` des produits alimentaires
-- Supprimer `breakfasts` des produits non-alimentaires
-- Conserver uniquement les associations logiques catégorie → impact_type
+Les 24 situations seront couvertes dans la migration SQL avec des phrases cohérentes avec les consignes (impacts principaux/secondaires/interdits).
 
-### 3. Corriger le fallback dans DonationFlow.tsx
-Ligne 148 : aligner les seuils sur les nouveaux paliers (20, 35, 50, 75).
+## Partie 3 — Logique du composant `DonationImpactCard`
 
-```
-Avant : donationAmount >= 75 ? 3 : donationAmount >= 60 ? 2 : donationAmount >= 36 ? 1 : 0
-Après : donationAmount >= 75 ? 3 : donationAmount >= 50 ? 2 : donationAmount >= 35 ? 1 : 0
+### Props
+```text
+basket: BasketItem[]
+donationAmount: number
+situationId?: string    ← conservé pour récupérer la phrase narrative
 ```
 
-### Fichiers modifiés
-- **1 migration SQL** : peuplement des 135 produits + nettoyage des associations incohérentes
-- **`src/pages/DonationFlow.tsx`** : correction seuils ligne 148
+### Logique
+1. **Comptage** : `useMemo` groupant `basket` par `product.category` → compteur par catégorie
+2. **Phrase** : `useEffect` chargeant `impact_profiles.narrative_tier1..4` pour le `situationId`, puis sélection du palier selon `donationAmount`
+3. **Aucune** dépendance à `impact_units` dans l'affichage
+
+### Rendu
+```text
+┌──────────────────────────────────────┐
+│  Votre colis contient                │
+│                                      │
+│  🍽️ 4 produits alimentaires          │
+│  🧼 2 produits d'hygiène             │
+│  👶 3 articles bébé                  │
+│                                      │
+│  "Repas et goûters pour toute        │
+│   la famille"                        │
+└──────────────────────────────────────┘
+```
+
+## Fichiers modifiés
+
+1. **Migration SQL** : `ALTER TABLE impact_profiles ADD COLUMN narrative_tier1..4 text` + `UPDATE` des 24 lignes avec les phrases adaptées
+2. **`src/components/DonationImpactCard.tsx`** : réécriture complète — comptage par catégorie + fetch narrative
+3. **`src/pages/DonationFlow.tsx`** : passer `donationAmount` en plus de `situationId` au composant
 
