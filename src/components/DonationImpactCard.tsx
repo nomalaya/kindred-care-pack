@@ -5,173 +5,145 @@ import type { BasketItem } from "@/lib/basketEngine";
 
 interface Props {
   basket: BasketItem[];
+  donationAmount: number;
   situationId?: string;
 }
 
-interface ImpactUnit {
-  product_id: string;
-  impact_type: string;
-  impact_value: number;
+interface NarrativeProfile {
+  narrative_tier1: string | null;
+  narrative_tier2: string | null;
+  narrative_tier3: string | null;
+  narrative_tier4: string | null;
 }
 
-interface ImpactProfile {
-  impact_type_1: string;
-  impact_type_2: string;
-  impact_type_3: string;
-  impact_type_4?: string;
-}
-
-const IMPACT_LABELS: Record<string, { emoji: string; label: (v: number) => string }> = {
-  meals: {
-    emoji: "🍽️",
-    label: (v) => `${formatDuration(v)} de repas essentiels`,
-  },
-  breakfasts: {
-    emoji: "☕",
-    label: (v) => `${v} petit${v > 1 ? "s" : ""}-déjeuner${v > 1 ? "s" : ""}`,
-  },
-  kids_snacks: {
-    emoji: "🧒",
-    label: (v) => `${v} goûter${v > 1 ? "s" : ""} pour les enfants`,
-  },
-  hygiene_corps: {
-    emoji: "🧼",
-    label: (v) => `${formatDuration(v)} de soins corporels`,
-  },
-  entretien_maison: {
-    emoji: "🏠",
-    label: (v) => `${v} produit${v > 1 ? "s" : ""} d'entretien ménager`,
-  },
-  daily_products: {
-    emoji: "🧹",
-    label: (v) => `${v} produit${v > 1 ? "s" : ""} du quotidien`,
-  },
-  quick_meals: {
-    emoji: "🥫",
-    label: (v) => `${v} repas rapide${v > 1 ? "s" : ""}`,
-  },
-  wellbeing: {
-    emoji: "🌿",
-    label: (v) => `${v} moment${v > 1 ? "s" : ""} de bien-être`,
-  },
-  baby_care: {
-    emoji: "👶",
-    label: (v) => `${formatDuration(v)} de soins bébé`,
-  },
-  vetements: {
-    emoji: "👕",
-    label: (v) => `${v} vêtement${v > 1 ? "s" : ""}`,
-  },
-  jouets: {
-    emoji: "🧸",
-    label: (v) => `${v} jouet${v > 1 ? "s" : ""} pour les enfants`,
-  },
+const CATEGORY_CONFIG: Record<string, { emoji: string; singular: string; plural: string }> = {
+  alimentaire: { emoji: "🍽️", singular: "produit alimentaire", plural: "produits alimentaires" },
+  hygiène: { emoji: "🧼", singular: "produit d'hygiène", plural: "produits d'hygiène" },
+  bébé: { emoji: "👶", singular: "article bébé", plural: "articles bébé" },
+  entretien: { emoji: "🏠", singular: "produit d'entretien", plural: "produits d'entretien" },
+  vêtements: { emoji: "👕", singular: "vêtement", plural: "vêtements" },
+  enfants: { emoji: "🧸", singular: "article enfant", plural: "articles enfants" },
+  confort: { emoji: "🍫", singular: "produit confort", plural: "produits confort" },
+  beauté: { emoji: "💄", singular: "soin beauté", plural: "soins beauté" },
+  maison: { emoji: "🧹", singular: "article maison", plural: "articles maison" },
 };
 
-function formatDuration(days: number): string {
-  if (days <= 1) return "1 jour";
-  return `${days} jours`;
+// Fallback narrative phrases when no situation-specific ones are available
+const FALLBACK_NARRATIVES: Record<number, string> = {
+  20: "Couvre les besoins essentiels",
+  35: "Alimentation et hygiène pour plusieurs jours",
+  50: "Un colis complet avec confort et dignité",
+  75: "Un colis complet, pensé avec soin",
+};
+
+function getNarrativeTier(amount: number): number {
+  if (amount >= 75) return 4;
+  if (amount >= 50) return 3;
+  if (amount >= 35) return 2;
+  return 1;
 }
 
-const AnimatedNum = ({ value }: { value: number }) => (
-  <AnimatePresence mode="wait">
-    <motion.span
-      key={value}
-      initial={{ y: -6, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 6, opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="font-bold text-foreground"
-    >
-      {value}
-    </motion.span>
-  </AnimatePresence>
-);
+function getFallbackNarrative(amount: number): string {
+  if (amount >= 75) return FALLBACK_NARRATIVES[75];
+  if (amount >= 50) return FALLBACK_NARRATIVES[50];
+  if (amount >= 35) return FALLBACK_NARRATIVES[35];
+  return FALLBACK_NARRATIVES[20];
+}
 
-const DonationImpactCard = ({ basket, situationId }: Props) => {
-  const [impactUnits, setImpactUnits] = useState<ImpactUnit[]>([]);
-  const [profile, setProfile] = useState<ImpactProfile | null>(null);
+const DonationImpactCard = ({ basket, donationAmount, situationId }: Props) => {
+  const [narrative, setNarrative] = useState<NarrativeProfile | null>(null);
 
+  // Fetch narrative phrases for this situation
   useEffect(() => {
     if (!situationId) return;
     supabase
       .from("impact_profiles" as any)
-      .select("impact_type_1, impact_type_2, impact_type_3, impact_type_4")
+      .select("narrative_tier1, narrative_tier2, narrative_tier3, narrative_tier4")
       .eq("situation_id", situationId)
       .single()
       .then(({ data }) => {
-        if (data) setProfile(data as unknown as ImpactProfile);
+        if (data) setNarrative(data as unknown as NarrativeProfile);
       });
   }, [situationId]);
 
-  // Fetch impact_units only for products in the basket (avoids 1000-row limit)
-  useEffect(() => {
-    const productIds = basket.map((item) => item.product.id);
-    if (productIds.length === 0) return;
-    supabase
-      .from("impact_units" as any)
-      .select("product_id, impact_type, impact_value")
-      .in("product_id", productIds)
-      .then(({ data }) => {
-        if (data) setImpactUnits(data as unknown as ImpactUnit[]);
-      });
-  }, [basket]);
-
-  const lines = useMemo(() => {
-    if (!profile || impactUnits.length === 0) return [];
-
-    const types = [profile.impact_type_1, profile.impact_type_2, profile.impact_type_3, profile.impact_type_4].filter(Boolean) as string[];
-    const result: { emoji: string; text: string; value: number }[] = [];
-
-    for (const type of types) {
-      let total = 0;
-      for (const item of basket) {
-        const units = impactUnits.filter(
-          (u) => u.product_id === item.product.id && u.impact_type === type
-        );
-        for (const u of units) {
-          total += Number(u.impact_value) * item.quantity;
-        }
-      }
-      total = Math.floor(total);
-
-      const displayed = total;
-
-      if (displayed <= 0) continue;
-
-      const config = IMPACT_LABELS[type];
-      if (!config) continue;
-
-      result.push({
-        emoji: config.emoji,
-        text: config.label(displayed),
-        value: displayed,
-      });
+  // Count products by category
+  const categoryLines = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const item of basket) {
+      const cat = item.product.category;
+      counts[cat] = (counts[cat] || 0) + item.quantity;
     }
 
-    return result;
-  }, [profile, impactUnits, basket]);
+    return Object.entries(counts)
+      .filter(([, count]) => count > 0)
+      .map(([category, count]) => {
+        const config = CATEGORY_CONFIG[category];
+        if (!config) return null;
+        return {
+          emoji: config.emoji,
+          text: `${count} ${count > 1 ? config.plural : config.singular}`,
+          count,
+          category,
+        };
+      })
+      .filter(Boolean) as { emoji: string; text: string; count: number; category: string }[];
+  }, [basket]);
 
-  if (lines.length === 0) return null;
+  // Select the right narrative phrase
+  const narrativeText = useMemo(() => {
+    const tier = getNarrativeTier(donationAmount);
+    if (narrative) {
+      const key = `narrative_tier${tier}` as keyof NarrativeProfile;
+      if (narrative[key]) return narrative[key];
+    }
+    return getFallbackNarrative(donationAmount);
+  }, [narrative, donationAmount]);
+
+  if (categoryLines.length === 0) return null;
 
   return (
     <div className="bg-card rounded-2xl p-6 border shadow-card">
       <h3 className="text-base font-semibold text-foreground mb-4">
-        Impact de votre aide
+        Votre colis contient
       </h3>
       <div className="space-y-3">
-        {lines.map((line) => (
+        {categoryLines.map((line) => (
           <motion.div
-            key={line.emoji}
+            key={line.category}
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3"
           >
             <span className="text-xl">{line.emoji}</span>
-            <span className="text-sm text-foreground">{line.text}</span>
+            <span className="text-sm text-foreground">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={line.count}
+                  initial={{ y: -6, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 6, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="font-bold"
+                >
+                  {line.text}
+                </motion.span>
+              </AnimatePresence>
+            </span>
           </motion.div>
         ))}
       </div>
+
+      {/* Narrative phrase */}
+      {narrativeText && (
+        <motion.p
+          key={narrativeText}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-4 pt-4 border-t text-sm italic text-primary/80 text-center"
+        >
+          « {narrativeText} »
+        </motion.p>
+      )}
     </div>
   );
 };

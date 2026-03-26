@@ -284,6 +284,7 @@ const DonationFlow = () => {
           {/* 3. Impact card */}
           <DonationImpactCard
             basket={basket}
+            donationAmount={donationAmount}
             situationId={beneficiary.situation_id}
           />
 
