@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Check, Package, Truck, Heart, PartyPopper, Layers } from "lucide-react";
 import { Link } from "react-router-dom";
-import { DELIVERY_STATUSES, EMOTIONAL_FAMILY_LABELS, type EmergencyPack } from "@/lib/constants";
+import { DELIVERY_STATUSES, EMOTIONAL_FAMILY_LABELS, type UpsellOption } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import SocialProof from "@/components/SocialProof";
 import type { BasketItem } from "@/lib/basketEngine";

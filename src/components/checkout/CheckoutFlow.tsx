@@ -9,7 +9,7 @@ import PaymentMethods from "./PaymentMethods";
 import OrderConfirmation from "./OrderConfirmation";
 import { ArrowLeft, Check } from "lucide-react";
 import { motion } from "framer-motion";
-import type { EmergencyPack } from "@/lib/constants";
+import type { UpsellOption } from "@/lib/constants";
 import { composeBasket, type ProductRecord, type ProfileMapping } from "@/lib/basketEngine";
 
 type CheckoutStep = "cart" | "info" | "payment" | "confirmation";
