@@ -1,5 +1,6 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
+import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Heart, ArrowRight } from "lucide-react";
