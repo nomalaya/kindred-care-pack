@@ -121,7 +121,8 @@ const CheckoutFlow = () => {
     };
 
     loadData();
-  }, [beneficiaryId, profileMapping]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [beneficiaryId]);
 
   const steps = [
     { id: "cart", label: "Panier", icon: "1" },

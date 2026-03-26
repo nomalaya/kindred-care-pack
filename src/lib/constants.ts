@@ -88,10 +88,3 @@ export const CAUSE_KEY_MAP: Record<string, string> = {
   "Soutenir face à la maladie": "health_disability",
 };
 
-export const EMOTIONAL_FAMILY_LABELS: Record<string, string> = {
-  survival: "Survie & Alimentation",
-  dignity: "Dignité & Hygiène",
-  childhood: "Enfance & Éducation",
-  autonomy: "Autonomie",
-  comfort: "Confort & Bien-être",
-};

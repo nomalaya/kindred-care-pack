@@ -18,14 +18,15 @@ interface NarrativeProfile {
 
 const CATEGORY_CONFIG: Record<string, { emoji: string; singular: string; plural: string }> = {
   alimentaire: { emoji: "🍽️", singular: "produit alimentaire", plural: "produits alimentaires" },
+  boissons: { emoji: "🥤", singular: "boisson", plural: "boissons" },
   hygiène: { emoji: "🧼", singular: "produit d'hygiène", plural: "produits d'hygiène" },
   bébé: { emoji: "👶", singular: "article bébé", plural: "articles bébé" },
   entretien: { emoji: "🏠", singular: "produit d'entretien", plural: "produits d'entretien" },
   vêtements: { emoji: "👕", singular: "vêtement", plural: "vêtements" },
-  enfants: { emoji: "🧸", singular: "article enfant", plural: "articles enfants" },
-  confort: { emoji: "🍫", singular: "produit confort", plural: "produits confort" },
-  beauté: { emoji: "💄", singular: "soin beauté", plural: "soins beauté" },
-  maison: { emoji: "🧹", singular: "article maison", plural: "articles maison" },
+  enfant: { emoji: "🧸", singular: "article enfant", plural: "articles enfants" },
+  "bien-être": { emoji: "🍫", singular: "produit bien-être", plural: "produits bien-être" },
+  santé: { emoji: "💊", singular: "produit de santé", plural: "produits de santé" },
+  autonomie: { emoji: "🎒", singular: "article d'autonomie", plural: "articles d'autonomie" },
 };
 
 // Fallback narrative phrases when no situation-specific ones are available
