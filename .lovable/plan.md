@@ -1,74 +1,62 @@
 
 
-# Impact = comptage réel du panier + phrases narratives par situation
+# Page showcase des 3 options visuelles — Déduction fiscale
 
-## Partie 1 — Comptage direct (identique au plan précédent)
+## Objectif
+Créer une page `/tax-showcase` affichant les 3 options côte à côte avec un slider de montant interactif (20€ → 150€) pour voir l'animation en temps réel. Respecte le design system (Inter, couleurs CSS variables, spacing 4px grid, ANIM presets, CARD_STYLES, SHADOWS).
 
-Compter les produits réels du panier par catégorie (`product.category`). Mapping catégorie → emoji + label pluriel/singulier.
+## Fichiers à créer / modifier
 
-## Partie 2 — Phrases narratives contextualisées par situation
+### 1. `src/pages/TaxShowcase.tsx` — nouvelle page
 
-Au lieu de 4 phrases génériques, stocker **une phrase par palier par situation** dans la table `impact_profiles` (24 situations × 4 paliers = 96 phrases).
+Contient :
+- Un slider interactif pour choisir le montant (20–150€)
+- Les 3 options rendues en colonne, chacune dans une card (`CARD_STYLES.inner`)
+- Titre de section avec `SECTION_HEADER` pattern
 
-### Nouvelle structure `impact_profiles`
+### 2. `src/components/TaxDeductionOptionA.tsx` — Cercles chevauchants
 
-Ajouter 4 colonnes à `impact_profiles` :
+Fidèle au modèle image fourni :
+- Cercle gauche (bordure `primary`, fond transparent) : "Je fais un don de **X€**"
+- Cercle droit (fond `primary/10`, bordure `primary`) : "Mon don me coûte **Y€**"
+- Badge rond positionné entre les deux (fond `cta`, texte `cta-foreground`) : "75%"
+- Flèche SVG courbe reliant les deux cercles
+- Mention "Loi Coluche" en `caption`
+- Valeurs animées avec `AnimatePresence`
 
-| Colonne | Type | Description |
-|---|---|---|
-| `narrative_tier1` | text | Phrase pour palier 20€ |
-| `narrative_tier2` | text | Phrase pour palier 35€ |
-| `narrative_tier3` | text | Phrase pour palier 50€ |
-| `narrative_tier4` | text | Phrase pour palier 75€+ |
+### 3. `src/components/TaxDeductionOptionB.tsx` — Barre de progression
 
-### Exemples de phrases par situation
+- Barre horizontale pleine largeur, hauteur 40px, `rounded-lg`
+- Segment gauche (75%) : fond `primary/20` avec texte "Récupéré : X€" en `primary`
+- Segment droit (25%) : fond `cta` avec texte "Coût réel : Y€" en `cta-foreground`
+- Au-dessus : "Votre don : Z€" centré, `font-bold`
+- Badge "75%" en `primary` au-dessus de la jonction
+- Animation de largeur avec `motion.div layout`
 
-| Situation | 20€ | 35€ | 50€ | 75€+ |
-|---|---|---|---|---|
-| 1.1 Mère célibataire | "Des repas pour elle et ses enfants" | "Repas et goûters pour toute la famille" | "Alimentation, hygiène et goûters enfants" | "Un colis familial complet, pensé pour chaque membre" |
-| 1.3 Famille réfugiée | "L'essentiel pour nourrir les enfants" | "Alimentation et produits enfants au quotidien" | "Un colis complet avec repères du quotidien" | "Tout le nécessaire pour retrouver une stabilité" |
-| 2.1 Femme violences | "Hygiène et alimentation de première nécessité" | "Alimentation simple et soins essentiels" | "Un colis de reconstruction personnelle" | "Dignité, alimentation et reconstruction au complet" |
-| 2.2 Jeune mère sans logement | "Nourrir maman et bébé" | "Alimentation, hygiène et soins bébé" | "Un colis mère-enfant complet" | "Tout pour le quotidien de maman et bébé" |
-| 3.1 Étudiant qui travaille | "Des repas rapides pour tenir la semaine" | "Repas et petits-déjeuners pour plusieurs jours" | "Alimentation complète et confort minimal" | "Un colis étudiant complet, pensé pour le quotidien" |
-| 4.1 Personne âgée seule | "Des repas simples pour quelques jours" | "Repas et produits d'hygiène essentiels" | "Un colis complet pour le quotidien" | "Alimentation, hygiène et petits plaisirs" |
-| 4.3 En établissement | "Petits plaisirs et confort personnel" | "Confort et douceurs du quotidien" | "Un colis de bien-être complet" | "Tout pour se sentir chez soi" |
-| 5.1 SMIC avec famille | "Des repas pour toute la famille" | "Repas familiaux et goûters enfants" | "Alimentation, hygiène et quotidien familial" | "Un colis famille complet" |
-| 6.1 Maladie chronique | "Une alimentation adaptée pour quelques jours" | "Repas adaptés et hygiène essentielle" | "Un colis adapté aux besoins de santé" | "Alimentation, hygiène et confort au complet" |
-| 6.3 Troubles psychiques | "Des repas simples et des repères" | "Alimentation et repères du quotidien" | "Un colis apaisant et structurant" | "Tout pour retrouver un quotidien serein" |
+### 4. `src/components/TaxDeductionOptionC.tsx` — Carte avant/après
 
-Les 24 situations seront couvertes dans la migration SQL avec des phrases cohérentes avec les consignes (impacts principaux/secondaires/interdits).
+- Deux cartes côte à côte dans un `flex gap-6`
+- Carte gauche : fond `card`, bordure `border`, titre "Votre don", montant grand `text-2xl font-bold`
+- Carte droite : fond `primary/5`, bordure `primary/20`, titre "Coût réel après impôt", montant `text-2xl font-bold text-primary`
+- Flèche animée entre les deux (icône `ArrowRight` de lucide)
+- Badge "−75%" en overlay sur la flèche, fond `cta`, animation `scale` au mount
+- Valeurs animées avec `AnimatePresence`
 
-## Partie 3 — Logique du composant `DonationImpactCard`
+### 5. `src/App.tsx` — ajouter la route
 
-### Props
-```text
-basket: BasketItem[]
-donationAmount: number
-situationId?: string    ← conservé pour récupérer la phrase narrative
+```
+<Route path="/tax-showcase" element={<TaxShowcase />} />
 ```
 
-### Logique
-1. **Comptage** : `useMemo` groupant `basket` par `product.category` → compteur par catégorie
-2. **Phrase** : `useEffect` chargeant `impact_profiles.narrative_tier1..4` pour le `situationId`, puis sélection du palier selon `donationAmount`
-3. **Aucune** dépendance à `impact_units` dans l'affichage
+## Tokens design system utilisés
+- Couleurs : `primary`, `cta`, `muted-foreground`, `foreground`, `card`, `background`
+- Spacing : `p-6`, `p-8`, `gap-6`, `space-y-6`, `mb-4`, `mb-12`
+- Radius : `rounded-2xl` (cards), `rounded-full` (badges/cercles)
+- Shadows : `shadow-card`
+- Typography : `TYPOGRAPHY.h2`, `TYPOGRAPHY.caption`, `TYPOGRAPHY.bodySmall`
+- Animations : `ANIM.fadeInUp`, `ANIM.scaleButton`
+- Font : Inter (hérité)
 
-### Rendu
-```text
-┌──────────────────────────────────────┐
-│  Votre colis contient                │
-│                                      │
-│  🍽️ 4 produits alimentaires          │
-│  🧼 2 produits d'hygiène             │
-│  👶 3 articles bébé                  │
-│                                      │
-│  "Repas et goûters pour toute        │
-│   la famille"                        │
-└──────────────────────────────────────┘
-```
-
-## Fichiers modifiés
-
-1. **Migration SQL** : `ALTER TABLE impact_profiles ADD COLUMN narrative_tier1..4 text` + `UPDATE` des 24 lignes avec les phrases adaptées
-2. **`src/components/DonationImpactCard.tsx`** : réécriture complète — comptage par catégorie + fetch narrative
-3. **`src/pages/DonationFlow.tsx`** : passer `donationAmount` en plus de `situationId` au composant
+## Taux utilisé
+75% (Loi Coluche) avec plafond 2000€. Calcul : `realCost = amount - Math.round(amount * 0.75)`.
 
