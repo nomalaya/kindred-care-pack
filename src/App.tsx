@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import HowItWorks from "./pages/HowItWorks";
 import ThemeShowcase from "./pages/ThemeShowcase";
+import TaxShowcase from "./pages/TaxShowcase";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/themes" element={<ThemeShowcase />} />
+            <Route path="/tax-showcase" element={<TaxShowcase />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
