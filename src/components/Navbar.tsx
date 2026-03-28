@@ -31,6 +31,9 @@ const Navbar = () => {
           <Link to="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Comment ça marche
           </Link>
+          <Link to="/avantage-fiscal" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Avantage fiscal
+          </Link>
           {user ? (
             <>
               <Link to="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
