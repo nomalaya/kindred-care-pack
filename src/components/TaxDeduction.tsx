@@ -1,5 +1,6 @@
 import { TAX_DEDUCTION_RATE } from "@/lib/constants";
 import { motion, AnimatePresence } from "framer-motion";
+import TaxInfoLink from "@/components/TaxInfoLink";
 
 interface Props {
   amount: number;
