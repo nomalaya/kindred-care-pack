@@ -47,6 +47,11 @@ const TaxAdvantage = () => {
 
   return (
     <Layout>
+      {fromPath && (
+        <div className="container mx-auto px-4 pt-6">
+          <BackButton to={fromPath} label="Retour" />
+        </div>
+      )}
       {/* 1. Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto px-4 text-center max-w-3xl">
