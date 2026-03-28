@@ -22,7 +22,7 @@ const AnimatedValue = ({ value, className }: { value: string; className?: string
 );
 
 const TaxDeductionOptionC = ({ amount }: Props) => {
-  const deduction = Math.round(amount * 0.75);
+  const deduction = Math.round(amount * TAX_DEDUCTION_RATE);
   const realCost = amount - deduction;
 
   return (
