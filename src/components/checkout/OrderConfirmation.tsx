@@ -51,8 +51,19 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
   }, [checkoutData]);
 
   const handleDownloadReceipt = () => {
-    // TODO: Generate PDF receipt
-    toast.success("Le reçu fiscal sera envoyé par email dans les prochaines minutes");
+    generateIndividualReceipt(
+      {
+        id: checkoutData.sessionId || "unknown",
+        amount: checkoutData.totalAmount,
+        created_at: new Date().toISOString(),
+        beneficiaryName: beneficiary.alias_first_name,
+        beneficiaryRegion: beneficiary.region,
+      },
+      {
+        name: checkoutData.donorName || "Donateur",
+        email: checkoutData.donorEmail || "",
+      }
+    );
   };
 
   const handleShare = async () => {
