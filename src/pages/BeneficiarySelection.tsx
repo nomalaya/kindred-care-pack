@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { getAgeRange } from "@/lib/ageRange";
 import { CARD_STYLES, SECTION_HEADER } from "@/lib/designSystem";
+import { getDonorLocationFromIP } from "@/lib/geoLocation";
 import {
   getBadgeStyle,
   getCardGradient,
@@ -65,6 +66,14 @@ const BeneficiarySelection = () => {
             region_code: profile.region_code || "",
             country_code: profile.country_code || "",
           };
+        }
+      }
+
+      // Fallback: IP geolocation for anonymous or profile-less donors
+      if (!donorLocation) {
+        const ipLocation = await getDonorLocationFromIP();
+        if (ipLocation) {
+          donorLocation = { ...ipLocation };
         }
       }
 
