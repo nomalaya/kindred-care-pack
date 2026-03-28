@@ -101,8 +101,9 @@ const DonorInformation = ({ checkoutData, onUpdateData, onNext, onPrevious }: Pr
                     <FormControl>
                       <Input placeholder="jean.dupont@email.com" type="email" {...field} />
                     </FormControl>
-                    <FormDescription>
+                    <FormDescription className="inline-flex items-center">
                       Votre reçu fiscal sera envoyé à cette adresse
+                      <TaxInfoLink />
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
