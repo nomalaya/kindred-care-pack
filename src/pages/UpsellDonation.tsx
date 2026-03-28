@@ -4,6 +4,7 @@ import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Heart, ArrowRight } from "lucide-react";
+import TaxDeductionOptionC from "@/components/TaxDeductionOptionC";
 import { getUpsellsForAmount, type UpsellOption } from "@/lib/constants";
 import { useState } from "react";
 
