@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Minus, Plus, ShoppingCart, Gift, Package, Heart } from "lucide-react";
-import TaxDeduction from "@/components/TaxDeduction";
+import TaxDeductionOptionC from "@/components/TaxDeductionOptionC";
 import type { CheckoutData } from "./CheckoutFlow";
 
 interface Beneficiary {
