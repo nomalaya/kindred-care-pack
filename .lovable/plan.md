@@ -1,47 +1,27 @@
 
 
-# Amélioration du design de la page Causes
+# Corrections page Causes — 3 ajustements
 
-## Constat actuel
-- Les cartes sont fonctionnelles mais plates : photo + texte + badges + bouton CTA
-- Le bouton "Choisir cette cause →" est redondant car toute la carte est déjà cliquable (Link)
-- Les compteurs de bénéficiaires sont utiles mais pourraient être mieux intégrés visuellement
-- Le header est minimaliste, le social proof peu visible
+## 1. Social proof : toujours afficher un chiffre fictif rassurant
 
-## Modifications prévues
+Dans `src/components/SocialProof.tsx`, variante `cause` (lignes 41-45) :
+- Supprimer le fallback "Rejoignez les premiers donateurs solidaires"
+- Toujours afficher : `"Deja +2 340 donateurs ont aide une personne reelle"` 
+- Si `stats.total_count >= 10`, utiliser le chiffre arrondi comme aujourd'hui ; sinon, afficher le chiffre fictif `2 340` (crédible, effet mouvement collectif)
 
-### 1. Supprimer les boutons CTA
-Retirer le `<Button>` "Choisir cette cause →" de chaque carte. La carte entière reste cliquable via le `<Link>`.
+## 2. Badges en haut a droite
 
-### 2. Améliorer les cartes visuellement
-- **Photo plus grande** : passer de `h-40` à `h-48` pour donner plus de présence aux photos documentaires
-- **Titre sur la photo** : positionner le titre en overlay sur le gradient bas de la photo (blanc sur fond sombre) pour un effet éditorial plus impactant
-- **Badges repositionnés** : placer les compteurs (bénéficiaires + proximité) en overlay semi-transparent en haut à gauche de la photo
-- **Description plus aérée** : seule la description reste dans la zone blanche sous la photo
-- **Hover amélioré** : ajouter un léger `ring` primaire au hover + translation Y `-2px` pour un effet de lift
+Dans `src/pages/CauseSelection.tsx`, ligne 119 :
+- Changer `left-3` en `right-3` pour positionner le badge beneficiaires en haut a droite de la photo
 
-### 3. Améliorer le header
-- Ajouter un sous-titre plus émotionnel et engageant
-- Rendre le social proof plus visible avec une taille légèrement plus grande
+## 3. Couleurs design system sur les badges
 
-### Rendu visuel attendu
+Remplacer les badges noirs semi-transparents par des couleurs du design system :
+- Badge beneficiaires (sur photo) : `bg-primary/80 text-primary-foreground` au lieu de `bg-black/50 text-white`
+- Badge proximite (dans le body) : garder `variant="outline"` avec `text-primary border-primary/30` (deja conforme)
 
-```text
-┌──────────────────────────────┐
-│  [32 bénéficiaires]     photo│
-│                              │
-│                              │
-│  ▓▓▓ gradient ▓▓▓▓▓▓▓▓▓▓▓▓▓│
-│  Aider un enfant en aidant   │
-│  sa famille                  │
-├──────────────────────────────┤
-│  Soutenez les familles qui   │
-│  peinent à subvenir aux...   │
-│                              │
-│  📍 7 proches de chez vous   │
-└──────────────────────────────┘
-```
+## Fichiers modifies
 
-### Fichier modifié
-- `src/pages/CauseSelection.tsx` — suppression du CTA, repositionnement du titre en overlay, badges en haut de la photo, hover amélioré
+1. **`src/components/SocialProof.tsx`** — ligne 42-44 : remplacer le fallback par le chiffre fictif `2 340`
+2. **`src/pages/CauseSelection.tsx`** — ligne 119 : `left-3` → `right-3` ; ligne 120 : couleurs design system
 
