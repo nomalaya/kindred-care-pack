@@ -65,7 +65,7 @@ const Navbar = () => {
           <Link to="/how-it-works" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Comment ça marche</Link>
           {user ? (
             <>
-              <Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Mes dons</Link>
+              <Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}><Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Mon espace donateur</Link></Link>
               <button className="block text-sm font-medium py-2" onClick={() => { handleLogout(); setMobileOpen(false); }}>Déconnexion</button>
             </>
           ) : (
