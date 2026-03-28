@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Heart, ArrowRight } from "lucide-react";
 import TaxDeductionOptionC from "@/components/TaxDeductionOptionC";
 import { getUpsellsForAmount, type UpsellOption } from "@/lib/constants";
+import { getContextualUpsellDescription } from "@/lib/upsellDescriptions";
 import { useState } from "react";
 
 const UpsellDonation = () => {
@@ -16,9 +17,11 @@ const UpsellDonation = () => {
   const state = location.state as {
     donationAmount: number;
     beneficiaryName: string;
+    causeKey?: string;
   } | null;
 
   const donationAmount = state?.donationAmount || 35;
+  const causeKey = state?.causeKey || "";
   const upsellOptions = getUpsellsForAmount(donationAmount);
 
   const [selectedOption, setSelectedOption] = useState<UpsellOption | null>(null);
@@ -70,6 +73,7 @@ const UpsellDonation = () => {
             {upsellOptions.map((option) => {
               const isSelected = selectedOption?.id === option.id;
               const optionTotal = donationAmount + option.amount;
+              const contextualDesc = getContextualUpsellDescription(causeKey, option.id, option.description);
               return (
                 <motion.button
                   key={option.id}
@@ -92,9 +96,8 @@ const UpsellDonation = () => {
                       <span className="text-cta-foreground text-xs">✓</span>
                     </motion.div>
                   )}
-                  <div className="text-3xl mb-3">{option.icon}</div>
                   <div className="text-base font-semibold text-foreground mb-1">
-                    {option.description}
+                    {contextualDesc}
                   </div>
                   <div className="text-lg font-bold text-primary">{option.amount}€</div>
                   <div className="text-xs text-muted-foreground mt-1">

@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Package, Sparkles } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { BasketItem } from "@/lib/basketEngine";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,17 +15,31 @@ interface Props {
   amount: number;
   beneficiaryCultureTags?: string[];
   beneficiaryName?: string;
+  donationAmount?: number;
+  situationId?: string;
 }
 
-// ── Value badges from product.labels[] ──────────────────────
-const VALUE_BADGES: Record<string, { label: string; emoji: string; color: string }> = {
-  bio: { label: "Bio", emoji: "🌿", color: "border-green-400 text-green-700 bg-green-50 dark:bg-green-950 dark:text-green-300" },
-  equitable: { label: "Équitable", emoji: "🤝", color: "border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-950 dark:text-amber-300" },
-  made_in_france: { label: "France", emoji: "🇫🇷", color: "border-blue-400 text-blue-700 bg-blue-50 dark:bg-blue-950 dark:text-blue-300" },
-  eco: { label: "Éco", emoji: "♻️", color: "border-teal-400 text-teal-700 bg-teal-50 dark:bg-teal-950 dark:text-teal-300" },
+// Category config for grouping
+const CATEGORY_CONFIG: Record<string, { singular: string; plural: string }> = {
+  alimentaire: { singular: "Produit alimentaire", plural: "Produits alimentaires" },
+  boissons: { singular: "Boisson", plural: "Boissons" },
+  hygiène: { singular: "Produit d'hygiène", plural: "Produits d'hygiène" },
+  bébé: { singular: "Article bébé", plural: "Articles bébé" },
+  entretien: { singular: "Produit d'entretien", plural: "Produits d'entretien" },
+  vêtements: { singular: "Vêtement", plural: "Vêtements" },
+  enfant: { singular: "Article enfant", plural: "Articles enfants" },
+  "bien-être": { singular: "Produit bien-être", plural: "Produits bien-être" },
+  santé: { singular: "Produit de santé", plural: "Produits de santé" },
+  autonomie: { singular: "Article d'autonomie", plural: "Articles d'autonomie" },
 };
 
-// ── Cultural region → country mapping ───────────────────────
+const VALUE_BADGES: Record<string, { label: string; color: string }> = {
+  bio: { label: "Bio", color: "border-green-400 text-green-700 bg-green-50 dark:bg-green-950 dark:text-green-300" },
+  equitable: { label: "Equitable", color: "border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-950 dark:text-amber-300" },
+  made_in_france: { label: "France", color: "border-blue-400 text-blue-700 bg-blue-50 dark:bg-blue-950 dark:text-blue-300" },
+  eco: { label: "Eco", color: "border-teal-400 text-teal-700 bg-teal-50 dark:bg-teal-950 dark:text-teal-300" },
+};
+
 const CULTURE_REGION_MAP: Record<string, string[]> = {
   maghreb: ["Maroc", "Tunisie", "Algérie"],
   afrique_ouest: ["Sénégal", "Mali", "Côte d'Ivoire", "Guinée", "Cap-Vert", "Togo", "Bénin", "Burkina Faso", "Ghana"],
@@ -46,30 +60,30 @@ const CULTURE_REGION_MAP: Record<string, string[]> = {
 };
 
 function getValueBadges(product: BasketItem["product"]): string[] {
-  return (product.labels ?? [])
-    .filter((l) => l in VALUE_BADGES)
-    .slice(0, 2);
+  return (product.labels ?? []).filter((l) => l in VALUE_BADGES).slice(0, 2);
 }
 
-function hasCulturalMatch(
-  product: BasketItem["product"],
-  beneficiaryCultureTags: string[]
-): boolean {
+function hasCulturalMatch(product: BasketItem["product"], beneficiaryCultureTags: string[]): boolean {
   const productOrigins = product.cultural_origin_tags ?? [];
   if (productOrigins.length === 0 || beneficiaryCultureTags.length === 0) return false;
-
-  const expandedCountries = beneficiaryCultureTags.flatMap(
-    (tag) => CULTURE_REGION_MAP[tag] ?? [tag]
-  );
-
+  const expandedCountries = beneficiaryCultureTags.flatMap((tag) => CULTURE_REGION_MAP[tag] ?? [tag]);
   return productOrigins.some((origin) =>
     expandedCountries.some((c) => c.toLowerCase() === origin.toLowerCase())
   );
 }
 
+// Group items by category
+interface CategoryGroup {
+  category: string;
+  label: string;
+  items: BasketItem[];
+  totalQuantity: number;
+}
+
 const DonationBasket = ({ items, amount, beneficiaryCultureTags = [], beneficiaryName = "" }: Props) => {
   const [flash, setFlash] = useState(false);
   const [prevCount, setPrevCount] = useState(items.length);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (items.length > prevCount) {
@@ -81,7 +95,39 @@ const DonationBasket = ({ items, amount, beneficiaryCultureTags = [], beneficiar
     setPrevCount(items.length);
   }, [items.length, prevCount]);
 
+  const groups = useMemo(() => {
+    const map: Record<string, BasketItem[]> = {};
+    for (const item of items) {
+      const cat = item.product.category;
+      if (!map[cat]) map[cat] = [];
+      map[cat].push(item);
+    }
+    return Object.entries(map)
+      .map(([category, catItems]) => {
+        const config = CATEGORY_CONFIG[category];
+        const totalQuantity = catItems.reduce((s, i) => s + i.quantity, 0);
+        return {
+          category,
+          label: config
+            ? (totalQuantity > 1 ? config.plural : config.singular)
+            : category,
+          items: catItems,
+          totalQuantity,
+        } as CategoryGroup;
+      })
+      .sort((a, b) => b.totalQuantity - a.totalQuantity);
+  }, [items]);
+
   const totalProducts = items.reduce((sum, i) => sum + i.quantity, 0);
+
+  const toggleCategory = (cat: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  };
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -95,67 +141,102 @@ const DonationBasket = ({ items, amount, beneficiaryCultureTags = [], beneficiar
           <h3 className="text-base font-semibold text-foreground">Contenu du colis</h3>
         </div>
 
-        <div className="space-y-1.5">
-          <AnimatePresence mode="popLayout">
-            {items.map((item) => {
-              const valueBadges = getValueBadges(item.product);
-              const isCulturalMatch = hasCulturalMatch(item.product, beneficiaryCultureTags);
-              return (
-                <motion.div
-                  key={item.product.id}
-                  initial={{ opacity: 0, scale: 0.8, height: 0 }}
-                  animate={{ opacity: 1, scale: 1, height: "auto" }}
-                  exit={{ opacity: 0, scale: 0.8, height: 0 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  className="flex items-center gap-3 py-2 px-3 rounded-lg bg-background"
+        <div className="space-y-2">
+          {groups.map((group) => {
+            const isExpanded = expandedCategories.has(group.category);
+            return (
+              <motion.div
+                key={group.category}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl bg-background overflow-hidden"
+              >
+                {/* Category header — clickable to expand */}
+                <button
+                  onClick={() => toggleCategory(group.category)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
                 >
-                  <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span className="text-sm text-foreground flex-1">
-                    {item.product.display_name || item.product.name}
-                    {item.quantity > 1 && (
-                      <motion.span
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="ml-1 text-xs font-medium text-primary"
-                      >
-                        ×{item.quantity}
-                      </motion.span>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {valueBadges.map((badge) => {
-                      const config = VALUE_BADGES[badge];
-                      if (!config) return null;
-                      return (
-                        <Tooltip key={badge}>
-                          <TooltipTrigger asChild>
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${config.color}`}>
-                              {config.emoji} {config.label}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{config.label}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
-                    {isCulturalMatch && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center text-amber-500 cursor-default">
-                            <Sparkles className="h-3.5 w-3.5" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Choisi pour {beneficiaryName || "ce bénéficiaire"}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
+                  <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10">
+                    <span className="text-sm font-bold text-primary">{group.totalQuantity}</span>
                   </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                  <span className="text-sm font-medium text-foreground flex-1">
+                    {group.label}
+                  </span>
+                  <motion.span
+                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-muted-foreground text-xs"
+                  >
+                    ▼
+                  </motion.span>
+                </button>
+
+                {/* Expanded product list */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-3 space-y-1">
+                        {group.items.map((item) => {
+                          const valueBadges = getValueBadges(item.product);
+                          const isCulturalMatch = hasCulturalMatch(item.product, beneficiaryCultureTags);
+                          return (
+                            <div
+                              key={item.product.id}
+                              className="flex items-center gap-2 py-1.5 pl-2"
+                            >
+                              <Check className="h-3.5 w-3.5 text-primary/60 flex-shrink-0" />
+                              <span className="text-xs text-muted-foreground flex-1">
+                                {item.product.display_name || item.product.name}
+                                {item.quantity > 1 && (
+                                  <span className="ml-1 text-xs font-medium text-primary">
+                                    x{item.quantity}
+                                  </span>
+                                )}
+                              </span>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                {valueBadges.map((badge) => {
+                                  const config = VALUE_BADGES[badge];
+                                  if (!config) return null;
+                                  return (
+                                    <Tooltip key={badge}>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 ${config.color}`}>
+                                          {config.label}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>{config.label}</p></TooltipContent>
+                                    </Tooltip>
+                                  );
+                                })}
+                                {isCulturalMatch && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-flex items-center text-amber-500 cursor-default">
+                                        <Sparkles className="h-3 w-3" />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Choisi pour {beneficiaryName || "ce bénéficiaire"}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
         </div>
 
         <div className="mt-4 pt-4 border-t flex items-center justify-between">

@@ -288,7 +288,7 @@ const DonationFlow = () => {
             situationId={beneficiary.situation_id}
           />
 
-          {/* 4. Basket */}
+          {/* 4. Basket — grouped by category */}
           <DonationBasket
             items={basket}
             amount={donationAmount}
@@ -297,13 +297,13 @@ const DonationFlow = () => {
           />
 
           {/* 5. Timeline */}
-          <ImpactTimeline />
+          <ImpactTimeline beneficiaryName={beneficiary.alias_first_name} />
 
           {/* 6. CTA */}
           <motion.div {...ANIM.scaleButton}>
             <Button
               onClick={() => navigate(`/upsell/${beneficiaryId}`, {
-                state: { donationAmount, beneficiaryName: beneficiary.alias_first_name },
+                state: { donationAmount, beneficiaryName: beneficiary.alias_first_name, causeKey },
               })}
               className="w-full text-cta-foreground text-lg py-6 shadow-warm-lg bg-cta hover:bg-cta/90"
               size="lg"
