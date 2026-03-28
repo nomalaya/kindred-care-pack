@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import SocialProof from "@/components/SocialProof";
 import { CARD_STYLES, SECTION_HEADER } from "@/lib/designSystem";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+
 import { Users, MapPin } from "lucide-react";
 import { getDonorLocationFromIP } from "@/lib/geoLocation";
 
