@@ -69,6 +69,14 @@ const BeneficiarySelection = () => {
         }
       }
 
+      // Fallback: IP geolocation for anonymous or profile-less donors
+      if (!donorLocation) {
+        const ipLocation = await getDonorLocationFromIP();
+        if (ipLocation) {
+          donorLocation = { ...ipLocation };
+        }
+      }
+
       const rpcParams: any = { p_situation_id: situationId, p_limit: 4 };
       if (donorLocation) rpcParams.p_donor_location = donorLocation;
 
