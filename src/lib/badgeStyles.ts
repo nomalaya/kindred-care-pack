@@ -17,7 +17,7 @@ export const BADGE_STYLES: Record<string, string> = {
   "Proche de chez vous":                "border-emerald-500/60 text-emerald-800 bg-emerald-100",
   "Dans votre département":             "border-emerald-500/60 text-emerald-800 bg-emerald-100",
   "Dans votre région":                  "border-emerald-500/60 text-emerald-800 bg-emerald-100",
-  "Dans votre pays":                    "border-emerald-500/60 text-emerald-800 bg-emerald-100",
+  
   // New beneficiary — blue
   "Nouveau bénéficiaire inscrit":       "border-blue-500/60 text-blue-800 bg-blue-100",
   // Housing — amber
