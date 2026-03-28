@@ -42,13 +42,31 @@ const CAUSE_PHOTOS: Record<string, string> = {
 
 const CauseSelection = () => {
   const [causes, setCauses] = useState<Cause[]>([]);
+  const [counts, setCounts] = useState<Record<string, CauseCounts>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from("causes").select("*").order("sort_order").then(({ data }) => {
-      setCauses((data as Cause[]) || []);
+    const load = async () => {
+      const loc = await getDonorLocationFromIP();
+      const regionCode = loc?.region_code || null;
+
+      const [causesRes, countsRes] = await Promise.all([
+        supabase.from("causes").select("*").order("sort_order"),
+        supabase.rpc("get_cause_counts", { p_region_code: regionCode }),
+      ]);
+
+      setCauses((causesRes.data as Cause[]) || []);
+
+      const countsMap: Record<string, CauseCounts> = {};
+      if (countsRes.data) {
+        (countsRes.data as unknown as CauseCounts[]).forEach((c) => {
+          countsMap[c.cause_id] = c;
+        });
+      }
+      setCounts(countsMap);
       setLoading(false);
-    });
+    };
+    load();
   }, []);
 
   return (
@@ -72,7 +90,7 @@ const CauseSelection = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {causes.map((cause, i) => {
               const photo = CAUSE_PHOTOS[cause.icon || "Heart"];
-              const badge = CAUSE_BADGES[cause.icon || "Heart"];
+              const cc = counts[cause.id];
               return (
                 <motion.div
                   key={cause.id}
@@ -82,7 +100,7 @@ const CauseSelection = () => {
                 >
                   <Link
                     to={`/causes/${cause.id}/situations`}
-                    className={`block rounded-2xl border shadow-card overflow-hidden group hover:shadow-lg transition-shadow bg-card`}
+                    className={`block rounded-2xl border shadow-card overflow-hidden group hover:shadow-lg transition-shadow bg-card h-full flex flex-col`}
                   >
                     {/* Photo */}
                     <div className="relative h-40 overflow-hidden">
@@ -98,18 +116,38 @@ const CauseSelection = () => {
                     </div>
 
                     {/* Content */}
-                    <div className="p-5">
+                    <div className="p-5 flex flex-col flex-1">
                       <h3 className={`text-lg font-semibold text-foreground mb-1.5 ${CARD_STYLES.titleHover}`}>
                         {cause.title}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-3">{cause.description}</p>
 
-                      {/* Social proof badge */}
-                      {badge && (
-                        <Badge variant={badge.variant} className="text-xs font-medium">
-                          {badge.text}
-                        </Badge>
-                      )}
+                      {/* Dynamic counters */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {cc && cc.total_count > 0 && (
+                          <Badge variant="secondary" className="text-xs font-medium gap-1">
+                            <Users className="h-3 w-3" />
+                            {cc.total_count} beneficiaire{cc.total_count > 1 ? "s" : ""}
+                          </Badge>
+                        )}
+                        {cc && cc.nearby_count > 0 && (
+                          <Badge variant="outline" className="text-xs font-medium gap-1 text-primary border-primary/30">
+                            <MapPin className="h-3 w-3" />
+                            {cc.nearby_count} proche{cc.nearby_count > 1 ? "s" : ""} de chez vous
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* CTA */}
+                      <div className="mt-auto">
+                        <Button
+                          variant="outline"
+                          className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                          tabIndex={-1}
+                        >
+                          Choisir cette cause →
+                        </Button>
+                      </div>
                     </div>
                   </Link>
                 </motion.div>
