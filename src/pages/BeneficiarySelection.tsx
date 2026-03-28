@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { getAgeRange } from "@/lib/ageRange";
 import { CARD_STYLES, SECTION_HEADER } from "@/lib/designSystem";
+import { getDonorLocationFromIP } from "@/lib/geoLocation";
 import {
   getBadgeStyle,
   getCardGradient,
