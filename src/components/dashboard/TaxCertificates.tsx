@@ -119,7 +119,7 @@ const TaxCertificates = ({ donations, donorName, donorEmail }: TaxCertificatesPr
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Déduction fiscale (66%)</p>
-              <p className="text-2xl font-bold text-green-600">{taxDeduction.toFixed(0)}€</p>
+              <p className="text-2xl font-bold text-primary">{taxDeduction.toFixed(0)}€</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Coût réel</p>
