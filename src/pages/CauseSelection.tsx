@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import SocialProof from "@/components/SocialProof";
 import { CARD_STYLES, SECTION_HEADER } from "@/lib/designSystem";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+
 import { Users, MapPin } from "lucide-react";
 import { getDonorLocationFromIP } from "@/lib/geoLocation";
 
@@ -100,10 +100,10 @@ const CauseSelection = () => {
                 >
                   <Link
                     to={`/causes/${cause.id}/situations`}
-                    className={`block rounded-2xl border shadow-card overflow-hidden group hover:shadow-lg transition-shadow bg-card h-full flex flex-col`}
+                    className="block rounded-2xl border shadow-card overflow-hidden group hover:shadow-lg hover:ring-2 hover:ring-primary/40 hover:-translate-y-1 transition-all duration-300 bg-card h-full flex flex-col"
                   >
-                    {/* Photo */}
-                    <div className="relative h-40 overflow-hidden">
+                    {/* Photo with title overlay */}
+                    <div className="relative h-48 overflow-hidden">
                       <img
                         src={photo}
                         alt={cause.title}
@@ -112,42 +112,37 @@ const CauseSelection = () => {
                         width={800}
                         height={600}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                      {/* Badges overlay top-left */}
+                      {cc && cc.total_count > 0 && (
+                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                          <Badge className="text-xs font-medium gap-1 bg-black/50 text-white border-0 backdrop-blur-sm">
+                            <Users className="h-3 w-3" />
+                            {cc.total_count} bénéficiaire{cc.total_count > 1 ? "s" : ""}
+                          </Badge>
+                        </div>
+                      )}
+
+                      {/* Title overlay bottom */}
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <h3 className="text-lg font-semibold text-white leading-tight">
+                          {cause.title}
+                        </h3>
+                      </div>
                     </div>
 
                     {/* Content */}
                     <div className="p-5 flex flex-col flex-1">
-                      <h3 className={`text-lg font-semibold text-foreground mb-1.5 ${CARD_STYLES.titleHover}`}>
-                        {cause.title}
-                      </h3>
                       <p className="text-sm text-muted-foreground mb-3">{cause.description}</p>
 
-                      {/* Dynamic counters */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {cc && cc.total_count > 0 && (
-                          <Badge variant="secondary" className="text-xs font-medium gap-1">
-                            <Users className="h-3 w-3" />
-                            {cc.total_count} beneficiaire{cc.total_count > 1 ? "s" : ""}
-                          </Badge>
-                        )}
-                        {cc && cc.nearby_count > 0 && (
-                          <Badge variant="outline" className="text-xs font-medium gap-1 text-primary border-primary/30">
-                            <MapPin className="h-3 w-3" />
-                            {cc.nearby_count} proche{cc.nearby_count > 1 ? "s" : ""} de chez vous
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* CTA */}
-                      <div className="mt-auto">
-                        <Button
-                          variant="outline"
-                          className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                          tabIndex={-1}
-                        >
-                          Choisir cette cause →
-                        </Button>
-                      </div>
+                      {/* Proximity badge */}
+                      {cc && cc.nearby_count > 0 && (
+                        <Badge variant="outline" className="text-xs font-medium gap-1 text-primary border-primary/30 w-fit">
+                          <MapPin className="h-3 w-3" />
+                          {cc.nearby_count} proche{cc.nearby_count > 1 ? "s" : ""} de chez vous
+                        </Badge>
+                      )}
                     </div>
                   </Link>
                 </motion.div>
