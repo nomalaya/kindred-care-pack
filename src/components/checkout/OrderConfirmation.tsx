@@ -60,8 +60,8 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
         beneficiaryRegion: beneficiary.region,
       },
       {
-        name: checkoutData.donorName || "Donateur",
-        email: checkoutData.donorEmail || "",
+        name: checkoutData.donorInfo?.name || "Donateur",
+        email: checkoutData.donorInfo?.email || "",
       }
     );
   };
