@@ -105,6 +105,10 @@ const UpsellDonation = () => {
             })}
           </div>
 
+          <div className="max-w-md mx-auto mb-8">
+            <TaxDeductionOptionC amount={totalAmount} />
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
               variant="outline"

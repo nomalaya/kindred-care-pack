@@ -65,7 +65,7 @@ const TaxDeductionOptionC = ({ amount }: Props) => {
       </div>
 
       <p className="text-xs text-muted-foreground text-center mt-4">
-        Loi Coluche : réduction d'impôt de 75% dans la limite de 2 000€
+        Réduction de 66% pour les dons aux associations d'intérêt général
       </p>
     </div>
   );

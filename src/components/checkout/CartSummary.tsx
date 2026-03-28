@@ -135,7 +135,7 @@ const CartSummary = ({ beneficiary, checkoutData, onUpdateData, onNext }: Props)
       </Card>
 
       {/* Tax Deduction */}
-      <TaxDeduction amount={checkoutData.totalAmount} />
+      <TaxDeductionOptionC amount={checkoutData.totalAmount} />
 
       {/* Continue Button */}
       <Card className="bg-primary/5 border-primary/20">
