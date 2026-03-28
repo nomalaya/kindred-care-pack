@@ -7,6 +7,7 @@ import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import SocialProof from "@/components/SocialProof";
 import { toast } from "sonner";
 import { getAgeRange } from "@/lib/ageRange";
+import { generateIndividualReceipt } from "@/lib/generateReceipt";
 import type { CheckoutData } from "./CheckoutFlow";
 
 interface Beneficiary {
