@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { User, ArrowRight, ArrowLeft } from "lucide-react";
+import TaxInfoLink from "@/components/TaxInfoLink";
 import { useAuth } from "@/hooks/useAuth";
 import type { CheckoutData } from "./CheckoutFlow";
 
