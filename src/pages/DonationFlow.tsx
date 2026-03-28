@@ -303,7 +303,7 @@ const DonationFlow = () => {
           <motion.div {...ANIM.scaleButton}>
             <Button
               onClick={() => navigate(`/upsell/${beneficiaryId}`, {
-                state: { donationAmount, beneficiaryName: beneficiary.alias_first_name },
+                state: { donationAmount, beneficiaryName: beneficiary.alias_first_name, causeKey },
               })}
               className="w-full text-cta-foreground text-lg py-6 shadow-warm-lg bg-cta hover:bg-cta/90"
               size="lg"
