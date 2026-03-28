@@ -15,6 +15,8 @@ import { TAX_DEDUCTION_RATE } from "@/lib/constants";
 import { ANIM } from "@/lib/designSystem";
 
 const TaxAdvantage = () => {
+  const [searchParams] = useSearchParams();
+  const fromPath = searchParams.get("from");
   const [amount, setAmount] = useState(50);
   const deduction = Math.round(amount * TAX_DEDUCTION_RATE);
   const realCost = amount - deduction;
