@@ -43,6 +43,7 @@ const App = () => (
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/themes" element={<ThemeShowcase />} />
             <Route path="/tax-showcase" element={<TaxShowcase />} />
+            <Route path="/avantage-fiscal" element={<TaxAdvantage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
