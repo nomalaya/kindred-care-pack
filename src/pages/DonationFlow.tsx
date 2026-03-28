@@ -288,7 +288,7 @@ const DonationFlow = () => {
             situationId={beneficiary.situation_id}
           />
 
-          {/* 4. Basket */}
+          {/* 4. Basket — grouped by category */}
           <DonationBasket
             items={basket}
             amount={donationAmount}
@@ -297,7 +297,7 @@ const DonationFlow = () => {
           />
 
           {/* 5. Timeline */}
-          <ImpactTimeline />
+          <ImpactTimeline beneficiaryName={beneficiary.alias_first_name} />
 
           {/* 6. CTA */}
           <motion.div {...ANIM.scaleButton}>
