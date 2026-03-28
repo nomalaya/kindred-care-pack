@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { TAX_DEDUCTION_RATE } from "@/lib/constants";
 
 interface Props {
   amount: number;
