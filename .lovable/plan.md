@@ -1,76 +1,46 @@
 
 
-# Page "Avantage fiscal" — Page pédagogique orientée conversion
+# Picto ℹ️ fiscal — lien vers /avantage-fiscal avec retour
 
-## Nouveau fichier : `src/pages/TaxAdvantage.tsx`
+## Principe
 
-Page accessible via `/avantage-fiscal`, structurée en 8 sections verticales. Utilise Layout, les tokens du design system (ANIM, CARD_STYLES, SECTION_HEADER), le composant TaxDeductionOptionC existant, et le Slider pour le calculateur interactif. Taux strictement 66% (constante `TAX_DEDUCTION_RATE`).
+Créer un petit composant `TaxInfoLink` : une icône `Info` (Lucide) cliquable qui redirige vers `/avantage-fiscal?from=<current-path>`. La page TaxAdvantage affiche un bouton retour qui ramène à l'URL d'origine.
 
----
+## Composant à créer
 
-## Structure des 8 sections
+### `src/components/TaxInfoLink.tsx`
+- Icône `Info` de Lucide, taille 14px, couleur `text-primary`
+- Enveloppé dans un `Link` vers `/avantage-fiscal?from={encodeURIComponent(currentPath)}`
+- `useLocation()` pour récupérer le path courant
+- Tooltip natif via `title="En savoir plus sur l'avantage fiscal"`
+- Style : `inline-flex items-center` pour s'aligner avec le texte environnant
+- Petit cercle `bg-primary/10 rounded-full p-0.5` autour de l'icône pour le rendre visible
 
-### 1. Hero
-- Titre : **"Donner vous coûte moins que vous ne le pensez"**
-- Sous-titre : "66% de votre don vous est remboursé sous forme de réduction d'impôt. Un don de 50€ ne vous coûte réellement que 17€."
-- CTA : "Faire un don" → `/causes`
-- Icône Heart animée
+## Modification de la page TaxAdvantage
 
-### 2. Combien ça vous coûte vraiment
-- Slider interactif (20€–150€) réutilisant le pattern du TaxShowcase
-- Composant `TaxDeductionOptionC` intégré sous le slider (cartes Don → Coût réel avec badge −66%)
-- 3 exemples fixes en grille : 50€→17€ / 90€→30,60€ / 100€→34€
-- Chaque exemple dans une carte `bg-primary/5` avec montants en gras
+### `src/pages/TaxAdvantage.tsx`
+- Lire `searchParams.get("from")` via `useSearchParams()`
+- Si `from` existe, afficher le `BackButton` avec `to={from}` en haut de page (au-dessus du hero)
+- Sinon, pas de BackButton (accès direct depuis la navbar)
 
-### 3. Pourquoi vous avez droit à cet avantage
-- Carte avec icône ShieldCheck
-- Texte court : CashForCause aide des personnes en difficulté dans un cadre reconnu par l'État français. La loi encourage la générosité en vous permettant de déduire 66% de vos dons de vos impôts, dans la limite de 20% de votre revenu imposable.
-- Ton rassurant, pas de jargon
+## Insertions du picto (6 emplacements)
 
-### 4. Comment ça marche — 3 étapes
-- Pattern identique à HowItWorks (icône + titre + description)
-- Étape 1 : Heart → "Vous faites un don" / "Choisissez une cause et un montant"
-- Étape 2 : FileText → "Vous recevez votre reçu fiscal" / "Disponible dans votre espace donateur"
-- Étape 3 : CheckCircle → "Vous le déclarez en ligne" / "Rien à joindre, conservez simplement votre reçu"
+| Fichier | Emplacement | Position du picto |
+|---|---|---|
+| `TaxDeductionOptionC.tsx` | Texte "Réduction de 66%…" (ligne 68) | À droite du texte |
+| `OrderConfirmation.tsx` | Ligne "Déduction fiscale (66%)" | À côté du label |
+| `OrderConfirmation.tsx` | Ligne "Coût réel après réduction" | À côté du label |
+| `DonorInformation.tsx` | Texte "reçu fiscal sera envoyé" | À côté du texte |
+| `DonorInformation.tsx` | Ligne "Coût réel après réduction" | À côté du label |
+| `TaxDeduction.tsx` | Ligne "Coût réel après déduction" | À côté du label |
 
-### 5. Quand déclarer — Timeline
-- Pattern ImpactTimeline adapté avec 3 points :
-  - Calendar → "Don effectué en 2026"
-  - ClipboardList → "Déclaration au printemps 2027"
-  - Wallet → "Remboursement été 2027"
-- Note : "La réduction s'applique l'année suivant votre don"
-
-### 6. Vos reçus fiscaux
-- Carte avec icône Download
-- 3 points : disponibles dans l'espace donateur / téléchargeables à tout moment / possibilité de reçu global annuel
-- CTA secondaire : "Accéder à mon espace" → `/dashboard`
-
-### 7. Section rassurance
-- 3 colonnes (grille responsive) :
-  - Lock → "Paiement 100% sécurisé"
-  - ShieldCheck → "Organisme d'intérêt général reconnu"
-  - Clock → "3 minutes pour déclarer"
-
-### 8. CTA final
-- Fond `bg-primary/5`, centré
-- Titre : "Prêt à faire la différence ?"
-- Sous-titre : "Chaque don compte. Et il vous coûte moins que vous ne le pensez."
-- 2 boutons : "Faire un don" (CTA) + "Voir mon impact" (outline → `/dashboard`)
-
----
-
-## Modifications complémentaires
-
-### `src/App.tsx`
-- Ajouter route `/avantage-fiscal` → TaxAdvantage
-
-### `src/components/Navbar.tsx`
-- Ajouter lien "Avantage fiscal" dans la navigation desktop et mobile, entre "Comment ça marche" et le bouton connexion
-
----
+Chaque insertion = `<TaxInfoLink />` ajouté inline après le texte concerné.
 
 ## Fichiers concernés
-1. **Créer** `src/pages/TaxAdvantage.tsx`
-2. **Modifier** `src/App.tsx` — 1 route
-3. **Modifier** `src/components/Navbar.tsx` — 1 lien (desktop + mobile)
+1. **Créer** `src/components/TaxInfoLink.tsx`
+2. **Modifier** `src/pages/TaxAdvantage.tsx` — ajout BackButton conditionnel via query param
+3. **Modifier** `src/components/TaxDeductionOptionC.tsx` — insertion picto
+4. **Modifier** `src/components/checkout/OrderConfirmation.tsx` — 2 insertions
+5. **Modifier** `src/components/checkout/DonorInformation.tsx` — 2 insertions
+6. **Modifier** `src/components/TaxDeduction.tsx` — 1 insertion
 
