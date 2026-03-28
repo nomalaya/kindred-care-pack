@@ -4,6 +4,7 @@ import BackButton from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Heart, ArrowRight } from "lucide-react";
+import TaxDeductionOptionC from "@/components/TaxDeductionOptionC";
 import { getUpsellsForAmount, type UpsellOption } from "@/lib/constants";
 import { useState } from "react";
 
@@ -102,6 +103,10 @@ const UpsellDonation = () => {
                 </motion.button>
               );
             })}
+          </div>
+
+          <div className="max-w-md mx-auto mb-8">
+            <TaxDeductionOptionC amount={totalAmount} />
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">

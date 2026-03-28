@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DONATION_STEPS, TAX_DEDUCTION_RATE, STEP_INCREMENT, MAX_DONATION } from "@/lib/constants";
+import { DONATION_STEPS, STEP_INCREMENT, MAX_DONATION } from "@/lib/constants";
+import TaxDeductionOptionC from "@/components/TaxDeductionOptionC";
 
 const STEPS = DONATION_STEPS as unknown as number[];
 
@@ -31,8 +32,6 @@ function getNextAmount(current: number): number {
 }
 
 const DonationAmountSelector = ({ value, onChange }: Props) => {
-  const deduction = Math.round(value * TAX_DEDUCTION_RATE);
-  const realCost = value - deduction;
   const isMin = value <= STEPS[0];
   const isMax = value >= MAX_DONATION;
 
@@ -73,42 +72,9 @@ const DonationAmountSelector = ({ value, onChange }: Props) => {
         </Button>
       </div>
 
-      {/* Fiscal display */}
-      <div className="mt-5 flex justify-center gap-8">
-        <div className="text-center">
-          <div className="text-xs text-muted-foreground mb-0.5">Déduction fiscale</div>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={deduction}
-              initial={{ y: -4, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 4, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="text-lg font-bold text-primary"
-            >
-              −{deduction}€
-            </motion.div>
-          </AnimatePresence>
-        </div>
-        <div className="text-center">
-          <div className="text-xs text-muted-foreground mb-0.5">Coût réel</div>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={realCost}
-              initial={{ y: -4, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 4, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="text-lg font-bold text-foreground"
-            >
-              {realCost}€
-            </motion.div>
-          </AnimatePresence>
-        </div>
+      <div className="mt-6">
+        <TaxDeductionOptionC amount={value} />
       </div>
-      <p className="text-[10px] text-muted-foreground text-center mt-2">
-        Réduction de 66% pour les dons aux associations d'intérêt général.
-      </p>
     </div>
   );
 };

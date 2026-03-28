@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Minus, Plus, ShoppingCart, Gift, Package, Heart } from "lucide-react";
-import TaxDeduction from "@/components/TaxDeduction";
+import TaxDeductionOptionC from "@/components/TaxDeductionOptionC";
 import type { CheckoutData } from "./CheckoutFlow";
 
 interface Beneficiary {
@@ -135,7 +135,7 @@ const CartSummary = ({ beneficiary, checkoutData, onUpdateData, onNext }: Props)
       </Card>
 
       {/* Tax Deduction */}
-      <TaxDeduction amount={checkoutData.totalAmount} />
+      <TaxDeductionOptionC amount={checkoutData.totalAmount} />
 
       {/* Continue Button */}
       <Card className="bg-primary/5 border-primary/20">

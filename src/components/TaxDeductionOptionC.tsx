@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { TAX_DEDUCTION_RATE } from "@/lib/constants";
 
 interface Props {
   amount: number;
@@ -21,7 +22,7 @@ const AnimatedValue = ({ value, className }: { value: string; className?: string
 );
 
 const TaxDeductionOptionC = ({ amount }: Props) => {
-  const deduction = Math.round(amount * 0.75);
+  const deduction = Math.round(amount * TAX_DEDUCTION_RATE);
   const realCost = amount - deduction;
 
   return (
@@ -43,7 +44,7 @@ const TaxDeductionOptionC = ({ amount }: Props) => {
             transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
             className="bg-cta text-cta-foreground rounded-full px-3 py-1.5 text-xs font-bold shadow-lg"
           >
-            −75%
+            −66%
           </motion.div>
           <motion.div
             initial={{ x: -10, opacity: 0 }}
@@ -64,7 +65,7 @@ const TaxDeductionOptionC = ({ amount }: Props) => {
       </div>
 
       <p className="text-xs text-muted-foreground text-center mt-4">
-        Loi Coluche : réduction d'impôt de 75% dans la limite de 2 000€
+        Réduction de 66% pour les dons aux associations d'intérêt général
       </p>
     </div>
   );
