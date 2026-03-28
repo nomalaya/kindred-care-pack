@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Download, Share2, Heart, Gift, Receipt } from "lucide-react";
+import TaxInfoLink from "@/components/TaxInfoLink";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import SocialProof from "@/components/SocialProof";
 import { toast } from "sonner";
@@ -181,11 +182,11 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
               <span>{checkoutData.totalAmount.toFixed(2)}€</span>
             </div>
             <div className="flex justify-between text-sm text-green-600">
-              <span>Déduction fiscale (66%) :</span>
+              <span className="inline-flex items-center">Déduction fiscale (66%) <TaxInfoLink /></span>
               <span>-{taxDeduction.toFixed(2)}€</span>
             </div>
             <div className="flex justify-between text-sm font-medium text-green-700">
-              <span>Coût réel après réduction :</span>
+              <span className="inline-flex items-center">Coût réel après réduction <TaxInfoLink /></span>
               <span>{realCost.toFixed(2)}€</span>
             </div>
           </div>

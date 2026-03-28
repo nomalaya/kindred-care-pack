@@ -1,5 +1,6 @@
 import { TAX_DEDUCTION_RATE } from "@/lib/constants";
 import { motion, AnimatePresence } from "framer-motion";
+import TaxInfoLink from "@/components/TaxInfoLink";
 
 interface Props {
   amount: number;
@@ -72,7 +73,7 @@ const TaxDeduction = ({ amount, extraAmount, extraLabel }: Props) => {
           <AnimatedValue value={`−${deduction}€`} className="text-lg font-bold text-primary" />
         </div>
         <div>
-          <div className="text-xs text-muted-foreground mb-1">Coût réel</div>
+          <div className="text-xs text-muted-foreground mb-1 inline-flex items-center justify-center w-full">Coût réel <TaxInfoLink /></div>
           <AnimatedValue value={`${realCost}€`} className="text-lg font-bold text-foreground" />
         </div>
       </div>

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { User, ArrowRight, ArrowLeft } from "lucide-react";
+import TaxInfoLink from "@/components/TaxInfoLink";
 import { useAuth } from "@/hooks/useAuth";
 import type { CheckoutData } from "./CheckoutFlow";
 
@@ -100,8 +101,9 @@ const DonorInformation = ({ checkoutData, onUpdateData, onNext, onPrevious }: Pr
                     <FormControl>
                       <Input placeholder="jean.dupont@email.com" type="email" {...field} />
                     </FormControl>
-                    <FormDescription>
+                    <FormDescription className="inline-flex items-center">
                       Votre reçu fiscal sera envoyé à cette adresse
+                      <TaxInfoLink />
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -161,7 +163,7 @@ const DonorInformation = ({ checkoutData, onUpdateData, onNext, onPrevious }: Pr
                   <span>-{(checkoutData.totalAmount * 0.66).toFixed(2)}€</span>
                 </div>
                 <div className="flex justify-between text-sm font-medium border-t pt-2 mt-2">
-                  <span>Coût réel après réduction :</span>
+                  <span className="inline-flex items-center">Coût réel après réduction <TaxInfoLink /></span>
                   <span>{(checkoutData.totalAmount * 0.34).toFixed(2)}€</span>
                 </div>
               </div>
