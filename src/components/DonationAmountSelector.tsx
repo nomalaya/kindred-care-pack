@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DONATION_STEPS, TAX_DEDUCTION_RATE, STEP_INCREMENT, MAX_DONATION } from "@/lib/constants";
+import { DONATION_STEPS, STEP_INCREMENT, MAX_DONATION } from "@/lib/constants";
+import TaxDeductionOptionC from "@/components/TaxDeductionOptionC";
 
 const STEPS = DONATION_STEPS as unknown as number[];
 
