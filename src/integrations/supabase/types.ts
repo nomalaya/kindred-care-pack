@@ -918,6 +918,14 @@ export type Database = {
         Args: { p_situation_id: string }
         Returns: undefined
       }
+      get_cause_counts: {
+        Args: { p_region_code?: string }
+        Returns: {
+          cause_id: string
+          nearby_count: number
+          total_count: number
+        }[]
+      }
       get_donation_stats: { Args: { p_beneficiary_id?: string }; Returns: Json }
       get_emergency_beneficiary: {
         Args: { p_exclude_id: string; p_pack_type: string }

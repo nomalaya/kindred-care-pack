@@ -39,9 +39,9 @@ const SocialProof = React.forwardRef<HTMLDivElement, Props>(({ variant, benefici
         : null,
     ].filter(Boolean),
     cause: [
-      stats.week_count > 0
-        ? `${stats.week_count} personne${stats.week_count > 1 ? "s" : ""} ont aidé cette semaine.`
-        : "Soyez le premier à aider cette semaine.",
+      stats.total_count >= 10
+        ? `Deja +${Math.floor(stats.total_count / 10) * 10} donateurs ont aide une personne reelle`
+        : "Rejoignez les premiers donateurs solidaires",
     ],
     donation: [
       stats.today_count > 0
