@@ -1,55 +1,47 @@
 
 
-# Améliorations page Causes — 3 optimisations conversion
+# Amélioration du design de la page Causes
 
-## Modification 1 — Compteurs dynamiques par cause
+## Constat actuel
+- Les cartes sont fonctionnelles mais plates : photo + texte + badges + bouton CTA
+- Le bouton "Choisir cette cause →" est redondant car toute la carte est déjà cliquable (Link)
+- Les compteurs de bénéficiaires sont utiles mais pourraient être mieux intégrés visuellement
+- Le header est minimaliste, le social proof peu visible
 
-Remplacer les 6 badges statiques (`CAUSE_BADGES`) par 2 compteurs réels issus de la DB :
-- **"{N} bénéficiaires"** — count de `beneficiaries_public` filtrés par `cause_id`
-- **"{M} proche de chez vous"** — count des bénéficiaires dont la `region_code` matche celle du donateur (IP geolocation, déjà implémentée)
+## Modifications prévues
 
-Si M = 0 (pas de match région ou échec géoloc), n'afficher que le premier compteur.
+### 1. Supprimer les boutons CTA
+Retirer le `<Button>` "Choisir cette cause →" de chaque carte. La carte entière reste cliquable via le `<Link>`.
 
-### Implémentation
-- Créer un RPC `get_cause_counts(p_region_code text)` qui retourne `cause_id, total_count, nearby_count` en une seule requête
-- Appeler `getDonorLocationFromIP()` au mount puis passer `region_code` au RPC
-- Afficher avec 2 petits badges inline : icône Users + nombre, icône MapPin + nombre
+### 2. Améliorer les cartes visuellement
+- **Photo plus grande** : passer de `h-40` à `h-48` pour donner plus de présence aux photos documentaires
+- **Titre sur la photo** : positionner le titre en overlay sur le gradient bas de la photo (blanc sur fond sombre) pour un effet éditorial plus impactant
+- **Badges repositionnés** : placer les compteurs (bénéficiaires + proximité) en overlay semi-transparent en haut à gauche de la photo
+- **Description plus aérée** : seule la description reste dans la zone blanche sous la photo
+- **Hover amélioré** : ajouter un léger `ring` primaire au hover + translation Y `-2px` pour un effet de lift
 
-## Modification 2 — Message social proof rassurant
+### 3. Améliorer le header
+- Ajouter un sous-titre plus émotionnel et engageant
+- Rendre le social proof plus visible avec une taille légèrement plus grande
 
-Dans `SocialProof.tsx`, variante `cause` :
-- Remplacer le fallback "Soyez le premier à aider cette semaine" par : **"Déjà +{total_count} donateurs ont aidé une personne réelle"**
-- Utiliser `total_count` de la DB (arrondi à la dizaine inférieure : `Math.floor(total_count / 10) * 10`)
-- Si `total_count` < 10, afficher "Rejoignez les premiers donateurs solidaires"
-
-## Modification 3 — CTA explicite par carte
-
-Ajouter un bouton `"Choisir cette cause →"` en bas de chaque carte cause :
-- Style : `variant="outline"` avec hover vers `variant="default"` via `group-hover`
-- Positionné après les compteurs, pleine largeur dans le padding de la carte
-- Texte : "Choisir cette cause" avec une flèche `→`
-
-## Fichiers modifiés
-
-1. **Migration SQL** — nouveau RPC `get_cause_counts(p_region_code text)`
-2. **`src/pages/CauseSelection.tsx`** — supprimer `CAUSE_BADGES`, appeler le RPC, afficher les 2 compteurs + bouton CTA
-3. **`src/components/SocialProof.tsx`** — modifier le message variante `cause`
-
-## Rendu visuel attendu
+### Rendu visuel attendu
 
 ```text
 ┌──────────────────────────────┐
-│  [photo cause]               │
-├──────────────────────────────┤
+│  [32 bénéficiaires]     photo│
+│                              │
+│                              │
+│  ▓▓▓ gradient ▓▓▓▓▓▓▓▓▓▓▓▓▓│
 │  Aider un enfant en aidant   │
 │  sa famille                  │
+├──────────────────────────────┤
+│  Soutenez les familles qui   │
+│  peinent à subvenir aux...   │
 │                              │
-│  Soutenez les familles...    │
-│                              │
-│  👤 42 bénéficiaires         │
-│  📍 7 proche de chez vous    │
-│                              │
-│  [ Choisir cette cause →   ] │
+│  📍 7 proches de chez vous   │
 └──────────────────────────────┘
 ```
+
+### Fichier modifié
+- `src/pages/CauseSelection.tsx` — suppression du CTA, repositionnement du titre en overlay, badges en haut de la photo, hover amélioré
 
