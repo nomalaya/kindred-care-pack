@@ -6,6 +6,9 @@ import { motion } from "framer-motion";
 import SocialProof from "@/components/SocialProof";
 import { CARD_STYLES, SECTION_HEADER } from "@/lib/designSystem";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Users, MapPin } from "lucide-react";
+import { getDonorLocationFromIP } from "@/lib/geoLocation";
 
 import causeChildFamily from "@/assets/causes/cause-child-family.webp";
 import causeWomenRecovery from "@/assets/causes/cause-women-recovery.jpg";
@@ -21,6 +24,12 @@ interface Cause {
   icon: string;
 }
 
+interface CauseCounts {
+  cause_id: string;
+  total_count: number;
+  nearby_count: number;
+}
+
 // Map cause icon key → photo import
 const CAUSE_PHOTOS: Record<string, string> = {
   Baby: causeChildFamily,
@@ -29,16 +38,6 @@ const CAUSE_PHOTOS: Record<string, string> = {
   HandHeart: causeElderly,
   Briefcase: causeWorkingPoor,
   Stethoscope: causeHealth,
-};
-
-// Social proof badges per cause — designed as a UX researcher
-const CAUSE_BADGES: Record<string, { text: string; variant: "default" | "secondary" | "outline" }> = {
-  Baby: { text: "1 famille aidée toutes les 3h", variant: "secondary" },
-  Heart: { text: "94% des donatrices renouvellent", variant: "secondary" },
-  GraduationCap: { text: "328 étudiants aidés ce mois", variant: "secondary" },
-  HandHeart: { text: "Cause la plus suivie en 2025", variant: "secondary" },
-  Briefcase: { text: "87% retrouvent une stabilité", variant: "secondary" },
-  Stethoscope: { text: "Besoin urgent : +40% de demandes", variant: "secondary" },
 };
 
 const CauseSelection = () => {
