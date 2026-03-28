@@ -32,8 +32,6 @@ function getNextAmount(current: number): number {
 }
 
 const DonationAmountSelector = ({ value, onChange }: Props) => {
-  const deduction = Math.round(value * TAX_DEDUCTION_RATE);
-  const realCost = value - deduction;
   const isMin = value <= STEPS[0];
   const isMax = value >= MAX_DONATION;
 
