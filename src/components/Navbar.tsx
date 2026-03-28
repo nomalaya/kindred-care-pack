@@ -34,7 +34,7 @@ const Navbar = () => {
           {user ? (
             <>
               <Link to="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                Mes dons
+                Mon espace donateur
               </Link>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-1" /> Déconnexion
@@ -65,7 +65,7 @@ const Navbar = () => {
           <Link to="/how-it-works" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Comment ça marche</Link>
           {user ? (
             <>
-              <Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Mes dons</Link>
+              <Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}><Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Mon espace donateur</Link></Link>
               <button className="block text-sm font-medium py-2" onClick={() => { handleLogout(); setMobileOpen(false); }}>Déconnexion</button>
             </>
           ) : (

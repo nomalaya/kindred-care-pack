@@ -100,7 +100,7 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Mon espace</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2"><h1 className="text-3xl font-bold text-foreground mb-2">Mon espace donateur</h1></h1>
         <p className="text-muted-foreground mb-8">Suivez vos contributions et téléchargez vos attestations fiscales.</p>
 
         {/* Followed beneficiaries */}
