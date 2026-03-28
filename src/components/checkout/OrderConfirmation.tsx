@@ -7,6 +7,7 @@ import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import SocialProof from "@/components/SocialProof";
 import { toast } from "sonner";
 import { getAgeRange } from "@/lib/ageRange";
+import { generateIndividualReceipt } from "@/lib/generateReceipt";
 import type { CheckoutData } from "./CheckoutFlow";
 
 interface Beneficiary {
@@ -50,8 +51,19 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
   }, [checkoutData]);
 
   const handleDownloadReceipt = () => {
-    // TODO: Generate PDF receipt
-    toast.success("Le reçu fiscal sera envoyé par email dans les prochaines minutes");
+    generateIndividualReceipt(
+      {
+        id: checkoutData.sessionId || "unknown",
+        amount: checkoutData.totalAmount,
+        created_at: new Date().toISOString(),
+        beneficiaryName: beneficiary.alias_first_name,
+        beneficiaryRegion: beneficiary.region,
+      },
+      {
+        name: checkoutData.donorInfo?.name || "Donateur",
+        email: checkoutData.donorInfo?.email || "",
+      }
+    );
   };
 
   const handleShare = async () => {
