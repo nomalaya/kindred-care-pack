@@ -193,8 +193,8 @@ export function isBadgeCoherent(badge: string, b: BeneficiaryBadgeInput): boolea
  * 5. DEFAULT_BADGE fallback
  */
 export function getDisplayBadge(b: BeneficiaryBadgeInput): string {
-  // 1. Proximity — always takes priority
-  if (b.proximity_label) return b.proximity_label;
+  // 1. Proximity — always takes priority (except "Dans votre pays" which is too vague)
+  if (b.proximity_label && b.proximity_label !== "Dans votre pays") return b.proximity_label;
 
   // 2. Text analysis — most relevant signal
   const textBadge = analyzeProfileContext(b);
