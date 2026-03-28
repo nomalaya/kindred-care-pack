@@ -116,8 +116,8 @@ const CauseSelection = () => {
 
                       {/* Badges overlay top-left */}
                       {cc && cc.total_count > 0 && (
-                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                          <Badge className="text-xs font-medium gap-1 bg-black/50 text-white border-0 backdrop-blur-sm">
+                      <div className="absolute top-3 right-3 flex flex-wrap gap-1.5">
+                          <Badge className="text-xs font-medium gap-1 bg-primary/80 text-primary-foreground border-0 backdrop-blur-sm">
                             <Users className="h-3 w-3" />
                             {cc.total_count} bénéficiaire{cc.total_count > 1 ? "s" : ""}
                           </Badge>

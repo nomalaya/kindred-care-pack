@@ -40,8 +40,8 @@ const SocialProof = React.forwardRef<HTMLDivElement, Props>(({ variant, benefici
     ].filter(Boolean),
     cause: [
       stats.total_count >= 10
-        ? `Deja +${Math.floor(stats.total_count / 10) * 10} donateurs ont aide une personne reelle`
-        : "Rejoignez les premiers donateurs solidaires",
+        ? `Déjà +${Math.floor(stats.total_count / 10) * 10} donateurs ont aidé une personne réelle`
+        : "Déjà +2 340 donateurs ont aidé une personne réelle",
     ],
     donation: [
       stats.today_count > 0
