@@ -34,7 +34,7 @@ const Navbar = () => {
           {user ? (
             <>
               <Link to="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                Mes dons
+                Mon espace donateur
               </Link>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-1" /> Déconnexion
