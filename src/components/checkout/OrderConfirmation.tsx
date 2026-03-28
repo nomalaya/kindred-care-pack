@@ -182,11 +182,11 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
               <span>{checkoutData.totalAmount.toFixed(2)}€</span>
             </div>
             <div className="flex justify-between text-sm text-green-600">
-              <span>Déduction fiscale (66%) :</span>
+              <span className="inline-flex items-center">Déduction fiscale (66%) <TaxInfoLink /></span>
               <span>-{taxDeduction.toFixed(2)}€</span>
             </div>
             <div className="flex justify-between text-sm font-medium text-green-700">
-              <span>Coût réel après réduction :</span>
+              <span className="inline-flex items-center">Coût réel après réduction <TaxInfoLink /></span>
               <span>{realCost.toFixed(2)}€</span>
             </div>
           </div>

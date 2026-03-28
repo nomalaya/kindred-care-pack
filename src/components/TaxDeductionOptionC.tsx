@@ -65,8 +65,9 @@ const TaxDeductionOptionC = ({ amount }: Props) => {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground text-center mt-4">
+      <p className="text-xs text-muted-foreground text-center mt-4 inline-flex items-center justify-center w-full">
         Réduction de 66% pour les dons aux associations d'intérêt général
+        <TaxInfoLink />
       </p>
     </div>
   );

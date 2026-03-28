@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import BackButton from "@/components/BackButton";
 import { motion } from "framer-motion";
 import {
   Heart, ShieldCheck, FileText, CheckCircle,

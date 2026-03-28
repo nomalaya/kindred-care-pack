@@ -163,7 +163,7 @@ const DonorInformation = ({ checkoutData, onUpdateData, onNext, onPrevious }: Pr
                   <span>-{(checkoutData.totalAmount * 0.66).toFixed(2)}€</span>
                 </div>
                 <div className="flex justify-between text-sm font-medium border-t pt-2 mt-2">
-                  <span>Coût réel après réduction :</span>
+                  <span className="inline-flex items-center">Coût réel après réduction <TaxInfoLink /></span>
                   <span>{(checkoutData.totalAmount * 0.34).toFixed(2)}€</span>
                 </div>
               </div>

@@ -73,7 +73,7 @@ const TaxDeduction = ({ amount, extraAmount, extraLabel }: Props) => {
           <AnimatedValue value={`−${deduction}€`} className="text-lg font-bold text-primary" />
         </div>
         <div>
-          <div className="text-xs text-muted-foreground mb-1">Coût réel</div>
+          <div className="text-xs text-muted-foreground mb-1 inline-flex items-center justify-center w-full">Coût réel <TaxInfoLink /></div>
           <AnimatedValue value={`${realCost}€`} className="text-lg font-bold text-foreground" />
         </div>
       </div>
