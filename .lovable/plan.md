@@ -1,44 +1,46 @@
 
 
-# Implémenter l'Option C partout où le montant du don est dimensionnable
+# Proximité automatique via IP Geolocation
 
-## Endroits identifiés
+## Problème
+Actuellement, le badge "Proche de chez vous" ne s'affiche que pour les donateurs connectés avec un profil géographique rempli. Les visiteurs anonymes (majorité du trafic) ne voient jamais ce badge.
 
-1. **`DonationAmountSelector.tsx`** — le sélecteur [ - ] / [ + ] avec l'affichage fiscal inline (lignes 76-111)
-2. **`CartSummary.tsx`** — le récapitulatif panier qui utilise `<TaxDeduction>` (ligne 138)
-3. **`UpsellDonation.tsx`** — la page upsell (pas d'affichage fiscal actuellement, mais le total y est dimensionnable)
+## Solution
+Appeler un service gratuit d'IP geolocation (ip-api.com) pour obtenir automatiquement le département/région du visiteur, puis passer ces données au RPC `get_empathy_beneficiaries` qui calcule déjà le `proximity_score`.
 
-## Corrections préalables sur TaxDeductionOptionC
+## Logique de priorité
+1. **Donateur connecté avec profil** → utiliser `profiles.postal_prefix / department_code / region_code`
+2. **Donateur anonyme** → appeler `http://ip-api.com/json/?fields=regionName,countryCode` puis mapper la région française vers un `region_code`
+3. **Échec IP / VPN / hors France** → pas de `p_donor_location`, pas de badge proximité (badges contextuels normaux)
 
-Le composant utilise actuellement un taux hardcodé de **0.75** et mentionne "Loi Coluche 75%". Il faut :
-- Importer `TAX_DEDUCTION_RATE` depuis `constants.ts` (= 0.66)
-- Badge : "−75%" → "−66%"
-- Mention légale : "Réduction d'impôt de 66% pour les dons aux associations d'intérêt général"
+## Mapping région → code
+ip-api.com retourne `regionName` (ex: "Île-de-France", "Auvergne-Rhône-Alpes"). Un dictionnaire statique mappe les 18 régions françaises vers leur code INSEE (ex: "IDF" → "11", "ARA" → "84"). Le `country_code` est directement le code ISO retourné.
 
-## Changements par fichier
+## Fichiers modifiés
 
-### 1. `src/components/TaxDeductionOptionC.tsx`
-- Importer `TAX_DEDUCTION_RATE` depuis `@/lib/constants`
-- Remplacer `amount * 0.75` par `amount * TAX_DEDUCTION_RATE`
-- Badge "−75%" → "−66%"
-- Mention légale corrigée
+### 1. `src/lib/geoLocation.ts` (nouveau)
+- Fonction `getDonorLocationFromIP()` → appelle ip-api.com, retourne `{ postal_prefix, department_code, region_code, country_code }` ou `null`
+- Dictionnaire `REGION_NAME_TO_CODE` pour les 18 régions françaises
+- Cache en `sessionStorage` pour ne pas re-appeler à chaque navigation
+- Timeout de 3s pour ne pas bloquer le chargement
 
-### 2. `src/components/DonationAmountSelector.tsx`
-- Supprimer le bloc fiscal inline (lignes 76-111 : les 2 colonnes "Déduction fiscale" / "Coût réel" + mention légale)
-- Ajouter `<TaxDeductionOptionC amount={value} />` en dessous du sélecteur +/-, dans la même card
-- Import du composant
+### 2. `src/pages/BeneficiarySelection.tsx`
+- Si pas de `donorLocation` depuis le profil → appeler `getDonorLocationFromIP()`
+- Passer le résultat dans `p_donor_location` comme c'est déjà fait pour les connectés
+- Aucune modification du RPC (contrainte respectée)
 
-### 3. `src/components/checkout/CartSummary.tsx`
-- Remplacer `<TaxDeduction amount={checkoutData.totalAmount} />` par `<TaxDeductionOptionC amount={checkoutData.totalAmount} />`
-- Mettre à jour l'import
+## Seuils de proximité (déjà en place dans le RPC)
+| Score | Label | Condition |
+|-------|-------|-----------|
+| 100 | Proche de chez vous | Même préfixe postal |
+| 90 | Dans votre département | Même département |
+| 70 | Dans votre région | Même région |
+| 40 | Dans votre pays | Même pays |
 
-### 4. `src/pages/UpsellDonation.tsx`
-- Ajouter `<TaxDeductionOptionC amount={totalAmount} />` entre les options d'upsell et les boutons d'action
-- Le composant s'anime automatiquement quand le total change (sélection/désélection d'un upsell)
+Pour l'IP geolocation, seuls `region_code` et `country_code` seront renseignés (pas de précision au département via IP). Le badge le plus probable sera donc **"Dans votre région"** ou **"Dans votre pays"**.
 
-### Fichiers modifiés
-- `src/components/TaxDeductionOptionC.tsx` — correction taux 66%
-- `src/components/DonationAmountSelector.tsx` — remplacement fiscal inline → OptionC
-- `src/components/checkout/CartSummary.tsx` — remplacement TaxDeduction → OptionC
-- `src/pages/UpsellDonation.tsx` — ajout OptionC
+## Limites connues
+- ip-api.com : 45 req/min (gratuit, suffisant pour le trafic actuel)
+- Précision : niveau région uniquement (pas département ni ville)
+- VPN/proxy : peut retourner une mauvaise localisation → le badge sera simplement absent ou inexact, sans conséquence grave
 
