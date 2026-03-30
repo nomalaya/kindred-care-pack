@@ -31,6 +31,9 @@ interface Props {
 }
 
 const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
+  const { user } = useAuth();
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
   useEffect(() => {
     // Track successful donation
     const trackSuccess = () => {
