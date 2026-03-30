@@ -1,14 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Download, Share2, Heart, Gift, Receipt } from "lucide-react";
+import { CheckCircle, Download, Share2, Heart, Gift, Receipt, Mail } from "lucide-react";
 import TaxInfoLink from "@/components/TaxInfoLink";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import SocialProof from "@/components/SocialProof";
 import { toast } from "sonner";
 import { getAgeRange } from "@/lib/ageRange";
 import { generateIndividualReceipt } from "@/lib/generateReceipt";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import type { CheckoutData } from "./CheckoutFlow";
 
 interface Beneficiary {
@@ -29,6 +31,9 @@ interface Props {
 }
 
 const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
+  const { user } = useAuth();
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
   useEffect(() => {
     // Track successful donation
     const trackSuccess = () => {
@@ -213,6 +218,47 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
           Partager
         </Button>
       </div>
+
+      {/* Magic link post-don — non-connectés uniquement */}
+      {!user && checkoutData.donorInfo?.email && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-6 text-center space-y-3">
+            <Mail className="h-8 w-8 text-primary mx-auto" />
+            <h3 className="font-semibold text-foreground">Accédez à votre espace donateur</h3>
+            <p className="text-sm text-muted-foreground">
+              Recevez un lien par email pour suivre votre don et télécharger vos reçus fiscaux — sans mot de passe.
+            </p>
+            {magicLinkSent ? (
+              <p className="text-sm text-green-600 font-medium">
+                ✓ Lien envoyé ! Vérifiez votre boîte email.
+              </p>
+            ) : (
+              <Button
+                onClick={async () => {
+                  setSendingLink(true);
+                  try {
+                    const { error } = await supabase.auth.signInWithOtp({
+                      email: checkoutData.donorInfo!.email,
+                    });
+                    if (error) throw error;
+                    setMagicLinkSent(true);
+                    toast.success("Lien envoyé ! Vérifiez votre boîte email.");
+                  } catch {
+                    toast.error("Impossible d'envoyer le lien. Réessayez.");
+                  } finally {
+                    setSendingLink(false);
+                  }
+                }}
+                disabled={sendingLink}
+                className="bg-primary text-primary-foreground"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                {sendingLink ? "Envoi..." : "Recevoir mon lien d'accès"}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Next Steps */}
       <Card>
