@@ -9,6 +9,8 @@ import SocialProof from "@/components/SocialProof";
 import { toast } from "sonner";
 import { getAgeRange } from "@/lib/ageRange";
 import { generateIndividualReceipt } from "@/lib/generateReceipt";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import type { CheckoutData } from "./CheckoutFlow";
 
 interface Beneficiary {
