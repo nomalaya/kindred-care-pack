@@ -25,9 +25,6 @@ const Navbar = () => {
         </Link>
 
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/causes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Causes
-          </Link>
           <Link to="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Comment ça marche
           </Link>
@@ -64,7 +61,7 @@ const Navbar = () => {
 
       {mobileOpen && (
         <div className="md:hidden bg-card border-b p-4 space-y-3">
-          <Link to="/causes" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Causes</Link>
+          
           <Link to="/how-it-works" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Comment ça marche</Link>
           <Link to="/avantage-fiscal" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Avantage fiscal</Link>
           {user ? (
