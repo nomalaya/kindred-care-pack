@@ -14,8 +14,7 @@ const TransparencyBlock = () => (
   <div className="flex items-start gap-2 mt-4 p-3 rounded-xl bg-muted/50">
     <ShieldCheck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
     <p className="text-xs text-muted-foreground">
-      Vous recevrez une confirmation dès que le colis lui sera remis.{" "}
-      <span className="text-primary/80">Retrouvez cette confirmation dans votre espace donateur.</span>
+      Vous recevrez une confirmation dès que le colis lui sera remis.
     </p>
   </div>
 );
