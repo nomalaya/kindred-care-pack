@@ -44,7 +44,7 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/themes" element={<ThemeShowcase />} />
-            <Route path="/timeline-showcase" element={<TimelineShowcase />} />
+            
             <Route path="/tax-showcase" element={<TaxShowcase />} />
             <Route path="/avantage-fiscal" element={<TaxAdvantage />} />
             <Route path="/reset-password" element={<ResetPassword />} />
