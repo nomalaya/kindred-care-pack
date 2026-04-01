@@ -59,11 +59,11 @@ interface TimelineProps {
 const HorizontalTimeline = ({ steps }: TimelineProps) => (
   <div className="relative flex items-start justify-between">
     {/* Background track */}
-    <div className="absolute top-4 left-[calc(12.5%)] right-[calc(12.5%)] h-0.5 bg-border rounded-full" />
+    <div className="absolute top-4 left-[calc(12.5%)] right-[calc(12.5%)] h-0.5 bg-border rounded-full z-0" />
 
     {/* Animated fill — stops at first node (25% of track) */}
     <motion.div
-      className="absolute top-4 left-[calc(12.5%)] h-0.5 bg-primary rounded-full origin-left"
+      className="absolute top-4 left-[calc(12.5%)] h-0.5 bg-primary rounded-full origin-left z-0"
       initial={{ scaleX: 0 }}
       animate={{ scaleX: 1 }}
       transition={{ duration: 1.2, ease: "easeOut", delay: 0.4 }}
@@ -119,11 +119,11 @@ const HorizontalTimeline = ({ steps }: TimelineProps) => (
 const VerticalTimeline = ({ steps }: TimelineProps) => (
   <div className="relative pl-4">
     {/* Background track */}
-    <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-border rounded-full" />
+    <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-border rounded-full z-0" />
 
     {/* Animated fill */}
     <motion.div
-      className="absolute left-[19px] top-4 w-0.5 bg-primary rounded-full origin-top"
+      className="absolute left-[19px] top-4 w-0.5 bg-primary rounded-full origin-top z-0"
       initial={{ scaleY: 0 }}
       animate={{ scaleY: 1 }}
       transition={{ duration: 1.2, ease: "easeOut", delay: 0.4 }}
