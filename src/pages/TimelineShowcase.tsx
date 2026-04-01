@@ -281,6 +281,156 @@ const C5 = () => {
   );
 };
 
+// ─── C6 — Émeraude + Doré (accent) ───
+const C6 = () => {
+  const isMobile = useIsMobile();
+
+  return (
+    <div className="bg-gradient-to-r from-primary/5 to-accent/5 border border-accent/15 rounded-2xl p-5">
+      <div className="relative">
+        {!isMobile && (
+          <div className="absolute top-5 left-[12.5%] right-[12.5%] h-0.5 bg-accent/20 z-0">
+            <motion.div className="h-full bg-gradient-to-r from-primary to-accent" initial={{ width: 0 }} animate={{ width: "10%" }} transition={{ duration: 1, ease: "easeOut" }} />
+          </div>
+        )}
+        {isMobile && (
+          <div className="absolute left-[18px] top-5 bottom-5 w-0.5 bg-accent/20 z-0">
+            <motion.div className="w-full bg-gradient-to-b from-primary to-accent" initial={{ height: 0 }} animate={{ height: "15%" }} transition={{ duration: 1, ease: "easeOut" }} />
+          </div>
+        )}
+
+        <div className={isMobile ? "flex flex-col gap-4" : "flex items-start justify-between relative z-10"}>
+          {STEPS.map((step, i) => {
+            const Icon = step.icon;
+            const isActive = i === 0;
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.2, duration: 0.4 }}
+                className={`relative z-10 ${isMobile ? "flex items-start gap-4" : "flex flex-col items-center flex-1"}`}
+              >
+                {isActive ? (
+                  <ActiveCircle icon={Icon} />
+                ) : (
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-accent/15 text-accent border border-accent/30">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                )}
+                <div className={isMobile ? "pt-1" : "text-center mt-2"}>
+                  <span className={`text-xs font-semibold ${isActive ? "text-primary" : "text-muted-foreground"}`}>{step.time}</span>
+                  <p className={`text-sm ${isActive ? "text-foreground font-medium" : "text-muted-foreground"}`}>{step.label}</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── C7 — Émeraude + Rose (cta) ───
+const C7 = () => {
+  const isMobile = useIsMobile();
+
+  return (
+    <div className="bg-card/80 backdrop-blur-sm border border-cta/15 rounded-2xl p-5 shadow-warm">
+      <div className="relative">
+        {!isMobile && (
+          <div className="absolute top-5 left-[12.5%] right-[12.5%] h-0.5 bg-cta/15 z-0">
+            <motion.div className="h-full bg-gradient-to-r from-primary to-cta" initial={{ width: 0 }} animate={{ width: "10%" }} transition={{ duration: 1, ease: "easeOut" }} />
+          </div>
+        )}
+        {isMobile && (
+          <div className="absolute left-[18px] top-5 bottom-5 w-0.5 bg-cta/15 z-0">
+            <motion.div className="w-full bg-gradient-to-b from-primary to-cta" initial={{ height: 0 }} animate={{ height: "15%" }} transition={{ duration: 1, ease: "easeOut" }} />
+          </div>
+        )}
+
+        <div className={isMobile ? "flex flex-col gap-4" : "flex items-start justify-between relative z-10"}>
+          {STEPS.map((step, i) => {
+            const Icon = step.icon;
+            const isActive = i === 0;
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.2, duration: 0.4 }}
+                className={`relative z-10 ${isMobile ? "flex items-start gap-4" : "flex flex-col items-center flex-1"}`}
+              >
+                {isActive ? (
+                  <ActiveCircle icon={Icon} />
+                ) : (
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-cta/10 text-cta/60 border border-cta/25">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                )}
+                <div className={isMobile ? "pt-1" : "text-center mt-2"}>
+                  <span className={`text-xs font-semibold ${isActive ? "text-primary" : "text-muted-foreground"}`}>{step.time}</span>
+                  <p className={`text-sm ${isActive ? "text-foreground font-medium" : "text-muted-foreground"}`}>{step.label}</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── C8 — Émeraude + Vert clair (secondary) ───
+const C8 = () => {
+  const isMobile = useIsMobile();
+
+  return (
+    <div className="bg-gradient-to-r from-primary/5 to-secondary/5 border border-secondary/15 rounded-2xl p-5">
+      <div className="relative">
+        {!isMobile && (
+          <div className="absolute top-5 left-[12.5%] right-[12.5%] h-0.5 bg-secondary/20 z-0">
+            <motion.div className="h-full bg-gradient-to-r from-primary to-secondary" initial={{ width: 0 }} animate={{ width: "10%" }} transition={{ duration: 1, ease: "easeOut" }} />
+          </div>
+        )}
+        {isMobile && (
+          <div className="absolute left-[18px] top-5 bottom-5 w-0.5 bg-secondary/20 z-0">
+            <motion.div className="w-full bg-gradient-to-b from-primary to-secondary" initial={{ height: 0 }} animate={{ height: "15%" }} transition={{ duration: 1, ease: "easeOut" }} />
+          </div>
+        )}
+
+        <div className={isMobile ? "flex flex-col gap-4" : "flex items-start justify-between relative z-10"}>
+          {STEPS.map((step, i) => {
+            const Icon = step.icon;
+            const isActive = i === 0;
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.2, duration: 0.4 }}
+                className={`relative z-10 ${isMobile ? "flex items-start gap-4" : "flex flex-col items-center flex-1"}`}
+              >
+                {isActive ? (
+                  <ActiveCircle icon={Icon} />
+                ) : (
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-secondary/15 text-secondary border border-secondary/30">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                )}
+                <div className={isMobile ? "pt-1" : "text-center mt-2"}>
+                  <span className={`text-xs font-semibold ${isActive ? "text-primary" : "text-muted-foreground"}`}>{step.time}</span>
+                  <p className={`text-sm ${isActive ? "text-foreground font-medium" : "text-muted-foreground"}`}>{step.label}</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── PAGE SHOWCASE ───
 const TimelineShowcase = () => {
   const solutions = [
@@ -289,6 +439,9 @@ const TimelineShowcase = () => {
     { id: "C3", title: "C3 — Gradient fond", desc: "Dégradé subtil primary → secondary → accent, nœuds avec ombre", Component: C3 },
     { id: "C4", title: "C4 — Cards en relief", desc: "Chaque étape en mini-card avec ombre et hover lift", Component: C4 },
     { id: "C5", title: "C5 — Glassmorphism subtil", desc: "Fond semi-transparent, backdrop-blur, nœuds translucides", Component: C5 },
+    { id: "C6", title: "C6 — Émeraude + Doré", desc: "Dégradé primary → accent, nœuds dorés, fond bicolore subtil", Component: C6 },
+    { id: "C7", title: "C7 — Émeraude + Rose", desc: "Glassmorphism avec touches magenta, dégradé primary → cta", Component: C7 },
+    { id: "C8", title: "C8 — Émeraude + Vert clair", desc: "Dégradé monochrome primary → secondary, nœuds lime", Component: C8 },
   ];
 
   return (
