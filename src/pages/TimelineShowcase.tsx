@@ -303,7 +303,7 @@ const C5 = () => {
     <div className="bg-card/80 backdrop-blur-sm border border-white/20 rounded-2xl p-5 shadow-warm">
       <div className={`relative`}>
         {!isMobile && (
-          <div className="absolute top-5 left-5 right-5 h-0.5 bg-primary/10 z-0">
+          <div className="absolute top-5 left-[12.5%] right-[12.5%] h-0.5 bg-primary/10 z-0">
             <motion.div
               className="h-full bg-primary/60"
               initial={{ width: 0 }}
