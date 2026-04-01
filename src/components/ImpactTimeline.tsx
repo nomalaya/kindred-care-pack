@@ -123,7 +123,7 @@ const VerticalTimeline = ({ steps }: TimelineProps) => (
 
     {/* Animated fill */}
     <motion.div
-      className="absolute left-[19px] top-4 w-0.5 bg-primary rounded-full origin-top"
+      className="absolute left-[19px] top-4 w-0.5 bg-primary rounded-full origin-top z-0"
       initial={{ scaleY: 0 }}
       animate={{ scaleY: 1 }}
       transition={{ duration: 1.2, ease: "easeOut", delay: 0.4 }}
