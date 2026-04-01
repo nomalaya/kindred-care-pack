@@ -1,44 +1,70 @@
 
 
-# Page Showcase — Comparaison des 4 solutions Timeline
+# Déclinaisons de la Solution C avec flèches — Page Showcase
 
-## Objectif
-Créer une page temporaire `/timeline-showcase` qui affiche les 4 solutions côte à côte (A, B, C, D) avec le prénom "Fatima" en exemple, pour que vous puissiez les voir, les comparer et choisir.
+## Contenu mis à jour
 
-## Fichier à créer
+**4 étapes** (prénom = Aïcha) :
+1. `Heart` — **Aujourd'hui** — "Vous déclenchez une aide ultra-concrète"
+2. `Package` — **Demain** — "Colis préparé pour Aïcha"
+3. `Truck` — **Sous 2 j** — "Colis en route vers Aïcha"
+4. `Gift` — **Sous 3 j** — "Aïcha reçoit votre aide"
+
+**Mention transparence** : "Vous recevrez une confirmation dès que le colis lui sera remis."
+
+**Flèches** : icône `ChevronRight` (desktop horizontal) / `ChevronDown` (mobile vertical) entre chaque étape.
+
+---
+
+## 5 déclinaisons design de la Solution C
+
+### C1 — Épurée (baseline)
+- Fond `bg-card`, bordure fine `border`
+- Nœuds : premier rempli `bg-primary`, suivants outline `border-primary/20 bg-background`
+- Barre de progression fine derrière les nœuds
+- Flèches `text-primary/30`
+- Pulse sur le premier nœud
+
+### C2 — Fond émeraude doux
+- Fond `bg-primary/5` avec bordure `border-primary/15`
+- Nœuds : premier `bg-primary`, suivants `bg-primary/10 border-primary/30`
+- Flèches `text-primary/40`
+- Barre de progression `bg-primary/20` → `bg-primary`
+- Ombre `shadow-warm`
+
+### C3 — Gradient fond
+- Fond dégradé : `bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5`
+- Nœuds avec ombre portée `shadow-card`
+- Premier nœud : `bg-primary shadow-warm`
+- Flèches en gradient via `text-primary/50`
+- Bordure `border-primary/10`
+
+### C4 — Cards en relief
+- Chaque étape est une mini-card avec `shadow-card` et `bg-card rounded-xl p-3`
+- Premier nœud card : `shadow-warmLg border-primary/30`
+- Hover sur desktop : `hover:shadow-cardHover hover:-translate-y-1`
+- Flèches entre les cards `text-muted-foreground`
+- Fond section `bg-muted/30`
+
+### C5 — Glassmorphism subtil
+- Fond `bg-card/80 backdrop-blur-sm`
+- Nœuds avec fond semi-transparent `bg-primary/15 backdrop-blur`
+- Premier nœud plein `bg-primary`
+- Bordure `border-white/20`
+- Flèches `text-primary/25`
+- Ombre `shadow-warm`
+
+---
+
+## Fichier modifié
 
 ### `src/pages/TimelineShowcase.tsx`
+- Supprimer les solutions A, B, D
+- Remplacer par les 5 déclinaisons C1–C5
+- Mettre à jour les données (textes, prénom Aïcha, délais Sous 2 j / Sous 3 j)
+- Mettre à jour le `TransparencyBlock`
+- Ajouter `ChevronRight` / `ChevronDown` entre les étapes
+- Chaque déclinaison est une section distincte avec titre et description
 
-Page avec 4 sections, chacune contenant une implémentation fonctionnelle :
-
-**Solution A — Timeline linéaire animée**
-- 4 nœuds reliés par une ligne qui se remplit (framer-motion `scaleX`/`scaleY`)
-- Horizontal sur desktop, vertical sur mobile
-- Nœuds en stagger
-
-**Solution B — Step Cards**
-- 4 mini-cards avec icônes, titres, repères temporels
-- Première card "active" (bordure primary), les autres en projection (opacité réduite, connecteurs pointillés)
-- Horizontal desktop, empilées mobile
-
-**Solution C — Progress bar avec milestones**
-- Barre de progression avec 4 points d'arrêt
-- Premier nœud rempli (actif), les suivants en outline (à venir)
-- Animation de remplissage de la barre
-- Pulse léger sur le premier nœud
-
-**Solution D — Reveal progressif**
-- Les 4 étapes apparaissent une par une avec un délai de 0.3s
-- Fade + slide depuis la gauche
-- Effet storytelling
-
-**Commun à toutes** : les 4 étapes (Heart/Aujourd'hui, Package/Demain, Truck/Sous 24h, Gift/Sous 48h) + mention de transparence ShieldCheck + lien espace donateur.
-
-## Fichier à modifier
-
-### `src/App.tsx`
-- Ajouter route `/timeline-showcase` → `TimelineShowcase`
-
-## Après choix
-La solution retenue remplacera le composant `ImpactTimeline.tsx` et la route showcase sera supprimée.
+1 fichier modifié.
 
