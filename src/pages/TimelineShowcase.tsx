@@ -18,7 +18,7 @@ const PULSE_SHADOW = {
       "0 0 0 0px hsla(157, 68%, 33%, 0.3)",
     ],
   },
-  transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+  transition: { duration: 2, repeat: Infinity, ease: "easeInOut" as const },
 };
 
 const TransparencyBlock = () => (
