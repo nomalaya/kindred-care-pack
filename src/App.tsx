@@ -16,7 +16,7 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import HowItWorks from "./pages/HowItWorks";
 import ThemeShowcase from "./pages/ThemeShowcase";
-import TimelineShowcase from "./pages/TimelineShowcase";
+
 import TaxShowcase from "./pages/TaxShowcase";
 import TaxAdvantage from "./pages/TaxAdvantage";
 import ResetPassword from "./pages/ResetPassword";
@@ -44,7 +44,7 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/themes" element={<ThemeShowcase />} />
-            <Route path="/timeline-showcase" element={<TimelineShowcase />} />
+            
             <Route path="/tax-showcase" element={<TaxShowcase />} />
             <Route path="/avantage-fiscal" element={<TaxAdvantage />} />
             <Route path="/reset-password" element={<ResetPassword />} />
