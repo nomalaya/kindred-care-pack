@@ -1,29 +1,36 @@
 
 
-# Retirer les flèches + pulse intégré au cercle de l'étape 1
+# Nouvelles déclinaisons C5 avec couleurs secondaires du design system
 
-## Modifications dans `src/pages/TimelineShowcase.tsx`
+## Couleurs disponibles (en plus du primary émeraude)
+- **Secondary** : `hsl(107, 45%, 53%)` — vert clair / lime
+- **Accent** : `hsl(44, 100%, 42%)` — doré / ambre
+- **CTA** : `hsl(330, 65%, 52%)` — rose / magenta
 
-### 1. Supprimer les flèches
-- Supprimer le composant `Arrow` et ses imports (`ChevronRight`, `ChevronDown`)
-- Dans chaque variante C1–C5, supprimer les blocs conditionnels `{i < STEPS.length - 1 && (...Arrow...)}` 
+## 3 nouvelles variantes à ajouter
 
-### 2. Pulse intégré au cercle actif
-Actuellement le pulse est un `motion.div` **séparé** superposé au cercle. Le remplacer par un effet directement sur le cercle lui-même :
-- Supprimer le `motion.div` pulse séparé (absolute, scale animation)
-- Ajouter sur le `div` du cercle de l'étape active une classe `animate-pulse` ou un `ring` animé intégré : `ring-4 ring-primary/20 animate-[pulse_2s_ease-in-out_infinite]`
-- Cela donne un halo pulsatif **sur** le cercle, pas en overlay
+### C6 — Émeraude + Doré (accent)
+- Cercle actif : `bg-primary` avec pulse émeraude
+- Cercles inactifs : `bg-accent/15 border-accent/30 text-accent`
+- Barre de progression : dégradé `from-primary to-accent`
+- Fond : `bg-gradient-to-r from-primary/5 to-accent/5`
+- Bordure : `border-accent/15`
 
-Approche retenue : utiliser `shadow` pulsatif via framer-motion directement sur le cercle :
-```tsx
-<motion.div
-  animate={{ boxShadow: ["0 0 0 0px rgba(var(--primary-rgb), 0.3)", "0 0 0 8px rgba(var(--primary-rgb), 0)", "0 0 0 0px rgba(var(--primary-rgb), 0.3)"] }}
-  transition={{ duration: 2, repeat: Infinity }}
-  className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
->
-```
-Cela évite un élément supplémentaire et intègre le pulse au cercle.
+### C7 — Émeraude + Rose (cta)
+- Cercle actif : `bg-primary` avec pulse émeraude
+- Cercles inactifs : `bg-cta/10 border-cta/25 text-cta/60`
+- Barre de progression : `bg-primary` puis dégradé vers `cta`
+- Fond : `bg-card/80 backdrop-blur-sm` (glassmorphism conservé)
+- Bordure : `border-cta/15`
+- Ombre : `shadow-warm`
 
-### Fichier modifié
-- `src/pages/TimelineShowcase.tsx` — suppression flèches + refactoring pulse dans les 5 variantes
+### C8 — Émeraude + Vert clair (secondary)
+- Cercle actif : `bg-primary` avec pulse émeraude
+- Cercles inactifs : `bg-secondary/15 border-secondary/30 text-secondary`
+- Barre de progression : dégradé `from-primary to-secondary`
+- Fond : `bg-gradient-to-r from-primary/5 to-secondary/5`
+- Bordure : `border-secondary/15`
+
+## Fichier modifié
+- `src/pages/TimelineShowcase.tsx` — ajouter C6, C7, C8 après les 5 variantes existantes
 
