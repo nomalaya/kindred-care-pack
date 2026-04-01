@@ -59,7 +59,7 @@ interface TimelineProps {
 const HorizontalTimeline = ({ steps }: TimelineProps) => (
   <div className="relative flex items-start justify-between">
     {/* Background track */}
-    <div className="absolute top-4 left-[calc(12.5%)] right-[calc(12.5%)] h-0.5 bg-border rounded-full" />
+    <div className="absolute top-4 left-[calc(12.5%)] right-[calc(12.5%)] h-0.5 bg-border rounded-full z-0" />
 
     {/* Animated fill — stops at first node (25% of track) */}
     <motion.div
