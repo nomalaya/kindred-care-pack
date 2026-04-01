@@ -63,7 +63,7 @@ const HorizontalTimeline = ({ steps }: TimelineProps) => (
 
     {/* Animated fill — stops at first node (25% of track) */}
     <motion.div
-      className="absolute top-4 left-[calc(12.5%)] h-0.5 bg-primary rounded-full origin-left"
+      className="absolute top-4 left-[calc(12.5%)] h-0.5 bg-primary rounded-full origin-left z-0"
       initial={{ scaleX: 0 }}
       animate={{ scaleX: 1 }}
       transition={{ duration: 1.2, ease: "easeOut", delay: 0.4 }}
