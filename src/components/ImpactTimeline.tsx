@@ -119,7 +119,7 @@ const HorizontalTimeline = ({ steps }: TimelineProps) => (
 const VerticalTimeline = ({ steps }: TimelineProps) => (
   <div className="relative pl-4">
     {/* Background track */}
-    <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-border rounded-full" />
+    <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-border rounded-full z-0" />
 
     {/* Animated fill */}
     <motion.div
