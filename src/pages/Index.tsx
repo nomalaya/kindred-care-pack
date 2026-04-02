@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
 import { Heart, Users, Package, ArrowRight, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
-import heroImage from "@/assets/hero-solidarity.jpg";
+
 import SocialProof from "@/components/SocialProof";
 
 const steps = [
