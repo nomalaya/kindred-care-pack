@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, Package, Truck, Heart, PartyPopper, Layers } from "lucide-react";
+import { Check, Package, Heart, PartyPopper } from "lucide-react";
 import { Link } from "react-router-dom";
-import { DELIVERY_STATUSES, type UpsellOption } from "@/lib/constants";
+import { type UpsellOption } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import SocialProof from "@/components/SocialProof";
 import PostDonSocialBlock from "@/components/PostDonSocialBlock";
+import { useAuth } from "@/hooks/useAuth";
 
 import type { BasketItem } from "@/lib/basketEngine";
 import { computeBasketImpact } from "@/lib/basketEngine";
@@ -21,6 +22,7 @@ interface Props {
 
 const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emergencyPack, beneficiaryId }: Props) => {
   const [showConfetti, setShowConfetti] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     setShowConfetti(true);
@@ -121,36 +123,40 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         )}
       </motion.div>
 
-      {/* Delivery timeline with connecting line */}
+      {/* Delivery promise */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8 }}
         className="bg-card rounded-2xl p-6 border shadow-card mb-6 text-left"
       >
-        <div className="flex items-center gap-2 mb-4">
-          <Truck className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Suivi de livraison</h3>
-        </div>
-        <div className="relative">
-          {/* Vertical connecting line */}
-          <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-border" />
-          <div className="space-y-4">
-            {DELIVERY_STATUSES.map((s, i) => (
-              <div key={s.key} className="flex items-center gap-3 relative">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm z-10 ${
-                  i === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                }`}>
-                  {s.icon}
-                </div>
-                <span className={`text-sm ${i === 0 ? "font-medium text-foreground" : "text-muted-foreground"}`}>
-                  {s.label}
-                </span>
-                {i === 0 && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full ml-auto">En cours</span>
-                )}
-              </div>
-            ))}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <Package className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Votre colis sera préparé et remis à {beneficiaryName} sous 72h.
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Vous recevrez une confirmation par email dès que le colis lui sera remis.{" "}
+              {user ? (
+                <>
+                  Retrouvez aussi cette confirmation dans{" "}
+                  <Link to="/dashboard" className="font-semibold text-primary hover:underline">
+                    Vos contributions
+                  </Link>{" "}
+                  dans votre espace donateur.
+                </>
+              ) : (
+                <>
+                  <Link to="/auth" className="font-semibold text-primary hover:underline">
+                    Créez votre espace donateur
+                  </Link>{" "}
+                  pour suivre vos contributions.
+                </>
+              )}
+            </p>
           </div>
         </div>
       </motion.div>
@@ -167,7 +173,6 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
 
       {/* Post-don social block */}
       <PostDonSocialBlock beneficiaryName={beneficiaryName} />
-
 
       <motion.div
         initial={{ opacity: 0 }}

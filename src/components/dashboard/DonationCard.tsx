@@ -1,5 +1,4 @@
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
-import { DELIVERY_STATUSES } from "@/lib/constants";
 import { generateIndividualReceipt } from "@/lib/generateReceipt";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,13 +24,6 @@ interface DonationCardProps {
   donorEmail: string;
 }
 
-const STATUS_LABELS: Record<string, (name: string) => string> = {
-  confirmed: () => "Don confirmé",
-  prepared: () => "Colis en préparation",
-  shipped: (name) => `En route vers ${name}`,
-  delivered: (name) => `Remis à ${name}`,
-};
-
 const DonationCard = ({
   id,
   amount,
@@ -41,9 +33,11 @@ const DonationCard = ({
   donorName,
   donorEmail,
 }: DonationCardProps) => {
-  const statusIdx = DELIVERY_STATUSES.findIndex((s) => s.key === delivery_status);
-  const statusLabel =
-    STATUS_LABELS[delivery_status]?.(b.alias_first_name) || "Don confirmé";
+  const isDelivered = delivery_status === "delivered";
+
+  const statusLabel = isDelivered
+    ? `Remis à ${b.alias_first_name}`
+    : "Don confirmé — colis en préparation";
 
   const handleDownload = () => {
     generateIndividualReceipt(
@@ -77,41 +71,24 @@ const DonationCard = ({
             </h3>
             <span className="text-lg font-bold text-primary">{amount}€</span>
           </div>
-          <p className="text-xs text-muted-foreground mb-1">
+          <p className="text-xs text-muted-foreground mb-2">
             {new Date(created_at).toLocaleDateString("fr-FR", {
               year: "numeric",
               month: "long",
               day: "numeric",
             })}
           </p>
-          <p className="text-xs font-medium text-primary mb-3">{statusLabel}</p>
 
-          {/* Progress bar */}
-          <div className="flex items-center gap-1">
-            {DELIVERY_STATUSES.map((s, i) => (
-              <div key={s.key} className="flex items-center gap-1 flex-1">
-                <div
-                  className={`h-1.5 rounded-full flex-1 ${
-                    i <= statusIdx ? "bg-primary" : "bg-muted"
-                  }`}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between mt-1">
-            {DELIVERY_STATUSES.map((s, i) => (
-              <span
-                key={s.key}
-                className={`text-[10px] ${
-                  i <= statusIdx
-                    ? "text-primary font-medium"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {s.icon}
-              </span>
-            ))}
-          </div>
+          {/* Simple status badge */}
+          <span
+            className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full ${
+              isDelivered
+                ? "bg-primary/10 text-primary"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {isDelivered ? "🎉" : "📦"} {statusLabel}
+          </span>
 
           {/* Download receipt */}
           <div className="mt-3 flex justify-end">
