@@ -172,7 +172,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
       </motion.div>
 
       {/* Post-don social block */}
-      <PostDonSocialBlock beneficiaryName={beneficiaryName} />
+      <PostDonSocialBlock />
 
       <motion.div
         initial={{ opacity: 0 }}
