@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,16 @@ const SocialProof = React.forwardRef<HTMLDivElement, Props>(({ variant, benefici
       });
   }, [beneficiaryId]);
 
+  // Stable random rank for confirmation variant
+  const confirmationRank = useMemo(() => {
+    const now = new Date();
+    // 0=Sunday, 1=Monday... convert to Monday-based: Mon=0, Tue=1...Sun=6
+    const jsDay = now.getDay();
+    const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+    const base = 19 + dayIndex * 5;
+    return base + Math.floor(Math.random() * 5);
+  }, []);
+
   if (!stats) return null;
 
   const messages: Record<string, React.ReactNode[]> = {
@@ -49,9 +59,7 @@ const SocialProof = React.forwardRef<HTMLDivElement, Props>(({ variant, benefici
         : "Plusieurs personnes ont déjà aidé aujourd'hui",
     ],
     confirmation: [
-      stats.week_count > 0
-        ? `${stats.week_count} donateur${stats.week_count > 1 ? "s" : ""} ont déjà aidé cette semaine.`
-        : "Vous faites partie des premiers donateurs de la semaine !",
+      `Vous êtes le ${confirmationRank}ème donateur de la semaine !`,
     ],
   };
 
