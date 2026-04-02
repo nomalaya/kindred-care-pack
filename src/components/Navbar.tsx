@@ -47,6 +47,7 @@ const Navbar = () => {
               </Button>
             </Link>
           )}
+          <SocialIcons variant="subtle" />
           <Link to="/causes">
             <Button className="bg-cta hover:bg-cta/90 text-cta-foreground" size="sm">
               Je donne
