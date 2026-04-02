@@ -24,7 +24,7 @@ const Index = () => {
       {/* Hero */}
       <section className="relative overflow-hidden py-20 md:py-32">
         <div className="absolute inset-0">
-          <img src={heroImage} alt="Des bénévoles préparent des colis solidaires" className="w-full h-full object-cover" loading="lazy" />
+          <img src="/hero-solidarity.jpg" alt="Des bénévoles préparent des colis solidaires" className="w-full h-full object-cover" loading="lazy" />
           <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/60" />
         </div>
         <div className="container mx-auto px-4 relative">
