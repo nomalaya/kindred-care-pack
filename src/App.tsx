@@ -15,7 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import HowItWorks from "./pages/HowItWorks";
-import ThemeShowcase from "./pages/ThemeShowcase";
+import DonationPreview from "./pages/DonationPreview";
 
 
 import TaxAdvantage from "./pages/TaxAdvantage";
@@ -43,7 +43,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
-            <Route path="/themes" element={<ThemeShowcase />} />
+            <Route path="/donation-preview" element={<DonationPreview />} />
             
             
             <Route path="/avantage-fiscal" element={<TaxAdvantage />} />
