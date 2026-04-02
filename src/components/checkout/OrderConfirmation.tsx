@@ -313,8 +313,6 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
       {/* Post-don social block */}
       <PostDonSocialBlock beneficiaryName={beneficiary.alias_first_name} />
 
-      {/* Impact proof */}
-      <ImpactProofSection />
 
       {/* Call to Action */}
       <Card className="bg-primary/5 border-primary/20">
