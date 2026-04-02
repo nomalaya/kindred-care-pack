@@ -7,7 +7,7 @@ import TaxInfoLink from "@/components/TaxInfoLink";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import SocialProof from "@/components/SocialProof";
 import PostDonSocialBlock from "@/components/PostDonSocialBlock";
-import ImpactProofSection from "@/components/ImpactProofSection";
+
 import { toast } from "sonner";
 import { getAgeRange } from "@/lib/ageRange";
 import { generateIndividualReceipt } from "@/lib/generateReceipt";

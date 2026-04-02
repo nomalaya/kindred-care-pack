@@ -168,8 +168,6 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
       {/* Post-don social block */}
       <PostDonSocialBlock beneficiaryName={beneficiaryName} />
 
-      {/* Impact proof */}
-      <ImpactProofSection />
 
       <motion.div
         initial={{ opacity: 0 }}
