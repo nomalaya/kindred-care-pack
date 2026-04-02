@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Share2, Copy } from "lucide-react";
+import { Share2, Copy, HeartHandshake } from "lucide-react";
 import { SOCIAL_LINKS } from "@/lib/socialLinks";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
