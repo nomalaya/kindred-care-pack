@@ -30,12 +30,13 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
 
   return (
     <div className="max-w-2xl mx-auto text-center py-8">
+      {/* Confetti centré sur le titre */}
       {showConfetti && (
         <motion.div
           initial={{ opacity: 1 }}
           animate={{ opacity: 0 }}
           transition={{ duration: 3 }}
-          className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center"
+          className="absolute inset-x-0 top-0 h-48 pointer-events-none z-50 flex items-center justify-center"
         >
           {[...Array(20)].map((_, i) => (
             <motion.div
@@ -43,7 +44,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
               initial={{ x: 0, y: 0, scale: 0, opacity: 1 }}
               animate={{
                 x: (Math.random() - 0.5) * 600,
-                y: (Math.random() - 0.5) * 600,
+                y: (Math.random() - 0.5) * 400,
                 scale: Math.random() * 1.5 + 0.5,
                 opacity: 0,
                 rotate: Math.random() * 360,
@@ -58,44 +59,46 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         </motion.div>
       )}
 
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: "spring", duration: 0.6 }}
-        className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6"
-      >
-        <PartyPopper className="h-10 w-10 text-primary" />
-      </motion.div>
+      <div className="relative">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", duration: 0.6 }}
+          className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6"
+        >
+          <PartyPopper className="h-10 w-10 text-primary" />
+        </motion.div>
 
-      <motion.h2
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="text-2xl md:text-3xl font-bold text-foreground mb-3"
-      >
-        Merci pour votre générosité !
-      </motion.h2>
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-2xl md:text-3xl font-bold text-foreground mb-3"
+        >
+          Merci pour votre générosité !
+        </motion.h2>
 
-      <motion.p
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="text-lg text-muted-foreground mb-2"
-      >
-        Votre don va permettre d'aider concrètement et immédiatement <span className="font-semibold text-foreground">{beneficiaryName}</span>.
-      </motion.p>
+        {/* Social proof — rang donateur */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.45 }}
+          className="mb-4 flex justify-center"
+        >
+          <SocialProof variant="confirmation" beneficiaryId={beneficiaryId} />
+        </motion.div>
 
-      {/* Social proof — juste sous le titre */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="mb-6 flex justify-center"
-      >
-        <SocialProof variant="confirmation" beneficiaryId={beneficiaryId} />
-      </motion.div>
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="text-lg text-muted-foreground mb-6"
+        >
+          Votre don va permettre d'aider concrètement et immédiatement <span className="font-semibold text-foreground">{beneficiaryName}</span>.
+        </motion.p>
+      </div>
 
-      {/* Bloc fusionné : colis + promesse de livraison */}
+      {/* Bloc principal : promesse de livraison */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -111,38 +114,32 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          {products.map((p) => (
-            <div key={p.id} className="flex items-center gap-2 text-sm text-foreground py-1">
-              <Check className="h-3 w-3 text-primary flex-shrink-0" />
-              {(p as any).display_name || p.name}
-            </div>
-          ))}
+        <div className="text-sm text-muted-foreground space-y-3">
+          <p>
+            Vous recevrez une confirmation par email dès que le colis sera remis à {beneficiaryName}.
+          </p>
+          <p>
+            {user ? (
+              <>
+                Retrouvez cette confirmation dans{" "}
+                <Link to="/dashboard" className="font-semibold text-primary hover:underline">
+                  Vos contributions
+                </Link>{" "}
+                dans votre espace donateur.
+              </>
+            ) : (
+              <>
+                <Link to="/auth" className="font-semibold text-primary hover:underline">
+                  Créez votre espace donateur
+                </Link>{" "}
+                pour suivre vos contributions.
+              </>
+            )}
+          </p>
         </div>
-
-        <p className="text-sm text-muted-foreground">
-          Vous recevrez une confirmation par email dès que le colis sera remis à {beneficiaryName}.
-          <br />
-          {user ? (
-            <>
-              Retrouvez cette confirmation dans{" "}
-              <Link to="/dashboard" className="font-semibold text-primary hover:underline">
-                Vos contributions
-              </Link>{" "}
-              dans votre espace donateur.
-            </>
-          ) : (
-            <>
-              <Link to="/auth" className="font-semibold text-primary hover:underline">
-                Créez votre espace donateur
-              </Link>{" "}
-              pour suivre vos contributions.
-            </>
-          )}
-        </p>
       </motion.div>
 
-      {/* Upsell card séparé — après le colis principal */}
+      {/* Upsell card — uniquement si sélectionné */}
       {emergencyPack && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -152,10 +149,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         >
           <div className="flex items-center gap-2 mb-2">
             <Heart className="h-5 w-5 text-cta" />
-            <h3 className="font-semibold text-foreground">Kit urgence</h3>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-foreground">
-            {emergencyPack.icon} {emergencyPack.description} (+{emergencyPack.amount}€)
+            <h3 className="font-semibold text-foreground">{emergencyPack.description}</h3>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
             Ce kit sera remis à une autre personne que {beneficiaryName}.
@@ -163,7 +157,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         </motion.div>
       )}
 
-      {/* Post-don social block + Aider quelqu'un d'autre */}
+      {/* Post-don social block */}
       <PostDonSocialBlock />
     </div>
   );
