@@ -1,28 +1,24 @@
 
 
-# Mise en production de la timeline C5 (Glassmorphism)
+# Rendre l'image hero téléchargeable
 
-## Actions
+## Problème
+Les fichiers dans `src/assets/` ne sont pas accessibles directement via URL en production — ils sont bundlés par Vite.
 
-### 1. Remplacer `src/components/ImpactTimeline.tsx`
-Réécrire le composant avec le code de la variante C5 du showcase :
-- Accepte `beneficiaryName` en prop (remplace "Aïcha" par le prénom dynamique)
-- 4 étapes : Heart/Aujourd'hui, Package/Demain, Truck/Sous 2 j, Gift/Sous 3 j
-- Fond glassmorphism (`bg-card/80 backdrop-blur-sm border-white/20 shadow-warm`)
-- Barre de progression : desktop `left-[12.5%] right-[12.5%]`, mobile verticale
-- Premier nœud avec pulse intégré (`boxShadow` animé via framer-motion)
-- Nœuds inactifs : `bg-primary/15 backdrop-blur border-white/20`
-- Bloc transparence ShieldCheck : "Vous recevrez une confirmation dès que le colis lui sera remis."
-- Responsive mobile/desktop via `useIsMobile()`
+## Solution
+Déplacer `hero-solidarity.jpg` dans le dossier `public/` (accessible directement via URL) et mettre à jour l'import dans `Index.tsx`.
 
-### 2. Supprimer `src/pages/TimelineShowcase.tsx`
-Page temporaire devenue inutile.
+## Modifications
 
-### 3. Nettoyer `src/App.tsx`
-Supprimer la route `/timeline-showcase` et son import.
+### 1. Déplacer le fichier
+- Copier `src/assets/hero-solidarity.jpg` → `public/hero-solidarity.jpg`
 
-## Fichiers concernés
-1. **Modifier** `src/components/ImpactTimeline.tsx` — remplacement complet
-2. **Supprimer** `src/pages/TimelineShowcase.tsx`
-3. **Modifier** `src/App.tsx` — retirer 1 route + 1 import
+### 2. Modifier `src/pages/Index.tsx`
+- Supprimer `import heroImage from "@/assets/hero-solidarity.jpg";`
+- Remplacer `src={heroImage}` par `src="/hero-solidarity.jpg"`
+
+## Résultat
+L'image sera accessible à `https://id-preview--0f96d648-3a03-42f6-85f7-ce35f8005b9b.lovable.app/hero-solidarity.jpg`
+
+2 modifications, 1 déplacement de fichier.
 
