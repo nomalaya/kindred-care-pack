@@ -1,24 +1,21 @@
 
 
-# Créer une route `/donation-preview` pour visualiser la confirmation
+# Supprimer la section "Voir l'impact réel"
 
-## Problème
-Impossible d'accéder à la page de confirmation sans passer par Stripe. Il faut aussi corriger l'erreur `TaxShowcase is not defined` (route `/themes` référence encore `ThemeShowcase` qui n'existe peut-être plus).
+## Modifications
 
-## Solution
-Créer une page `/donation-preview` qui affiche `DonationConfirmation` avec des données fictives (prénom "Aïcha", montant 35€, produits simulés).
+### 1. Supprimer `src/components/ImpactProofSection.tsx`
 
-## Fichiers
+### 2. Modifier `src/components/DonationConfirmation.tsx`
+- Retirer l'import `ImpactProofSection`
+- Retirer `<ImpactProofSection />` (ligne 172)
 
-### 1. Créer `src/pages/DonationPreview.tsx`
-- Importe `DonationConfirmation` et `Layout`
-- Passe des props fictives : `beneficiaryName="Aïcha"`, `amount=35`, quelques produits simulés, un `emergencyPack` optionnel
-- Enveloppé dans `<Layout>`
+### 3. Modifier `src/components/checkout/OrderConfirmation.tsx`
+- Retirer l'import `ImpactProofSection`
+- Retirer `<ImpactProofSection />` (ligne 317)
 
-### 2. Modifier `src/App.tsx`
-- Ajouter `import DonationPreview` + route `/donation-preview`
-- Corriger l'erreur runtime : retirer l'import `ThemeShowcase` et la route `/themes` (le fichier a été supprimé précédemment)
+### 4. Corriger l'erreur runtime `ThemeShowcase is not defined`
+- Vérifier et nettoyer toute référence restante dans `App.tsx`
 
-## Accès
-Naviguer vers `/donation-preview` pour voir directement le bloc post-don avec les icônes sociales, la preuve d'impact et la timeline.
+3 fichiers modifiés, 1 fichier supprimé.
 
