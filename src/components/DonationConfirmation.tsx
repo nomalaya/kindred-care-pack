@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { Check, Package, Heart, PartyPopper } from "lucide-react";
 import { Link } from "react-router-dom";
 import { type UpsellOption } from "@/lib/constants";
@@ -86,33 +85,12 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         Votre don va permettre d'aider concrètement et immédiatement <span className="font-semibold text-foreground">{beneficiaryName}</span>.
       </motion.p>
 
-      {/* Products included */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="bg-card rounded-2xl p-6 border shadow-card mb-6 text-left"
-      >
-        <div className="flex items-center gap-2 mb-4">
-          <Package className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Contenu du colis</h3>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {products.map((p) => (
-            <div key={p.id} className="flex items-center gap-2 text-sm text-foreground py-1">
-              <Check className="h-3 w-3 text-primary flex-shrink-0" />
-              {(p as any).display_name || p.name}
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
       {/* Upsell card séparé */}
       {emergencyPack && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
+          transition={{ delay: 0.6 }}
           className="bg-card rounded-2xl p-6 border shadow-card mb-6 text-left"
         >
           <div className="flex items-center gap-2 mb-2">
@@ -128,70 +106,65 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         </motion.div>
       )}
 
-      {/* Delivery promise */}
+      {/* Bloc fusionné : colis + promesse de livraison */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
+        transition={{ delay: 0.7 }}
         className="bg-card rounded-2xl p-6 border shadow-card mb-6 text-left"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
             <Package className="h-5 w-5 text-primary" />
           </div>
-          <div>
-            <p className="text-base font-semibold text-foreground">
-              Votre colis sera remis à {beneficiaryName} sous 3 jours maximum.
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Vous recevrez une confirmation par email dès que le colis sera remis à {beneficiaryName}.
-              <br />
-              {user ? (
-                <>
-                  Retrouvez cette confirmation dans{" "}
-                  <Link to="/dashboard" className="font-semibold text-primary hover:underline">
-                    Vos contributions
-                  </Link>{" "}
-                  dans votre espace donateur.
-                </>
-              ) : (
-                <>
-                  <Link to="/auth" className="font-semibold text-primary hover:underline">
-                    Créez votre espace donateur
-                  </Link>{" "}
-                  pour suivre vos contributions.
-                </>
-              )}
-            </p>
-          </div>
+          <p className="text-base font-semibold text-foreground">
+            Votre colis sera remis à {beneficiaryName} sous 3 jours maximum.
+          </p>
         </div>
+
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {products.map((p) => (
+            <div key={p.id} className="flex items-center gap-2 text-sm text-foreground py-1">
+              <Check className="h-3 w-3 text-primary flex-shrink-0" />
+              {(p as any).display_name || p.name}
+            </div>
+          ))}
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          Vous recevrez une confirmation par email dès que le colis sera remis à {beneficiaryName}.
+          <br />
+          {user ? (
+            <>
+              Retrouvez cette confirmation dans{" "}
+              <Link to="/dashboard" className="font-semibold text-primary hover:underline">
+                Vos contributions
+              </Link>{" "}
+              dans votre espace donateur.
+            </>
+          ) : (
+            <>
+              <Link to="/auth" className="font-semibold text-primary hover:underline">
+                Créez votre espace donateur
+              </Link>{" "}
+              pour suivre vos contributions.
+            </>
+          )}
+        </p>
       </motion.div>
 
       {/* Social proof */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.9 }}
+        transition={{ delay: 0.8 }}
         className="mb-6 flex justify-center"
       >
         <SocialProof variant="confirmation" beneficiaryId={beneficiaryId} />
       </motion.div>
 
-      {/* Post-don social block */}
+      {/* Post-don social block + Aider quelqu'un d'autre */}
       <PostDonSocialBlock />
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="flex justify-center mt-4"
-      >
-        <Link to="/causes">
-          <Button variant="outline" className="px-8">
-            Aider quelqu'un d'autre
-          </Button>
-        </Link>
-      </motion.div>
     </div>
   );
 };
