@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import { DELIVERY_STATUSES, type UpsellOption } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import SocialProof from "@/components/SocialProof";
+import PostDonSocialBlock from "@/components/PostDonSocialBlock";
+import ImpactProofSection from "@/components/ImpactProofSection";
 import type { BasketItem } from "@/lib/basketEngine";
 import { computeBasketImpact } from "@/lib/basketEngine";
 
@@ -162,6 +164,12 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
       >
         <SocialProof variant="confirmation" beneficiaryId={beneficiaryId} />
       </motion.div>
+
+      {/* Post-don social block */}
+      <PostDonSocialBlock beneficiaryName={beneficiaryName} />
+
+      {/* Impact proof */}
+      <ImpactProofSection />
 
       <motion.div
         initial={{ opacity: 0 }}

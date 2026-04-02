@@ -6,6 +6,8 @@ import { CheckCircle, Download, Share2, Heart, Gift, Receipt, Mail } from "lucid
 import TaxInfoLink from "@/components/TaxInfoLink";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import SocialProof from "@/components/SocialProof";
+import PostDonSocialBlock from "@/components/PostDonSocialBlock";
+import ImpactProofSection from "@/components/ImpactProofSection";
 import { toast } from "sonner";
 import { getAgeRange } from "@/lib/ageRange";
 import { generateIndividualReceipt } from "@/lib/generateReceipt";
@@ -307,6 +309,12 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
         beneficiaryName={beneficiary.alias_first_name}
         beneficiaryId={beneficiary.id}
       />
+
+      {/* Post-don social block */}
+      <PostDonSocialBlock beneficiaryName={beneficiary.alias_first_name} />
+
+      {/* Impact proof */}
+      <ImpactProofSection />
 
       {/* Call to Action */}
       <Card className="bg-primary/5 border-primary/20">

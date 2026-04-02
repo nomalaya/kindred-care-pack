@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, User, LogOut } from "lucide-react";
 import Logo from "@/components/Logo";
+import SocialIcons from "@/components/SocialIcons";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,6 +48,7 @@ const Navbar = () => {
               </Button>
             </Link>
           )}
+          <SocialIcons variant="subtle" />
           <Link to="/causes">
             <Button className="bg-cta hover:bg-cta/90 text-cta-foreground" size="sm">
               Je donne
@@ -66,7 +68,7 @@ const Navbar = () => {
           <Link to="/avantage-fiscal" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Avantage fiscal</Link>
           {user ? (
             <>
-              <Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}><Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Mon espace donateur</Link></Link>
+              <Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Mon espace donateur</Link>
               <button className="block text-sm font-medium py-2" onClick={() => { handleLogout(); setMobileOpen(false); }}>Déconnexion</button>
             </>
           ) : (
