@@ -17,7 +17,7 @@ import Admin from "./pages/Admin";
 import HowItWorks from "./pages/HowItWorks";
 import ThemeShowcase from "./pages/ThemeShowcase";
 
-import TaxShowcase from "./pages/TaxShowcase";
+
 import TaxAdvantage from "./pages/TaxAdvantage";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -45,7 +45,7 @@ const App = () => (
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/themes" element={<ThemeShowcase />} />
             
-            <Route path="/tax-showcase" element={<TaxShowcase />} />
+            
             <Route path="/avantage-fiscal" element={<TaxAdvantage />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
