@@ -68,7 +68,7 @@ const Navbar = () => {
           <Link to="/avantage-fiscal" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Avantage fiscal</Link>
           {user ? (
             <>
-              <Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}><Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Mon espace donateur</Link></Link>
+              <Link to="/dashboard" className="block text-sm font-medium py-2" onClick={() => setMobileOpen(false)}>Mon espace donateur</Link>
               <button className="block text-sm font-medium py-2" onClick={() => { handleLogout(); setMobileOpen(false); }}>Déconnexion</button>
             </>
           ) : (

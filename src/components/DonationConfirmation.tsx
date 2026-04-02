@@ -165,6 +165,12 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         <SocialProof variant="confirmation" beneficiaryId={beneficiaryId} />
       </motion.div>
 
+      {/* Post-don social block */}
+      <PostDonSocialBlock beneficiaryName={beneficiaryName} />
+
+      {/* Impact proof */}
+      <ImpactProofSection />
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
