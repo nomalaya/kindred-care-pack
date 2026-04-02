@@ -90,7 +90,8 @@ const PostDonSocialBlock = () => {
       )}
 
       <Link to="/causes">
-        <Button variant="outline">
+        <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+          <HeartHandshake className="h-4 w-4 mr-2" />
           Aider quelqu'un d'autre
         </Button>
       </Link>
