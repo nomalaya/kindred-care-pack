@@ -80,31 +80,20 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="text-lg text-muted-foreground mb-4"
+        className="text-lg text-muted-foreground mb-2"
       >
         Votre don va permettre d'aider concrètement et immédiatement <span className="font-semibold text-foreground">{beneficiaryName}</span>.
       </motion.p>
 
-      {/* Upsell card séparé */}
-      {emergencyPack && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-card rounded-2xl p-6 border shadow-card mb-6 text-left"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Heart className="h-5 w-5 text-cta" />
-            <h3 className="font-semibold text-foreground">Kit urgence</h3>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-foreground">
-            {emergencyPack.icon} {emergencyPack.description} (+{emergencyPack.amount}€)
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Ce kit sera remis à une autre personne que {beneficiaryName}.
-          </p>
-        </motion.div>
-      )}
+      {/* Social proof — juste sous le titre */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.6 }}
+        className="mb-6 flex justify-center"
+      >
+        <SocialProof variant="confirmation" beneficiaryId={beneficiaryId} />
+      </motion.div>
 
       {/* Bloc fusionné : colis + promesse de livraison */}
       <motion.div
@@ -153,15 +142,26 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         </p>
       </motion.div>
 
-      {/* Social proof */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        className="mb-6 flex justify-center"
-      >
-        <SocialProof variant="confirmation" beneficiaryId={beneficiaryId} />
-      </motion.div>
+      {/* Upsell card séparé — après le colis principal */}
+      {emergencyPack && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="bg-card rounded-2xl p-6 border shadow-card mb-6 text-left"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Heart className="h-5 w-5 text-cta" />
+            <h3 className="font-semibold text-foreground">Kit urgence</h3>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-foreground">
+            {emergencyPack.icon} {emergencyPack.description} (+{emergencyPack.amount}€)
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Ce kit sera remis à une autre personne que {beneficiaryName}.
+          </p>
+        </motion.div>
+      )}
 
       {/* Post-don social block + Aider quelqu'un d'autre */}
       <PostDonSocialBlock />
