@@ -311,7 +311,7 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
       />
 
       {/* Post-don social block */}
-      <PostDonSocialBlock beneficiaryName={beneficiary.alias_first_name} />
+      <PostDonSocialBlock />
 
 
       {/* Call to Action */}

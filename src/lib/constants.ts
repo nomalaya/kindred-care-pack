@@ -18,12 +18,19 @@ export const CAUSE_ICONS: Record<string, string> = {
   Stethoscope: "🩺",
 };
 
+/** Full delivery statuses (used internally / DB) */
 export const DELIVERY_STATUSES = [
   { key: "confirmed", label: "Don confirmé", icon: "✓" },
   { key: "prepared", label: "Colis préparé", icon: "📦" },
   { key: "shipped", label: "Colis expédié", icon: "🚚" },
   { key: "delivered", label: "Colis livré", icon: "🎉" },
 ] as const;
+
+/** Simplified statuses for donor-facing UI */
+export const DONOR_STATUSES = {
+  pending: { label: "Don confirmé — colis en préparation", icon: "📦" },
+  delivered: { label: "Remis", icon: "🎉" },
+} as const;
 
 export const TAX_DEDUCTION_RATE = 0.66;
 
