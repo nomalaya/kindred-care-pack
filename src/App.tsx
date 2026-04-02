@@ -15,7 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import HowItWorks from "./pages/HowItWorks";
-import ThemeShowcase from "./pages/ThemeShowcase";
+import DonationPreview from "./pages/DonationPreview";
 
 
 import TaxAdvantage from "./pages/TaxAdvantage";
