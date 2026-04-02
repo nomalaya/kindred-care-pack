@@ -9,7 +9,7 @@ const Layout = ({ children }: { children: ReactNode }) => (
     <footer className="bg-card border-t py-12 mt-16">
       <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
         <p className="font-semibold text-foreground mb-2">CashForCause</p>
-        <p>Créer du lien humain par la générosité. Chaque don raconte une histoire.</p>
+        <p>Choisissez une personne qui a besoin d'aide et financez l'envoi d'un colis personnalisé. Impact direct et immédiat.</p>
         <div className="mt-4 flex justify-center">
           <SocialIcons variant="subtle" />
         </div>
