@@ -9,7 +9,6 @@ import PostDonSocialBlock from "@/components/PostDonSocialBlock";
 import { useAuth } from "@/hooks/useAuth";
 
 import type { BasketItem } from "@/lib/basketEngine";
-import { computeBasketImpact } from "@/lib/basketEngine";
 
 interface Props {
   beneficiaryName: string;
@@ -29,9 +28,6 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
     const t = setTimeout(() => setShowConfetti(false), 3000);
     return () => clearTimeout(t);
   }, []);
-
-  const impact = basket ? computeBasketImpact(basket) : null;
-  const productCount = impact?.totalProducts ?? products.length;
 
   return (
     <div className="max-w-2xl mx-auto text-center py-8">
@@ -78,7 +74,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         transition={{ delay: 0.3 }}
         className="text-2xl md:text-3xl font-bold text-foreground mb-3"
       >
-        Merci pour votre générosité ! ❤️
+        Merci pour votre générosité !
       </motion.h2>
 
       <motion.p
@@ -87,10 +83,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         transition={{ delay: 0.5 }}
         className="text-lg text-muted-foreground mb-4"
       >
-        Votre don de <span className="font-bold text-primary">{amount}€</span> permet{" "}
-        <span className="font-semibold text-foreground">{productCount} produits essentiels</span>
-        {impact && <> couvrant <span className="font-semibold text-foreground">{impact.categoriesCount} catégories</span></>}
-        {" "}pour <span className="font-semibold text-foreground">{beneficiaryName}</span>.
+        Votre don va permettre d'aider concrètement et immédiatement <span className="font-semibold text-foreground">{beneficiaryName}</span>.
       </motion.p>
 
       {/* Products included */}
@@ -102,7 +95,7 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
       >
         <div className="flex items-center gap-2 mb-4">
           <Package className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Contenu du colis – {emergencyPack ? amount - emergencyPack.amount : amount}€</h3>
+          <h3 className="font-semibold text-foreground">Contenu du colis</h3>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {products.map((p) => (
@@ -112,16 +105,28 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
             </div>
           ))}
         </div>
-
-        {emergencyPack && (
-          <div className="mt-4 pt-4 border-t">
-            <div className="flex items-center gap-2 text-sm text-cta font-medium">
-              <Heart className="h-3 w-3 fill-cta/30" />
-              {emergencyPack.icon} {emergencyPack.description} (+{emergencyPack.amount}€)
-            </div>
-          </div>
-        )}
       </motion.div>
+
+      {/* Upsell card séparé */}
+      {emergencyPack && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="bg-card rounded-2xl p-6 border shadow-card mb-6 text-left"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Heart className="h-5 w-5 text-cta" />
+            <h3 className="font-semibold text-foreground">Kit urgence</h3>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-foreground">
+            {emergencyPack.icon} {emergencyPack.description} (+{emergencyPack.amount}€)
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Ce kit sera remis à une autre personne que {beneficiaryName}.
+          </p>
+        </motion.div>
+      )}
 
       {/* Delivery promise */}
       <motion.div
@@ -135,14 +140,15 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
             <Package className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">
-              Votre colis sera préparé et remis à {beneficiaryName} sous 72h.
+            <p className="text-base font-semibold text-foreground">
+              Votre colis sera remis à {beneficiaryName} sous 3 jours maximum.
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              Vous recevrez une confirmation par email dès que le colis lui sera remis.{" "}
+              Vous recevrez une confirmation par email dès que le colis sera remis à {beneficiaryName}.
+              <br />
               {user ? (
                 <>
-                  Retrouvez aussi cette confirmation dans{" "}
+                  Retrouvez cette confirmation dans{" "}
                   <Link to="/dashboard" className="font-semibold text-primary hover:underline">
                     Vos contributions
                   </Link>{" "}
@@ -178,14 +184,8 @@ const DonationConfirmation = ({ beneficiaryName, amount, products, basket, emerg
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        className="flex flex-col sm:flex-row gap-3 justify-center"
+        className="flex justify-center mt-4"
       >
-        <Link to="/dashboard">
-          <Button className="bg-cta hover:bg-cta/90 text-cta-foreground px-8">
-            <Heart className="h-4 w-4 mr-2" />
-            Voir mes dons
-          </Button>
-        </Link>
         <Link to="/causes">
           <Button variant="outline" className="px-8">
             Aider quelqu'un d'autre

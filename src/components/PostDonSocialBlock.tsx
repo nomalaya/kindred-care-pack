@@ -15,7 +15,7 @@ const SHARE_TEXT = "Je viens d'aider une personne dans le besoin via CashForCaus
 const SHARE_URL = typeof window !== "undefined" ? window.location.origin : "";
 
 const PostDonSocialBlock = () => {
-  const isMobile = typeof navigator !== "undefined" && !!navigator.share;
+  const isMobile = typeof navigator !== "undefined" && !!navigator.share && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
   const handleMobileShare = async () => {
     try {
@@ -55,13 +55,6 @@ const PostDonSocialBlock = () => {
       transition={{ delay: 1.2, duration: 0.6 }}
       className="bg-card rounded-2xl p-6 border shadow-card text-center space-y-4"
     >
-      <h3 className="text-lg font-semibold text-foreground">
-        Partagez votre action
-      </h3>
-      <p className="text-sm text-muted-foreground">
-        Votre don permet l'envoi d'un colis alimentaire sous 48h.
-      </p>
-
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         {isMobile ? (
           <Button onClick={handleMobileShare} className="bg-cta hover:bg-cta/90 text-cta-foreground">
