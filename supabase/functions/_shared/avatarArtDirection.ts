@@ -74,26 +74,29 @@ const HAIR_TYPE_DESC: Record<string, string> = {
 };
 
 export const ART_DIRECTION_INVARIANTS = `
-MODERN 2D CHARACTER ILLUSTRATION — clean digital cartoon portrait, Pixar-inspired stylization, smooth flat-shaded rendering with soft cel-shading. Explicitly NOT a photograph, NOT photorealistic, NOT a painterly/watercolor/oil rendering, NOT a 3D render, NOT anime, NOT manga, NOT chibi, NOT American comic book.
-LINEWORK: soft, clean, deliberately drawn contours; simplified and stylized features (slightly enlarged friendly eyes, softened nose and jaw). Visible illustrator's hand without harshness.
-SHADING: flat color fills with gentle 2-tone cel-shading, soft ambient light, perfectly smooth stylized skin (no pores, no grain, no photo texture). Crisp edges where it serves the drawing, never blurry.
-ANONYMITY: ensured naturally by the cartoon stylization itself — the subject is evocative and emotionally readable but never an identifiable real person. Do NOT add gaussian blur or smudging.
-FRAMING: chest-up portrait, subject centered, square 1:1 composition, consistent margins.
-BACKGROUND: soft warm off-white or very light sand/ivory gradient — clean and uncluttered, consistent across all portraits.
-COLOR PALETTE: warm, human, slightly desaturated earth and sand tones; no neon, no saturated commercial colors.
-DIGNITY: respectful, warm, true-to-life empathy; no caricature, no exaggeration, no stereotype, no pathos.
+FLAT VECTOR CARTOON AVATAR — clean modern illustrated character avatar, in the visual style of contemporary app illustration packs (Storyset, unDraw, Notion-style avatars, modern mobile app onboarding characters). Bold clean outlines, simple cel-shaded flat color fills with at most 2 tones per surface, sticker-like rendering, Adobe Illustrator vector look. Friendly, generic, archetypal — intentionally non-specific.
+EXPLICITLY NOT: not a photograph, not photorealistic, not semi-realistic, not painterly, not watercolor, not oil painting, not Pixar 3D render, not Disney render, not Studio Ghibli, not anime, not manga, not chibi, not comic book, not pencil sketch.
+LINEWORK: clean, bold, deliberate vector outlines around face, hair and body. Simplified stylized features (slightly enlarged friendly eyes, simple nose, simple mouth). No painterly brush strokes.
+SHADING: pure flat color fills with one soft cel-shading tone for depth. No gradients on skin, no painted texture, no pores, no realistic skin rendering.
+ANONYMITY: generic archetypal character — must NEVER resemble any real person, public figure, celebrity, or identifiable individual. No identifying marks, no specific likeness, no facial recognition possible. The character is a friendly stand-in, not a portrait.
+FRAMING: chest-up bust, subject centered, square 1:1 composition, consistent margins, character occupies ~70% of the frame.
+BACKGROUND: pure plain white background (#FFFFFF), perfectly uniform, no gradient, no shadow, no decoration. Catalog-grade consistency.
+COLOR PALETTE: warm, friendly, slightly muted illustration colors. No neon, no oversaturation.
+DIGNITY: respectful, warm, kind expression. No caricature, no exaggeration, no stereotype, no pathos, no misery.
 `.trim();
 
 export const NEGATIVE_PROMPT = [
   "no text", "no watermark", "no logo", "no caption", "no signature",
   "no photograph", "no photorealism", "no realistic skin texture", "no skin pores",
   "no DSLR look", "no stock photo feel", "no passport photo", "no LinkedIn portrait",
-  "no 3D render", "no CGI render", "no octane render",
-  "no painterly brushstrokes", "no watercolor", "no oil painting", "no gaussian blur", "no smudged features",
-  "no anime", "no manga", "no chibi", "no comic book style", "no superhero style",
-  "no identifiable likeness of any real person", "no recognizable individual",
-  "no studio plain white background", "no artificial commercial smile",
-  "no dramatic lighting", "no tears", "no despair", "no exaggerated emotion",
+  "no semi-realistic style", "no painterly style", "no painted portrait",
+  "no watercolor", "no oil painting", "no acrylic painting", "no textured brushstrokes",
+  "no 3D render", "no CGI render", "no octane render", "no Pixar 3D style", "no Disney render", "no Studio Ghibli style",
+  "no anime", "no manga", "no chibi", "no comic book style", "no superhero style", "no pencil sketch",
+  "no gaussian blur", "no smudged features",
+  "no identifiable likeness of any real person", "no recognizable individual", "no celebrity resemblance", "no public figure resemblance",
+  "no colored background", "no gradient background", "no decorated background", "no scene background",
+  "no artificial commercial smile", "no dramatic lighting", "no tears", "no despair", "no exaggerated emotion",
   "no caricature", "no cultural stereotype", "no traditional ceremonial dress",
   "no multiple faces, single subject only", "no nudity", "no children faces in isolation",
   "no harsh shadows", "no oversaturation", "no glossy skin",
@@ -154,6 +157,7 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
   ].filter(Boolean).join("\n");
 }
 
+// Same model for preview and final to guarantee a single consistent cartoon style across the catalog.
 export const MODEL_PREVIEW = "google/gemini-3.1-flash-image-preview";
-export const MODEL_FINAL = "google/gemini-3-pro-image-preview";
+export const MODEL_FINAL = "google/gemini-3.1-flash-image-preview";
 export const MODEL_QA = "google/gemini-2.5-flash";
