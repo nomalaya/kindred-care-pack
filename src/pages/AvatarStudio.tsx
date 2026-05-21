@@ -1015,15 +1015,33 @@ const AvatarStudio = () => {
 
                 <Tabs defaultValue="face" className="flex-1 flex flex-col overflow-hidden">
                   <TabsList className="mx-4 mt-3 justify-start flex-wrap h-auto">
-                    <TabsTrigger value="face">Visage</TabsTrigger>
-                    <TabsTrigger value="eyes">Yeux</TabsTrigger>
-                    <TabsTrigger value="hair">Cheveux</TabsTrigger>
-                    {isMan && <TabsTrigger value="male">Masculin</TabsTrigger>}
-                    {hasCulture && <TabsTrigger value="cultural">Culturel</TabsTrigger>}
-                    <TabsTrigger value="clothing">Vêtements</TabsTrigger>
-                    <TabsTrigger value="posture">Posture</TabsTrigger>
-                    <TabsTrigger value="social">Social</TabsTrigger>
+                    {([
+                      ["face", "Visage", Smile],
+                      ["eyes", "Yeux", Eye],
+                      ["hair", "Cheveux", Scissors],
+                      ...(isMan ? [["male", "Masculin", User]] as const : []),
+                      ...(hasCulture ? [["cultural", "Culturel", Globe]] as const : []),
+                      ["clothing", "Vêtements", Shirt],
+                      ["posture", "Posture", PersonStanding],
+                      ["social", "Social", Baby],
+                    ] as [string, string, LucideIcon][]).map(([val, lbl, Ic]) => {
+                      const hasErr = warnings.some(w => w.section === val && w.severity === "error");
+                      const hasWarn = warnings.some(w => w.section === val && w.severity === "warning");
+                      return (
+                        <TabsTrigger key={val} value={val} className="relative gap-1.5">
+                          <Ic className="h-3.5 w-3.5" />
+                          {lbl}
+                          {(hasErr || hasWarn) && (
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${hasErr ? "bg-[hsl(var(--status-failed-fg))]" : "bg-[hsl(var(--status-generated-fg))]"}`}
+                              aria-label={hasErr ? "Erreur" : "Avertissement"}
+                            />
+                          )}
+                        </TabsTrigger>
+                      );
+                    })}
                   </TabsList>
+
 
                   <div className="flex-1 overflow-y-auto p-4">
                     <TabsContent value="face" className="mt-0 space-y-3">
