@@ -146,23 +146,28 @@ serve(async (req) => {
 
         if (mode === "preview") {
           const bytes = await generateImage(prompt, MODEL_PREVIEW);
+          const ts = Date.now();
           const fileName = `preview/${beneficiary_id}.png`;
+          const versionFileName = `versions/${beneficiary_id}/preview-${ts}.png`;
           const { error: upErr } = await supabase.storage.from("avatars").upload(
             fileName, bytes, { contentType: "image/png", upsert: true },
           );
           if (upErr) throw upErr;
+          await supabase.storage.from("avatars").upload(
+            versionFileName, bytes, { contentType: "image/png", upsert: false },
+          );
           const { data: u } = supabase.storage.from("avatars").getPublicUrl(fileName);
-          const url = `${u.publicUrl}?t=${Date.now()}`;
+          const { data: vu } = supabase.storage.from("avatars").getPublicUrl(versionFileName);
+          const url = `${u.publicUrl}?t=${ts}`;
           await supabase.from("beneficiaries").update({
             ...traitsUpdate,
             avatar_preview_url: url,
             avatar_status: "preview",
             avatar_model_used: MODEL_PREVIEW,
           }).eq("id", beneficiary_id);
-          // Archive preview version
           await supabase.from("avatar_versions").insert({
             beneficiary_id,
-            image_url: url,
+            image_url: vu.publicUrl,
             model_used: MODEL_PREVIEW,
             seed: traits.avatar_seed,
             prompt,
