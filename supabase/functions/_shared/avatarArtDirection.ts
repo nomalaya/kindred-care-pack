@@ -86,6 +86,8 @@ DIGNITY: respectful, human, true-to-life empathy; absolutely no pathos, no caric
 
 export const NEGATIVE_PROMPT = [
   "no text", "no watermark", "no logo", "no caption", "no signature",
+  "no photograph", "no photorealism", "no DSLR look", "no skin pores", "no sharp facial details",
+  "no identifiable likeness of any real person", "no recognizable individual",
   "no passport photo", "no LinkedIn portrait", "no stock photo feel",
   "no studio plain white background", "no artificial commercial smile",
   "no dramatic lighting", "no tears", "no despair", "no exaggerated emotion",
