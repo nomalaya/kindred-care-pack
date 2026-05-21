@@ -36,6 +36,18 @@ export interface BeneficiaryInput {
   avatar_parent_energy?: string | null;
   avatar_cultural_style?: string | null;
   avatar_seed?: number | null;
+  // Avatar Studio extensions
+  avatar_tired_level?: number | null;
+  avatar_emotional_brightness?: number | null;
+  avatar_beard?: string | null;
+  avatar_moustache?: string | null;
+  avatar_bald_level?: number | null;
+  avatar_hair_recession?: string | null;
+  avatar_head_covering?: string | null;
+  avatar_cultural_style_override?: string | null;
+  avatar_resilience_level?: number | null;
+  avatar_fatigue_level?: number | null;
+  avatar_dignity_level?: number | null;
 }
 
 export interface AvatarTraits {
@@ -58,6 +70,18 @@ export interface AvatarTraits {
   avatar_parent_energy: string;
   avatar_cultural_style: string;
   avatar_seed: number;
+  // Avatar Studio extensions (carried through to prompt builder)
+  avatar_tired_level?: number;
+  avatar_emotional_brightness?: number;
+  avatar_beard?: string;
+  avatar_moustache?: string;
+  avatar_bald_level?: number;
+  avatar_hair_recession?: string;
+  avatar_head_covering?: string;
+  avatar_cultural_style_override?: string;
+  avatar_resilience_level?: number;
+  avatar_fatigue_level?: number;
+  avatar_dignity_level?: number;
 }
 
 // FNV-1a 32-bit hash — deterministic seed from beneficiary id
@@ -438,5 +462,17 @@ export function inferAvatarTraits(b: BeneficiaryInput): AvatarTraits {
     avatar_parent_energy: b.avatar_parent_energy ?? inferParentEnergy(b, rng),
     avatar_cultural_style: b.avatar_cultural_style ?? inferCulturalStyle(cultureTags, rng),
     avatar_seed: seed,
+    // Pass-through Studio fields (admin-overridable, no inference)
+    avatar_tired_level: b.avatar_tired_level ?? undefined,
+    avatar_emotional_brightness: b.avatar_emotional_brightness ?? undefined,
+    avatar_beard: b.avatar_beard ?? undefined,
+    avatar_moustache: b.avatar_moustache ?? undefined,
+    avatar_bald_level: b.avatar_bald_level ?? undefined,
+    avatar_hair_recession: b.avatar_hair_recession ?? undefined,
+    avatar_head_covering: b.avatar_head_covering ?? undefined,
+    avatar_cultural_style_override: b.avatar_cultural_style_override ?? undefined,
+    avatar_resilience_level: b.avatar_resilience_level ?? undefined,
+    avatar_fatigue_level: b.avatar_fatigue_level ?? undefined,
+    avatar_dignity_level: b.avatar_dignity_level ?? undefined,
   };
 }

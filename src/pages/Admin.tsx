@@ -240,11 +240,18 @@ const Admin = () => {
 
           <TabsContent value="portraits">
             <div className="bg-card border rounded-2xl p-6 space-y-6">
-              <div>
-                <h2 className="text-xl font-semibold mb-1">Migration vers le moteur de portraits v2</h2>
-                <p className="text-sm text-muted-foreground">
-                  Régénère les portraits HD via {TARGET_MODEL.split("/")[1]} avec scoring qualité automatique.
-                </p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold mb-1">Migration vers le moteur de portraits v2</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Régénère les portraits HD via {TARGET_MODEL.split("/")[1]} avec scoring qualité automatique.
+                  </p>
+                </div>
+                <a href="/admin/avatar-studio">
+                  <Button variant="default" size="sm">
+                    <Sparkles className="h-4 w-4 mr-1" />Ouvrir Avatar Studio
+                  </Button>
+                </a>
               </div>
 
               <div className="grid grid-cols-3 gap-4">

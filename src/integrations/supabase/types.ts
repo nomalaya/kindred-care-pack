@@ -14,38 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      avatar_versions: {
+        Row: {
+          beneficiary_id: string
+          created_at: string
+          id: string
+          image_url: string
+          model_used: string | null
+          prompt: string | null
+          qa_report: Json | null
+          qa_score: number | null
+          seed: number | null
+        }
+        Insert: {
+          beneficiary_id: string
+          created_at?: string
+          id?: string
+          image_url: string
+          model_used?: string | null
+          prompt?: string | null
+          qa_report?: Json | null
+          qa_score?: number | null
+          seed?: number | null
+        }
+        Update: {
+          beneficiary_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          model_used?: string | null
+          prompt?: string | null
+          qa_report?: Json | null
+          qa_score?: number | null
+          seed?: number | null
+        }
+        Relationships: []
+      }
       beneficiaries: {
         Row: {
           address: string | null
           alias_first_name: string
           approx_age: number | null
           avatar_age_range: string | null
+          avatar_bald_level: number | null
+          avatar_beard: string | null
           avatar_clothing_color_palette: string | null
           avatar_clothing_style: string | null
           avatar_cultural_style: string | null
+          avatar_cultural_style_override: string | null
+          avatar_dignity_level: number | null
+          avatar_emotional_brightness: number | null
           avatar_expression: string | null
           avatar_eye_color: string | null
           avatar_eye_shape: string | null
           avatar_face_shape: string | null
           avatar_facial_features: string[] | null
+          avatar_fatigue_level: number | null
           avatar_gender: string | null
           avatar_generated_at: string | null
           avatar_hair_color: string | null
           avatar_hair_length: string | null
+          avatar_hair_recession: string | null
           avatar_hair_style: string | null
           avatar_hair_type: string | null
           avatar_hair_volume: string | null
+          avatar_head_covering: string | null
           avatar_model_used: string | null
+          avatar_moustache: string | null
           avatar_parent_energy: string | null
           avatar_posture: string | null
           avatar_preview_url: string | null
           avatar_prompt: string | null
           avatar_qa_report: Json | null
           avatar_qa_score: number | null
+          avatar_resilience_level: number | null
           avatar_seed: number | null
           avatar_skin_tone: string | null
           avatar_status: string | null
+          avatar_tired_level: number | null
           avatar_url: string | null
+          avatar_workflow_status: string | null
           beneficiary_category: string | null
           children_count: number | null
           context_badge: string | null
@@ -88,32 +136,44 @@ export type Database = {
           alias_first_name: string
           approx_age?: number | null
           avatar_age_range?: string | null
+          avatar_bald_level?: number | null
+          avatar_beard?: string | null
           avatar_clothing_color_palette?: string | null
           avatar_clothing_style?: string | null
           avatar_cultural_style?: string | null
+          avatar_cultural_style_override?: string | null
+          avatar_dignity_level?: number | null
+          avatar_emotional_brightness?: number | null
           avatar_expression?: string | null
           avatar_eye_color?: string | null
           avatar_eye_shape?: string | null
           avatar_face_shape?: string | null
           avatar_facial_features?: string[] | null
+          avatar_fatigue_level?: number | null
           avatar_gender?: string | null
           avatar_generated_at?: string | null
           avatar_hair_color?: string | null
           avatar_hair_length?: string | null
+          avatar_hair_recession?: string | null
           avatar_hair_style?: string | null
           avatar_hair_type?: string | null
           avatar_hair_volume?: string | null
+          avatar_head_covering?: string | null
           avatar_model_used?: string | null
+          avatar_moustache?: string | null
           avatar_parent_energy?: string | null
           avatar_posture?: string | null
           avatar_preview_url?: string | null
           avatar_prompt?: string | null
           avatar_qa_report?: Json | null
           avatar_qa_score?: number | null
+          avatar_resilience_level?: number | null
           avatar_seed?: number | null
           avatar_skin_tone?: string | null
           avatar_status?: string | null
+          avatar_tired_level?: number | null
           avatar_url?: string | null
+          avatar_workflow_status?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
           context_badge?: string | null
@@ -156,32 +216,44 @@ export type Database = {
           alias_first_name?: string
           approx_age?: number | null
           avatar_age_range?: string | null
+          avatar_bald_level?: number | null
+          avatar_beard?: string | null
           avatar_clothing_color_palette?: string | null
           avatar_clothing_style?: string | null
           avatar_cultural_style?: string | null
+          avatar_cultural_style_override?: string | null
+          avatar_dignity_level?: number | null
+          avatar_emotional_brightness?: number | null
           avatar_expression?: string | null
           avatar_eye_color?: string | null
           avatar_eye_shape?: string | null
           avatar_face_shape?: string | null
           avatar_facial_features?: string[] | null
+          avatar_fatigue_level?: number | null
           avatar_gender?: string | null
           avatar_generated_at?: string | null
           avatar_hair_color?: string | null
           avatar_hair_length?: string | null
+          avatar_hair_recession?: string | null
           avatar_hair_style?: string | null
           avatar_hair_type?: string | null
           avatar_hair_volume?: string | null
+          avatar_head_covering?: string | null
           avatar_model_used?: string | null
+          avatar_moustache?: string | null
           avatar_parent_energy?: string | null
           avatar_posture?: string | null
           avatar_preview_url?: string | null
           avatar_prompt?: string | null
           avatar_qa_report?: Json | null
           avatar_qa_score?: number | null
+          avatar_resilience_level?: number | null
           avatar_seed?: number | null
           avatar_skin_tone?: string | null
           avatar_status?: string | null
+          avatar_tired_level?: number | null
           avatar_url?: string | null
+          avatar_workflow_status?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
           context_badge?: string | null
