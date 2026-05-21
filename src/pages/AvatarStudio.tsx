@@ -25,14 +25,19 @@ import {
   AVATAR_VOCAB, WORKFLOW_LABEL, WORKFLOW_COLOR, WorkflowStatus,
 } from "@/lib/avatarTraits";
 import { evaluateAvatarRules, RuleWarning } from "@/lib/avatarRules";
-import { inferStudioDefaults } from "@/lib/avatarAutoInfer";
+import { inferStudioDefaultsWithReasons, type FieldReason } from "@/lib/avatarAutoInfer";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
+import { ContextPanel } from "@/features/avatar-studio/ContextPanel";
+import { InferenceReasonsPanel } from "@/features/avatar-studio/InferenceReasonsPanel";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
   UserCircle, CalendarDays, Smile, Palette, Ruler, Layers, Scissors, Waves,
   User, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility, Baby,
-  BatteryLow, Sun, CircleDot, LucideIcon,
+  BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown,
 } from "lucide-react";
 
 type Beneficiary = any;
@@ -87,12 +92,45 @@ const FIELD_ICONS: Record<string, LucideIcon> = {
   avatar_parent_energy: Baby,
 };
 
-function FieldLabel({ icon: Icon, children, right }: { icon?: LucideIcon; children: React.ReactNode; right?: React.ReactNode }) {
+// Sections (tabs) → champs concernés, utilisé pour les badges "champ déduit"
+const TAB_FIELDS: Record<string, string[]> = {
+  face: ["avatar_gender", "avatar_age_range", "avatar_face_shape", "avatar_skin_tone", "avatar_expression"],
+  eyes: ["avatar_eye_shape", "avatar_eye_color", "avatar_tired_level", "avatar_emotional_brightness"],
+  hair: ["avatar_hair_type", "avatar_hair_color", "avatar_hair_length", "avatar_hair_volume", "avatar_hair_style"],
+  male: ["avatar_beard", "avatar_moustache", "avatar_bald_level", "avatar_hair_recession"],
+  cultural: ["avatar_head_covering", "avatar_cultural_style_override"],
+  clothing: ["avatar_clothing_style", "avatar_clothing_color_palette"],
+  posture: ["avatar_posture", "avatar_mobility_aid", "avatar_resilience_level"],
+  social: ["avatar_parent_energy", "avatar_fatigue_level", "avatar_dignity_level"],
+};
+
+function InferredPastille({ reasons }: { reasons?: FieldReason[] }) {
+  if (!reasons || reasons.length === 0) return null;
+  const txt = reasons.map(r => `${r.signalLabel} ← « ${r.keyword} »`).join(" · ");
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center" aria-label={`Champ déduit : ${txt}`}>
+          <Sparkles className="h-3 w-3 text-primary/70" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="text-xs max-w-[260px]">
+        <div className="font-medium mb-0.5">Déduit du récit</div>
+        <div className="text-muted-foreground">{txt}</div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function FieldLabel({
+  icon: Icon, children, right, reasons,
+}: { icon?: LucideIcon; children: React.ReactNode; right?: React.ReactNode; reasons?: FieldReason[] }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
         {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />}
         <span>{children}</span>
+        <InferredPastille reasons={reasons} />
       </Label>
       {right}
     </div>
@@ -100,7 +138,7 @@ function FieldLabel({ icon: Icon, children, right }: { icon?: LucideIcon; childr
 }
 
 function SelectField({
-  label, value, options, onChange, disabled, icon,
+  label, value, options, onChange, disabled, icon, reasons,
 }: {
   label: string;
   value: string | null;
@@ -108,10 +146,11 @@ function SelectField({
   onChange: (v: string) => void;
   disabled?: boolean;
   icon?: LucideIcon;
+  reasons?: FieldReason[];
 }) {
   return (
     <div className="space-y-1.5">
-      <FieldLabel icon={icon}>{label}</FieldLabel>
+      <FieldLabel icon={icon} reasons={reasons}>{label}</FieldLabel>
       <Select value={value ?? ""} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
         <SelectContent>
@@ -123,14 +162,14 @@ function SelectField({
 }
 
 function SliderField({
-  label, value, min = 0, max = 5, step = 1, onChange, disabled, icon,
+  label, value, min = 0, max = 5, step = 1, onChange, disabled, icon, reasons,
 }: {
   label: string; value: number; min?: number; max?: number; step?: number;
-  onChange: (v: number) => void; disabled?: boolean; icon?: LucideIcon;
+  onChange: (v: number) => void; disabled?: boolean; icon?: LucideIcon; reasons?: FieldReason[];
 }) {
   return (
     <div className="space-y-1.5">
-      <FieldLabel icon={icon} right={<span className="text-xs font-mono text-foreground">{value}</span>}>{label}</FieldLabel>
+      <FieldLabel icon={icon} reasons={reasons} right={<span className="text-xs font-mono text-foreground">{value}</span>}>{label}</FieldLabel>
       <Slider
         value={[value]}
         min={min} max={max} step={step}
@@ -140,6 +179,7 @@ function SliderField({
     </div>
   );
 }
+
 
 const AvatarStudio = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
