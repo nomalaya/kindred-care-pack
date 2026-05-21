@@ -462,5 +462,17 @@ export function inferAvatarTraits(b: BeneficiaryInput): AvatarTraits {
     avatar_parent_energy: b.avatar_parent_energy ?? inferParentEnergy(b, rng),
     avatar_cultural_style: b.avatar_cultural_style ?? inferCulturalStyle(cultureTags, rng),
     avatar_seed: seed,
+    // Pass-through Studio fields (admin-overridable, no inference)
+    avatar_tired_level: b.avatar_tired_level ?? undefined,
+    avatar_emotional_brightness: b.avatar_emotional_brightness ?? undefined,
+    avatar_beard: b.avatar_beard ?? undefined,
+    avatar_moustache: b.avatar_moustache ?? undefined,
+    avatar_bald_level: b.avatar_bald_level ?? undefined,
+    avatar_hair_recession: b.avatar_hair_recession ?? undefined,
+    avatar_head_covering: b.avatar_head_covering ?? undefined,
+    avatar_cultural_style_override: b.avatar_cultural_style_override ?? undefined,
+    avatar_resilience_level: b.avatar_resilience_level ?? undefined,
+    avatar_fatigue_level: b.avatar_fatigue_level ?? undefined,
+    avatar_dignity_level: b.avatar_dignity_level ?? undefined,
   };
 }

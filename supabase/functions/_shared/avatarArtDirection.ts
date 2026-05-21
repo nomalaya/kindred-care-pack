@@ -111,21 +111,44 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
     `${HAIR_TYPE_DESC[t.avatar_hair_type] ?? t.avatar_hair_type} ${t.avatar_hair_length} ${HAIR_COLOR_DESC[t.avatar_hair_color] ?? t.avatar_hair_color}, ${t.avatar_hair_style.replace("_", " ")} style, ${t.avatar_hair_volume} volume`,
   ].filter(Boolean).join(", ");
 
+  // Studio extensions — appended only when set
+  const extras: string[] = [];
+  if ((t.avatar_tired_level ?? 0) >= 3) extras.push("noticeably tired eyes");
+  else if ((t.avatar_tired_level ?? 0) >= 1) extras.push("slight tiredness in the eyes");
+  if ((t.avatar_emotional_brightness ?? 3) <= 1) extras.push("low emotional brightness, subdued gaze");
+  else if ((t.avatar_emotional_brightness ?? 3) >= 4) extras.push("bright, warm gaze");
+  if (t.avatar_gender === "man") {
+    if (t.avatar_beard && t.avatar_beard !== "none") extras.push(`${t.avatar_beard} beard`);
+    if (t.avatar_moustache && t.avatar_moustache !== "none") extras.push(`${t.avatar_moustache} moustache`);
+    if ((t.avatar_bald_level ?? 0) >= 70) extras.push("mostly bald");
+    else if ((t.avatar_bald_level ?? 0) >= 30) extras.push("partial baldness on top");
+    if (t.avatar_hair_recession && t.avatar_hair_recession !== "none") {
+      extras.push(`${t.avatar_hair_recession} hair recession at temples`);
+    }
+  }
+  if (t.avatar_head_covering === "required") extras.push("wearing a soft modest headscarf");
+  else if (t.avatar_head_covering === "optional") extras.push("a light scarf draped on the shoulders");
+  if ((t.avatar_fatigue_level ?? 0) >= 3) extras.push("visible but dignified fatigue in the face");
+  if ((t.avatar_resilience_level ?? 3) >= 4) extras.push("quiet inner strength conveyed in the posture");
+
   const expression = EXPRESSION_DESCRIPTIONS[t.avatar_expression] ?? "a calm natural expression";
   const posture = POSTURE_DESCRIPTIONS[t.avatar_posture] ?? "upright posture";
   const clothing = `${CLOTHING_STYLE_DESC[t.avatar_clothing_style] ?? "simple modest clothing"} in ${PALETTE_DESC[t.avatar_clothing_color_palette] ?? "warm muted tones"}`;
-  const culturalCue = CULTURAL_STYLE_DESC[t.avatar_cultural_style] ?? "";
+  const culturalCue = t.avatar_cultural_style_override
+    ? `with ${t.avatar_cultural_style_override.replace(/_/g, " ")} styling cues (kept understated)`
+    : (CULTURAL_STYLE_DESC[t.avatar_cultural_style] ?? "");
 
   return [
     ART_DIRECTION_INVARIANTS,
     "",
     `SUBJECT: ${subject}.`,
+    extras.length ? `DETAILS: ${extras.join(", ")}.` : "",
     `EXPRESSION: ${expression}.`,
     `POSTURE: ${posture}.`,
     `CLOTHING: ${clothing} ${culturalCue}`.trim() + ".",
     "",
     `AVOID: ${NEGATIVE_PROMPT}.`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 export const MODEL_PREVIEW = "google/gemini-3.1-flash-image-preview";
