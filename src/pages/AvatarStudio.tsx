@@ -13,11 +13,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from "@/components/ui/accordion";
+  Tabs, TabsList, TabsTrigger, TabsContent,
+} from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip, TooltipContent, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   AVATAR_VOCAB, WORKFLOW_LABEL, WORKFLOW_COLOR, WorkflowStatus,
 } from "@/lib/avatarTraits";
@@ -26,7 +29,7 @@ import { inferStudioDefaults } from "@/lib/avatarAutoInfer";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
-  Wand2, History, Eye, AlertTriangle,
+  Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search,
 } from "lucide-react";
 
 type Beneficiary = any;
@@ -111,7 +114,10 @@ const AvatarStudio = () => {
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareIds, setCompareIds] = useState<[string?, string?]>([]);
   const [modelChoice, setModelChoice] = useState<"preview" | "final">("final");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const saveTimers = useRef<Record<string, any>>({});
+  const searchRef = useRef<HTMLInputElement | null>(null);
 
   const refresh = async () => {
     const { data } = await supabase
@@ -139,14 +145,12 @@ const AvatarStudio = () => {
     })();
   }, [selectedId, beneficiaries]);
 
-  // Auto-refresh while a generation is pending + surface failures clearly
   useEffect(() => {
     if (busy !== "preview" && busy !== "final") return;
     const t = setInterval(refresh, 4000);
     return () => clearInterval(t);
   }, [busy]);
 
-  // Detect generation failure on the selected beneficiary and report it
   useEffect(() => {
     if (busy !== "preview" && busy !== "final") return;
     const cur = beneficiaries.find(b => b.id === selectedId);
@@ -193,6 +197,16 @@ const AvatarStudio = () => {
     return pool;
   }, [beneficiaries, search, filter]);
 
+  const stats = useMemo(() => {
+    const s = { draft: 0, generated: 0, approved: 0, locked: 0, failed: 0 };
+    for (const b of beneficiaries) {
+      const ws = (b.avatar_workflow_status || "draft") as WorkflowStatus;
+      s[ws] = (s[ws] ?? 0) + 1;
+      if (b.avatar_status === "failed") s.failed += 1;
+    }
+    return s;
+  }, [beneficiaries]);
+
   const warnings: RuleWarning[] = selected ? evaluateAvatarRules(selected) : [];
   const isLocked = selected?.avatar_workflow_status === "locked";
 
@@ -202,18 +216,23 @@ const AvatarStudio = () => {
       toast.error("Avatar verrouillé. Déverrouillez pour modifier.");
       return;
     }
-    // Optimistic update
     setBeneficiaries(prev => prev.map(b =>
       b.id === selected.id ? { ...b, ...patchObj } : b,
     ));
-    // Debounce save
+    setSaveState("saving");
     if (saveTimers.current[selected.id]) clearTimeout(saveTimers.current[selected.id]);
     saveTimers.current[selected.id] = setTimeout(async () => {
       const { error } = await supabase
         .from("beneficiaries")
         .update(patchObj as any)
         .eq("id", selected.id);
-      if (error) toast.error("Échec sauvegarde : " + error.message);
+      if (error) {
+        toast.error("Échec sauvegarde : " + error.message);
+        setSaveState("idle");
+      } else {
+        setSaveState("saved");
+        setTimeout(() => setSaveState("idle"), 1500);
+      }
     }, 600);
   };
 
@@ -269,6 +288,43 @@ const AvatarStudio = () => {
     }
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tgt = e.target as HTMLElement;
+      const inField = tgt && (tgt.tagName === "INPUT" || tgt.tagName === "TEXTAREA" || tgt.isContentEditable);
+      if (e.key === "/" && !inField) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
+      if (inField) return;
+      if (!selected && !["ArrowDown", "ArrowUp"].includes(e.key)) return;
+
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (filtered.length === 0) return;
+        e.preventDefault();
+        const idx = filtered.findIndex(b => b.id === selectedId);
+        const next = e.key === "ArrowDown"
+          ? filtered[Math.min(filtered.length - 1, idx + 1)]
+          : filtered[Math.max(0, idx - 1)];
+        if (next) setSelectedId(next.id);
+        return;
+      }
+      if (e.key.toLowerCase() === "g") { e.preventDefault(); generate("final"); }
+      else if (e.key.toLowerCase() === "p") { e.preventDefault(); generate("preview"); }
+      else if (e.key.toLowerCase() === "a" && selected?.avatar_workflow_status === "generated") {
+        e.preventDefault(); setWorkflow("approved");
+      }
+      else if (e.key.toLowerCase() === "l" && selected?.avatar_workflow_status === "approved") {
+        e.preventDefault(); setWorkflow("locked");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, selectedId, selected]);
+
   if (authLoading) return null;
   if (!user) return <Navigate to="/auth" replace />;
   if (!isAdmin) {
@@ -287,54 +343,101 @@ const AvatarStudio = () => {
   const sectionWarnings = (section: RuleWarning["section"]) =>
     warnings.filter(w => w.section === section);
 
+  const StatChip = ({ label, value, tone }: { label: string; value: number; tone: string }) => (
+    <button
+      onClick={() => setFilter(label === "Tous" ? "all" : label === "Échec" ? "failed" : (label.toLowerCase() as any))}
+      className={`text-xs px-2 py-1 rounded-md border ${tone}`}
+    >
+      <span className="font-semibold">{value}</span> <span className="opacity-70">{label}</span>
+    </button>
+  );
+
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 max-w-[1600px]">
-        <div className="flex items-center gap-4 mb-6">
-          <Link to="/admin">
-            <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Admin</Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold">Avatar Studio</h1>
-            <p className="text-sm text-muted-foreground">
-              Édition fine des portraits — attributs, règles, génération IA, workflow.
-            </p>
-          </div>
-        </div>
+      <div className="px-4 py-3 max-w-[1700px] mx-auto">
+        {/* TOPBAR */}
+        <div className="sticky top-0 z-20 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur border-b">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Link to="/admin">
+              <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Admin</Button>
+            </Link>
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-lg font-bold">Avatar Studio</h1>
+              <span className="text-xs text-muted-foreground">{beneficiaries.length} bénéficiaires</span>
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr_380px] gap-4">
-          {/* LEFT — beneficiaries list */}
-          <aside className="bg-card border rounded-2xl p-3 h-[calc(100vh-160px)] flex flex-col">
-            <Input
-              placeholder="Rechercher (prénom, région)…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="mb-2 h-9"
-            />
-            <div className="flex flex-wrap gap-1 mb-3">
+            <div className="flex items-center gap-1.5 ml-2">
+              <StatChip label="Brouillon" value={stats.draft} tone="bg-muted/40" />
+              <StatChip label="Généré" value={stats.generated} tone="bg-amber-50 border-amber-200 text-amber-800" />
+              <StatChip label="Approuvé" value={stats.approved} tone="bg-emerald-50 border-emerald-200 text-emerald-800" />
+              <StatChip label="Verrouillé" value={stats.locked} tone="bg-slate-100 border-slate-300 text-slate-800" />
+              {stats.failed > 0 && <StatChip label="Échec" value={stats.failed} tone="bg-rose-50 border-rose-200 text-rose-800" />}
+            </div>
+
+            <div className="flex-1" />
+
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                ref={searchRef}
+                placeholder="Recherche (/  pour focus)"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="h-8 pl-7 w-64 text-sm"
+              />
+            </div>
+
+            <div className="flex gap-0.5 border rounded-md p-0.5">
               {(["all", "draft", "generated", "approved", "locked", "failed"] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`text-xs px-2 py-1 rounded border transition-colors ${
-                    filter === f ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
+                  className={`text-xs px-2 py-1 rounded ${
+                    filter === f ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                   }`}
                 >
                   {f === "all" ? "Tous" : f === "failed" ? "Échec" : WORKFLOW_LABEL[f]}
                 </button>
               ))}
             </div>
-            <div className="overflow-y-auto flex-1 space-y-1 pr-1">
+
+            <Button variant="ghost" size="sm" onClick={refresh}><RefreshCw className="h-3.5 w-3.5" /></Button>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm"><Keyboard className="h-3.5 w-3.5" /></Button>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">
+                <div className="space-y-0.5">
+                  <div><kbd>/</kbd> recherche</div>
+                  <div><kbd>↑</kbd>/<kbd>↓</kbd> naviguer</div>
+                  <div><kbd>P</kbd> aperçu · <kbd>G</kbd> générer HD</div>
+                  <div><kbd>A</kbd> approuver · <kbd>L</kbd> verrouiller</div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+
+        {/* MAIN 3 COLUMNS */}
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(380px,420px)_1fr] gap-3 h-[calc(100vh-130px)]">
+          {/* LEFT — list */}
+          <aside className="bg-card border rounded-xl overflow-hidden flex flex-col">
+            <div className="px-2 py-1.5 border-b text-[11px] uppercase tracking-wide text-muted-foreground bg-muted/30">
+              {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
+            </div>
+            <div className="overflow-y-auto flex-1 p-1.5 space-y-0.5">
               {loading && <div className="text-sm text-muted-foreground p-2">Chargement…</div>}
               {filtered.map(b => {
                 const ws = (b.avatar_workflow_status || "draft") as WorkflowStatus;
                 const isSel = b.id === selectedId;
+                const failed = b.avatar_status === "failed";
                 return (
                   <button
                     key={b.id}
                     onClick={() => setSelectedId(b.id)}
-                    className={`w-full text-left p-2 rounded-lg flex items-center gap-2 transition-colors ${
-                      isSel ? "bg-primary/10 border border-primary/30" : "hover:bg-muted border border-transparent"
+                    className={`w-full text-left p-1.5 rounded-md flex items-center gap-2 transition-colors ${
+                      isSel ? "bg-primary/10 ring-1 ring-primary/40" : "hover:bg-muted"
                     }`}
                   >
                     <BeneficiaryAvatar
@@ -344,14 +447,18 @@ const AvatarStudio = () => {
                       size="sm"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{b.alias_first_name}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {b.region} · {b.approx_age} ans
+                      <div className="text-sm font-medium truncate flex items-center gap-1">
+                        {b.alias_first_name}
+                        {failed && <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground truncate">
+                        {b.region} · {b.approx_age}a
+                        {b.avatar_qa_score ? ` · QA ${Math.round(b.avatar_qa_score)}` : ""}
                       </div>
                     </div>
-                    <Badge variant="outline" className={`text-[10px] ${WORKFLOW_COLOR[ws]}`}>
-                      {WORKFLOW_LABEL[ws]}
-                    </Badge>
+                    <span className={`text-[9px] px-1 py-0.5 rounded border ${WORKFLOW_COLOR[ws]}`}>
+                      {WORKFLOW_LABEL[ws][0]}
+                    </span>
                   </button>
                 );
               })}
@@ -361,163 +468,25 @@ const AvatarStudio = () => {
             </div>
           </aside>
 
-          {/* CENTER — attribute editor */}
-          <main className="bg-card border rounded-2xl p-5 min-h-[calc(100vh-160px)]">
+          {/* CENTER — preview + actions + versions */}
+          <section className="bg-card border rounded-xl overflow-hidden flex flex-col">
             {!selected && (
-              <div className="text-center text-muted-foreground py-20">
-                <Wand2 className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                Sélectionnez un bénéficiaire pour éditer son portrait.
-              </div>
-            )}
-            {selected && (
-              <>
-                <div className="flex items-start justify-between mb-4 gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold">{selected.alias_first_name}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {selected.real_first_name} {selected.real_last_name} · {selected.region} · {selected.approx_age} ans
-                      {selected.children_count > 0 && ` · ${selected.children_count} enfants`}
-                    </p>
-                  </div>
-                  <Button onClick={autoInfer} variant="outline" size="sm" disabled={isLocked}>
-                    <Wand2 className="h-4 w-4 mr-1" />Déduire depuis le profil
-                  </Button>
+              <div className="flex-1 flex items-center justify-center text-center text-muted-foreground text-sm p-6">
+                <div>
+                  <Wand2 className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                  Sélectionnez un bénéficiaire à gauche
                 </div>
-
-                {isLocked && (
-                  <div className="mb-4 p-3 rounded-lg border border-slate-300 bg-slate-50 text-sm flex items-center gap-2">
-                    <Lock className="h-4 w-4" />Avatar verrouillé — déverrouillez pour modifier.
-                  </div>
-                )}
-
-                <Accordion type="multiple" defaultValue={["face", "eyes", "hair"]}>
-                  <AccordionItem value="face">
-                    <AccordionTrigger>Visage</AccordionTrigger>
-                    <AccordionContent>
-                      <div className="grid grid-cols-3 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_gender} value={selected.avatar_gender} options={AVATAR_VOCAB.gender} onChange={v => patch({ avatar_gender: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_age_range} value={selected.avatar_age_range} options={AVATAR_VOCAB.age_range} onChange={v => patch({ avatar_age_range: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_face_shape} value={selected.avatar_face_shape} options={AVATAR_VOCAB.face_shape} onChange={v => patch({ avatar_face_shape: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_skin_tone} value={selected.avatar_skin_tone} options={AVATAR_VOCAB.skin_tone} onChange={v => patch({ avatar_skin_tone: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_expression} value={selected.avatar_expression} options={AVATAR_VOCAB.expression} onChange={v => patch({ avatar_expression: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("face")} onApply={applySuggestion} />
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="eyes">
-                    <AccordionTrigger>Yeux</AccordionTrigger>
-                    <AccordionContent>
-                      <div className="grid grid-cols-2 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_eye_shape} value={selected.avatar_eye_shape} options={AVATAR_VOCAB.eye_shape} onChange={v => patch({ avatar_eye_shape: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_eye_color} value={selected.avatar_eye_color} options={AVATAR_VOCAB.eye_color} onChange={v => patch({ avatar_eye_color: v })} disabled={isLocked} />
-                        <SliderField label="Fatigue oculaire (0-5)" value={selected.avatar_tired_level ?? 0} onChange={v => patch({ avatar_tired_level: v })} disabled={isLocked} />
-                        <SliderField label="Luminosité émotionnelle (0-5)" value={selected.avatar_emotional_brightness ?? 3} onChange={v => patch({ avatar_emotional_brightness: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("eyes")} onApply={applySuggestion} />
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="hair">
-                    <AccordionTrigger>Cheveux</AccordionTrigger>
-                    <AccordionContent>
-                      <div className="grid grid-cols-3 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_hair_type} value={selected.avatar_hair_type} options={AVATAR_VOCAB.hair_type} onChange={v => patch({ avatar_hair_type: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_hair_color} value={selected.avatar_hair_color} options={AVATAR_VOCAB.hair_color} onChange={v => patch({ avatar_hair_color: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_hair_length} value={selected.avatar_hair_length} options={AVATAR_VOCAB.hair_length} onChange={v => patch({ avatar_hair_length: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_hair_volume} value={selected.avatar_hair_volume} options={AVATAR_VOCAB.hair_volume} onChange={v => patch({ avatar_hair_volume: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_hair_style} value={selected.avatar_hair_style} options={AVATAR_VOCAB.hair_style} onChange={v => patch({ avatar_hair_style: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("hair")} onApply={applySuggestion} />
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  {isMan && (
-                    <AccordionItem value="male">
-                      <AccordionTrigger>Attributs masculins</AccordionTrigger>
-                      <AccordionContent>
-                        <div className="grid grid-cols-2 gap-3">
-                          <SelectField label={FIELD_LABELS.avatar_beard} value={selected.avatar_beard} options={AVATAR_VOCAB.beard} onChange={v => patch({ avatar_beard: v })} disabled={isLocked} />
-                          <SelectField label={FIELD_LABELS.avatar_moustache} value={selected.avatar_moustache} options={AVATAR_VOCAB.moustache} onChange={v => patch({ avatar_moustache: v })} disabled={isLocked} />
-                          <SliderField label="Calvitie (0-100%)" value={selected.avatar_bald_level ?? 0} min={0} max={100} step={5} onChange={v => patch({ avatar_bald_level: v })} disabled={isLocked} />
-                          <SelectField label={FIELD_LABELS.avatar_hair_recession} value={selected.avatar_hair_recession} options={AVATAR_VOCAB.hair_recession} onChange={v => patch({ avatar_hair_recession: v })} disabled={isLocked} />
-                        </div>
-                        <RuleList warnings={sectionWarnings("male")} onApply={applySuggestion} />
-                      </AccordionContent>
-                    </AccordionItem>
-                  )}
-
-                  {hasCulture && (
-                    <AccordionItem value="cultural">
-                      <AccordionTrigger>Attributs culturels</AccordionTrigger>
-                      <AccordionContent>
-                        <div className="grid grid-cols-2 gap-3">
-                          <SelectField label={FIELD_LABELS.avatar_head_covering} value={selected.avatar_head_covering ?? "none"} options={AVATAR_VOCAB.head_covering} onChange={v => patch({ avatar_head_covering: v })} disabled={isLocked} />
-                          <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">{FIELD_LABELS.avatar_cultural_style_override}</Label>
-                            <Input value={selected.avatar_cultural_style_override ?? ""} onChange={e => patch({ avatar_cultural_style_override: e.target.value })} disabled={isLocked} placeholder="ex. subtle_mediterranean" className="h-9" />
-                          </div>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-2">
-                          Tags : {(selected.culture_tags || []).join(", ") || "—"}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  )}
-
-                  <AccordionItem value="clothing">
-                    <AccordionTrigger>Vêtements</AccordionTrigger>
-                    <AccordionContent>
-                      <div className="grid grid-cols-2 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_clothing_style} value={selected.avatar_clothing_style} options={AVATAR_VOCAB.clothing_style} onChange={v => patch({ avatar_clothing_style: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_clothing_color_palette} value={selected.avatar_clothing_color_palette} options={AVATAR_VOCAB.clothing_color_palette} onChange={v => patch({ avatar_clothing_color_palette: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("clothing")} onApply={applySuggestion} />
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="posture">
-                    <AccordionTrigger>Posture & émotion</AccordionTrigger>
-                    <AccordionContent>
-                      <div className="grid grid-cols-3 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} />
-                        <SliderField label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("posture")} onApply={applySuggestion} />
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="social">
-                    <AccordionTrigger>Contexte social visuel</AccordionTrigger>
-                    <AccordionContent>
-                      <div className="grid grid-cols-3 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_parent_energy} value={selected.avatar_parent_energy} options={AVATAR_VOCAB.parent_energy} onChange={v => patch({ avatar_parent_energy: v })} disabled={isLocked} />
-                        <SliderField label="Fatigue (0-5)" value={selected.avatar_fatigue_level ?? 0} onChange={v => patch({ avatar_fatigue_level: v })} disabled={isLocked} />
-                        <SliderField label="Dignité (0-5)" value={selected.avatar_dignity_level ?? 5} onChange={v => patch({ avatar_dignity_level: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("social")} onApply={applySuggestion} />
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </>
-            )}
-          </main>
-
-          {/* RIGHT — preview + workflow */}
-          <aside className="bg-card border rounded-2xl p-4 h-[calc(100vh-160px)] flex flex-col">
-            {!selected && (
-              <div className="text-center text-muted-foreground py-12 text-sm">
-                Aperçu IA disponible après sélection.
               </div>
             )}
             {selected && (
-              <>
-                <div className="aspect-square bg-muted rounded-xl overflow-hidden mb-3 relative">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <div className="aspect-square bg-muted rounded-lg overflow-hidden relative group">
                   {selected.avatar_url || selected.avatar_preview_url ? (
                     <img
                       src={selected.avatar_url || selected.avatar_preview_url}
                       alt={selected.alias_first_name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover cursor-zoom-in"
+                      onClick={() => setLightboxUrl(selected.avatar_url || selected.avatar_preview_url)}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -526,109 +495,256 @@ const AvatarStudio = () => {
                   )}
                   {busy && (
                     <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <div className="text-center">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-1" />
+                        <div className="text-xs">{busy === "preview" ? "Aperçu…" : "HD…"}</div>
+                      </div>
                     </div>
                   )}
                 </div>
 
-                <div className="mb-3 text-[10px] uppercase tracking-wide text-muted-foreground border rounded-md px-2 py-1 bg-muted/40">
-                  Style verrouillé : cartoon vectoriel plat · fond blanc
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <Badge variant="outline" className={WORKFLOW_COLOR[(selected.avatar_workflow_status || "draft") as WorkflowStatus]}>
+                    {WORKFLOW_LABEL[(selected.avatar_workflow_status || "draft") as WorkflowStatus]}
+                  </Badge>
+                  {selected.avatar_qa_score && (
+                    <Badge variant="outline">QA {Math.round(selected.avatar_qa_score)}</Badge>
+                  )}
+                  <Badge variant="outline" className="text-[10px]">cartoon vectoriel · fond blanc</Badge>
                 </div>
 
-                <Badge variant="outline" className={`mb-3 self-start ${WORKFLOW_COLOR[(selected.avatar_workflow_status || "draft") as WorkflowStatus]}`}>
-                  {WORKFLOW_LABEL[(selected.avatar_workflow_status || "draft") as WorkflowStatus]}
-                  {selected.avatar_qa_score && ` · QA ${Math.round(selected.avatar_qa_score)}`}
-                </Badge>
-
                 {selected.avatar_status === "failed" && (
-                  <div className="mb-3 text-xs rounded-md border border-destructive/40 bg-destructive/10 text-destructive px-2 py-1.5">
-                    {(selected as any).avatar_qa_report?.code === "no_credits"
-                      ? "Échec : crédits Lovable AI insuffisants. Rechargez le workspace."
-                      : (selected as any).avatar_qa_report?.code === "rate_limited"
-                      ? "Échec : trop de requêtes. Réessayez dans 1 minute."
-                      : "Dernière génération échouée. Réessayez."}
+                  <div className="text-xs rounded-md border border-destructive/40 bg-destructive/10 text-destructive px-2 py-1.5 flex items-start gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <div>
+                      {(selected as any).avatar_qa_report?.code === "no_credits"
+                        ? "Crédits Lovable AI insuffisants. Rechargez le workspace."
+                        : (selected as any).avatar_qa_report?.code === "rate_limited"
+                        ? "Trop de requêtes. Réessayez dans 1 minute."
+                        : "Dernière génération échouée. Réessayez."}
+                    </div>
                   </div>
                 )}
 
-                <div className="space-y-2 mb-3">
-                  <Label className="text-xs text-muted-foreground">Modèle</Label>
-                  <Select value={modelChoice} onValueChange={(v: any) => setModelChoice(v)}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="preview">Nano Banana 2 (aperçu rapide)</SelectItem>
-                      <SelectItem value="final">Nano Banana Pro (HD + QA)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-[1fr_auto_auto] gap-1.5 items-end">
+                  <div>
+                    <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Modèle</Label>
+                    <Select value={modelChoice} onValueChange={(v: any) => setModelChoice(v)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="preview">Nano Banana 2 (rapide)</SelectItem>
+                        <SelectItem value="final">Nano Banana Pro (HD)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={() => generate("preview")} variant="outline" size="sm" disabled={!!busy || isLocked} title="P">
+                    <RefreshCw className="h-3.5 w-3.5 mr-1" />Aperçu
+                  </Button>
+                  <Button onClick={() => generate("final")} size="sm" disabled={!!busy || isLocked} title="G">
+                    <Sparkles className="h-3.5 w-3.5 mr-1" />HD
+                  </Button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 mb-3">
+                {/* Workflow row */}
+                <div className="grid grid-cols-3 gap-1.5">
                   <Button
-                    onClick={() => generate("preview")}
-                    variant="outline" size="sm"
-                    disabled={!!busy || isLocked}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-1" />Aperçu
-                  </Button>
-                  <Button
-                    onClick={() => generate("final")}
+                    onClick={() => setWorkflow("approved")}
                     size="sm"
-                    disabled={!!busy || isLocked}
+                    variant={selected.avatar_workflow_status === "generated" ? "default" : "outline"}
+                    disabled={selected.avatar_workflow_status !== "generated"}
                   >
-                    <Sparkles className="h-4 w-4 mr-1" />Générer HD
+                    <ShieldCheck className="h-3.5 w-3.5 mr-1" />Approuver
+                  </Button>
+                  <Button
+                    onClick={() => setWorkflow("locked")}
+                    size="sm"
+                    variant={selected.avatar_workflow_status === "approved" ? "secondary" : "outline"}
+                    disabled={selected.avatar_workflow_status !== "approved"}
+                  >
+                    <Lock className="h-3.5 w-3.5 mr-1" />Verrouiller
+                  </Button>
+                  <Button
+                    onClick={() => setWorkflow("draft")}
+                    size="sm"
+                    variant="outline"
+                    disabled={selected.avatar_workflow_status !== "locked"}
+                  >
+                    <Unlock className="h-3.5 w-3.5 mr-1" />Déverr.
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                  {selected.avatar_workflow_status === "generated" && (
-                    <Button onClick={() => setWorkflow("approved")} size="sm" variant="default" className="col-span-2">
-                      <ShieldCheck className="h-4 w-4 mr-1" />Approuver
-                    </Button>
-                  )}
-                  {selected.avatar_workflow_status === "approved" && (
-                    <Button onClick={() => setWorkflow("locked")} size="sm" variant="secondary" className="col-span-2">
-                      <Lock className="h-4 w-4 mr-1" />Verrouiller
-                    </Button>
-                  )}
-                  {selected.avatar_workflow_status === "locked" && (
-                    <Button onClick={() => setWorkflow("draft")} size="sm" variant="outline" className="col-span-2">
-                      <Unlock className="h-4 w-4 mr-1" />Déverrouiller
-                    </Button>
-                  )}
+                {/* Versions */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
+                      <History className="h-3 w-3" />Versions ({versions.length})
+                    </h3>
+                    {versions.length >= 2 && (
+                      <Button
+                        size="sm" variant="ghost" className="h-6 text-xs"
+                        onClick={() => { setCompareIds([versions[0].id, versions[1].id]); setCompareOpen(true); }}
+                      >
+                        Comparer 2 dernières
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {versions.map(v => (
+                      <button
+                        key={v.id}
+                        onClick={() => setLightboxUrl(v.image_url)}
+                        className="relative aspect-square rounded overflow-hidden bg-muted hover:ring-2 hover:ring-primary"
+                        title={`${v.model_used?.split("/")[1] || ""} · QA ${v.qa_score ? Math.round(v.qa_score) : "—"}`}
+                      >
+                        <img src={v.image_url} alt="" className="w-full h-full object-cover" />
+                        {v.qa_score && (
+                          <span className="absolute bottom-0 right-0 bg-background/80 text-[9px] px-1 rounded-tl">
+                            {Math.round(v.qa_score)}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                    {versions.length === 0 && (
+                      <div className="text-xs text-muted-foreground p-2 col-span-4">Aucune version archivée.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* RIGHT — attribute editor */}
+          <section className="bg-card border rounded-xl overflow-hidden flex flex-col">
+            {!selected ? (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+                Éditeur d'attributs
+              </div>
+            ) : (
+              <>
+                <div className="px-4 py-2.5 border-b flex items-center justify-between gap-3 bg-muted/20">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base font-semibold truncate">{selected.alias_first_name}</h2>
+                      {saveState === "saving" && <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Sauvegarde…</span>}
+                      {saveState === "saved" && <span className="text-[10px] text-emerald-600 flex items-center gap-1"><Check className="h-3 w-3" />Sauvegardé</span>}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {selected.real_first_name} {selected.real_last_name} · {selected.region} · {selected.approx_age}a
+                      {selected.children_count > 0 && ` · ${selected.children_count} enf.`}
+                    </p>
+                  </div>
+                  <Button onClick={autoInfer} variant="outline" size="sm" disabled={isLocked}>
+                    <Wand2 className="h-3.5 w-3.5 mr-1" />Déduire
+                  </Button>
                 </div>
 
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium flex items-center gap-1">
-                    <History className="h-4 w-4" />Versions ({versions.length})
-                  </h3>
-                  {versions.length >= 2 && (
-                    <Button
-                      size="sm" variant="ghost"
-                      onClick={() => { setCompareIds([versions[0].id, versions[1].id]); setCompareOpen(true); }}
-                    >
-                      Comparer
-                    </Button>
-                  )}
-                </div>
-                <div className="overflow-y-auto flex-1 space-y-1">
-                  {versions.map(v => (
-                    <div key={v.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted text-xs">
-                      <img src={v.image_url} alt="" className="w-10 h-10 rounded object-cover" />
-                      <div className="flex-1 min-w-0">
-                        <div className="truncate">{v.model_used?.split("/")[1] || "—"}</div>
-                        <div className="text-muted-foreground">
-                          {new Date(v.created_at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
-                          {v.qa_score && ` · QA ${Math.round(v.qa_score)}`}
-                        </div>
+                {isLocked && (
+                  <div className="mx-4 mt-3 p-2 rounded-md border border-slate-300 bg-slate-50 text-xs flex items-center gap-2">
+                    <Lock className="h-3.5 w-3.5" />Avatar verrouillé — déverrouillez pour modifier.
+                  </div>
+                )}
+
+                <Tabs defaultValue="face" className="flex-1 flex flex-col overflow-hidden">
+                  <TabsList className="mx-4 mt-3 justify-start flex-wrap h-auto">
+                    <TabsTrigger value="face">Visage</TabsTrigger>
+                    <TabsTrigger value="eyes">Yeux</TabsTrigger>
+                    <TabsTrigger value="hair">Cheveux</TabsTrigger>
+                    {isMan && <TabsTrigger value="male">Masculin</TabsTrigger>}
+                    {hasCulture && <TabsTrigger value="cultural">Culturel</TabsTrigger>}
+                    <TabsTrigger value="clothing">Vêtements</TabsTrigger>
+                    <TabsTrigger value="posture">Posture</TabsTrigger>
+                    <TabsTrigger value="social">Social</TabsTrigger>
+                  </TabsList>
+
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <TabsContent value="face" className="mt-0 space-y-3">
+                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                        <SelectField label={FIELD_LABELS.avatar_gender} value={selected.avatar_gender} options={AVATAR_VOCAB.gender} onChange={v => patch({ avatar_gender: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_age_range} value={selected.avatar_age_range} options={AVATAR_VOCAB.age_range} onChange={v => patch({ avatar_age_range: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_face_shape} value={selected.avatar_face_shape} options={AVATAR_VOCAB.face_shape} onChange={v => patch({ avatar_face_shape: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_skin_tone} value={selected.avatar_skin_tone} options={AVATAR_VOCAB.skin_tone} onChange={v => patch({ avatar_skin_tone: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_expression} value={selected.avatar_expression} options={AVATAR_VOCAB.expression} onChange={v => patch({ avatar_expression: v })} disabled={isLocked} />
                       </div>
-                    </div>
-                  ))}
-                  {versions.length === 0 && (
-                    <div className="text-xs text-muted-foreground p-2">Aucune version archivée.</div>
-                  )}
-                </div>
+                      <RuleList warnings={sectionWarnings("face")} onApply={applySuggestion} />
+                    </TabsContent>
+
+                    <TabsContent value="eyes" className="mt-0 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <SelectField label={FIELD_LABELS.avatar_eye_shape} value={selected.avatar_eye_shape} options={AVATAR_VOCAB.eye_shape} onChange={v => patch({ avatar_eye_shape: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_eye_color} value={selected.avatar_eye_color} options={AVATAR_VOCAB.eye_color} onChange={v => patch({ avatar_eye_color: v })} disabled={isLocked} />
+                        <SliderField label="Fatigue oculaire (0-5)" value={selected.avatar_tired_level ?? 0} onChange={v => patch({ avatar_tired_level: v })} disabled={isLocked} />
+                        <SliderField label="Luminosité émotionnelle (0-5)" value={selected.avatar_emotional_brightness ?? 3} onChange={v => patch({ avatar_emotional_brightness: v })} disabled={isLocked} />
+                      </div>
+                      <RuleList warnings={sectionWarnings("eyes")} onApply={applySuggestion} />
+                    </TabsContent>
+
+                    <TabsContent value="hair" className="mt-0 space-y-3">
+                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                        <SelectField label={FIELD_LABELS.avatar_hair_type} value={selected.avatar_hair_type} options={AVATAR_VOCAB.hair_type} onChange={v => patch({ avatar_hair_type: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_hair_color} value={selected.avatar_hair_color} options={AVATAR_VOCAB.hair_color} onChange={v => patch({ avatar_hair_color: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_hair_length} value={selected.avatar_hair_length} options={AVATAR_VOCAB.hair_length} onChange={v => patch({ avatar_hair_length: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_hair_volume} value={selected.avatar_hair_volume} options={AVATAR_VOCAB.hair_volume} onChange={v => patch({ avatar_hair_volume: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_hair_style} value={selected.avatar_hair_style} options={AVATAR_VOCAB.hair_style} onChange={v => patch({ avatar_hair_style: v })} disabled={isLocked} />
+                      </div>
+                      <RuleList warnings={sectionWarnings("hair")} onApply={applySuggestion} />
+                    </TabsContent>
+
+                    {isMan && (
+                      <TabsContent value="male" className="mt-0 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <SelectField label={FIELD_LABELS.avatar_beard} value={selected.avatar_beard} options={AVATAR_VOCAB.beard} onChange={v => patch({ avatar_beard: v })} disabled={isLocked} />
+                          <SelectField label={FIELD_LABELS.avatar_moustache} value={selected.avatar_moustache} options={AVATAR_VOCAB.moustache} onChange={v => patch({ avatar_moustache: v })} disabled={isLocked} />
+                          <SliderField label="Calvitie (0-100%)" value={selected.avatar_bald_level ?? 0} min={0} max={100} step={5} onChange={v => patch({ avatar_bald_level: v })} disabled={isLocked} />
+                          <SelectField label={FIELD_LABELS.avatar_hair_recession} value={selected.avatar_hair_recession} options={AVATAR_VOCAB.hair_recession} onChange={v => patch({ avatar_hair_recession: v })} disabled={isLocked} />
+                        </div>
+                        <RuleList warnings={sectionWarnings("male")} onApply={applySuggestion} />
+                      </TabsContent>
+                    )}
+
+                    {hasCulture && (
+                      <TabsContent value="cultural" className="mt-0 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <SelectField label={FIELD_LABELS.avatar_head_covering} value={selected.avatar_head_covering ?? "none"} options={AVATAR_VOCAB.head_covering} onChange={v => patch({ avatar_head_covering: v })} disabled={isLocked} />
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">{FIELD_LABELS.avatar_cultural_style_override}</Label>
+                            <Input value={selected.avatar_cultural_style_override ?? ""} onChange={e => patch({ avatar_cultural_style_override: e.target.value })} disabled={isLocked} placeholder="ex. subtle_mediterranean" className="h-9" />
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Tags : {(selected.culture_tags || []).join(", ") || "—"}
+                        </div>
+                      </TabsContent>
+                    )}
+
+                    <TabsContent value="clothing" className="mt-0 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <SelectField label={FIELD_LABELS.avatar_clothing_style} value={selected.avatar_clothing_style} options={AVATAR_VOCAB.clothing_style} onChange={v => patch({ avatar_clothing_style: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_clothing_color_palette} value={selected.avatar_clothing_color_palette} options={AVATAR_VOCAB.clothing_color_palette} onChange={v => patch({ avatar_clothing_color_palette: v })} disabled={isLocked} />
+                      </div>
+                      <RuleList warnings={sectionWarnings("clothing")} onApply={applySuggestion} />
+                    </TabsContent>
+
+                    <TabsContent value="posture" className="mt-0 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <SelectField label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} />
+                        <SliderField label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} />
+                      </div>
+                      <RuleList warnings={sectionWarnings("posture")} onApply={applySuggestion} />
+                    </TabsContent>
+
+                    <TabsContent value="social" className="mt-0 space-y-3">
+                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                        <SelectField label={FIELD_LABELS.avatar_parent_energy} value={selected.avatar_parent_energy} options={AVATAR_VOCAB.parent_energy} onChange={v => patch({ avatar_parent_energy: v })} disabled={isLocked} />
+                        <SliderField label="Fatigue (0-5)" value={selected.avatar_fatigue_level ?? 0} onChange={v => patch({ avatar_fatigue_level: v })} disabled={isLocked} />
+                        <SliderField label="Dignité (0-5)" value={selected.avatar_dignity_level ?? 5} onChange={v => patch({ avatar_dignity_level: v })} disabled={isLocked} />
+                      </div>
+                      <RuleList warnings={sectionWarnings("social")} onApply={applySuggestion} />
+                    </TabsContent>
+                  </div>
+                </Tabs>
               </>
             )}
-          </aside>
+          </section>
         </div>
       </div>
 
@@ -651,6 +767,12 @@ const AvatarStudio = () => {
               );
             })}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!lightboxUrl} onOpenChange={(o) => !o && setLightboxUrl(null)}>
+        <DialogContent className="max-w-2xl p-2">
+          {lightboxUrl && <img src={lightboxUrl} alt="" className="w-full rounded" />}
         </DialogContent>
       </Dialog>
     </Layout>
