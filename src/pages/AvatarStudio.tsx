@@ -32,7 +32,7 @@ import {
 import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
-  Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby,
+  Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown,
 } from "lucide-react";
 
