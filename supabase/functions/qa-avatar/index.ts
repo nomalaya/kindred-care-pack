@@ -13,19 +13,11 @@ const WEIGHTS: Record<string, number> = {
   framing: 1.0,
   no_watermark: 1.0,
   artifact_freedom: 1.2,
-  style_match: 2.0, // flat vector cartoon — hard requirement
-  white_background: 1.2,
-  anonymity: 1.8, // must NOT resemble a real identifiable person
+  style_consistency: 1.2,
+  not_stock_photo_feel: 1.0,
   not_caricature: 1.5,
   dignity: 1.5,
   human_warmth: 1.0,
-};
-
-// Hard fail (force rejection) if any of these dimensions falls below threshold,
-// regardless of the global weighted score.
-const HARD_FAIL_THRESHOLDS: Record<string, number> = {
-  style_match: 70,
-  anonymity: 70,
 };
 
 function weightedScore(scores: Record<string, number>): number {
@@ -55,19 +47,18 @@ You must score the image on 9 dimensions, each from 0 (terrible) to 100 (excelle
 Be honest and discriminating — do not inflate scores. Score 50-70 for borderline issues.
 Return concise notes explaining any score below 80.`;
 
-    const userPrompt = `Score this avatar. Respond ONLY via the tool call.
+    const userPrompt = `Score this portrait. Respond ONLY via the tool call.
 
-Dimensions (0=terrible, 100=excellent):
-- single_face: exactly ONE character face fully visible? (0 = multiple faces or no face)
-- framing: chest-up bust, centered, ~70% frame coverage, proper margins?
+Dimensions:
+- single_face: exactly ONE human face fully visible? (100 = perfect, 0 = multiple faces or no face)
+- framing: chest-up portrait, centered, with proper margins?
 - no_watermark: free of any text, watermark, logo, signature?
-- artifact_freedom: free of AI artifacts (warped features, melted shapes, extra fingers)?
-- style_match: STRICTLY flat vector cartoon illustration with clean bold outlines and flat cel-shaded colors (like Storyset / unDraw / Notion avatars)? Score 0 if photo, photorealistic, semi-realistic, painterly, watercolor, oil painting, 3D render, Pixar, Disney, anime or comic style.
-- white_background: pure plain white uniform background, no gradient, no scene, no decoration?
-- anonymity: a GENERIC archetypal character that does NOT resemble any real identifiable person, celebrity or public figure? Score 0 if it looks like a specific real person.
+- artifact_freedom: free of AI artifacts (warped hands, distorted features, melted background, extra fingers)?
+- style_consistency: semi-realistic painterly NGO style (NOT photorealistic, NOT cartoon)?
+- not_stock_photo_feel: free of generic stock-photo / LinkedIn / passport feel?
 - not_caricature: free of cultural caricature, stereotypes, exaggeration?
-- dignity: portrayed with dignity and humanity, no misery, no pathos?
-- human_warmth: emotionally credible, warm, kind (not commercial smile, not cold)?`;
+- dignity: portrayed with dignity and humanity, no misery porn, no pathos?
+- human_warmth: emotionally credible, real human warmth visible (not commercial smile, not cold)?`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -123,17 +114,8 @@ Dimensions (0=terrible, 100=excellent):
     if (!toolCall) throw new Error("No QA tool call returned");
     const args = JSON.parse(toolCall.function.arguments);
     const scores = args.scores ?? {};
-    const notes: string[] = args.notes ?? [];
-    let global = weightedScore(scores);
-
-    // Hard-fail: any blocking dimension below its threshold forces a sub-pass global score
-    for (const [k, threshold] of Object.entries(HARD_FAIL_THRESHOLDS)) {
-      const s = scores[k];
-      if (typeof s === "number" && s < threshold) {
-        notes.unshift(`HARD FAIL on ${k}: ${s} < ${threshold}`);
-        global = Math.min(global, 40);
-      }
-    }
+    const notes = args.notes ?? [];
+    const global = weightedScore(scores);
 
     return new Response(
       JSON.stringify({ scores, notes, global_score: global }),

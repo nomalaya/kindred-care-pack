@@ -1,55 +1,41 @@
-
 ## Objectif
 
-Garantir que **100% des avatars** suivent le même style graphique : illustration cartoon vectorielle plate (référence : avatar Khaled / avatar Valérie fournis), jamais une peinture, jamais une photo, jamais reconnaissable.
+Les avatars générés doivent avoir un **style dessiné/illustré** (type cartoon doux, à la Pixar / Disney moderne, comme les portraits Sophie, Abdoulaye, Chloé dans la capture jointe), **pas** un rendu photo ni un rendu peinture floutée.
 
-Aujourd'hui le prompt mentionne déjà « cartoon » mais le modèle dérive vers du painterly/Pixar-réaliste (cf. Fatima validée). Il faut **durcir l'art direction** et **régénérer tout le catalogue** existant.
+Aujourd'hui `ART_DIRECTION_INVARIANTS` impose "stylized painterly illustration" + flou gaussien d'anonymisation + lumière naturelle de fenêtre → résultat trop "photo peinte", pas dessiné.
 
-## Plan
+## Changements
 
-### 1. Durcir l'art direction (`supabase/functions/_shared/avatarArtDirection.ts`)
+Un seul fichier modifié : `supabase/functions/_shared/avatarArtDirection.ts`.
 
-Réécrire `ART_DIRECTION_INVARIANTS` et `NEGATIVE_PROMPT` pour verrouiller un seul style :
+### 1. Réécrire `ART_DIRECTION_INVARIANTS`
 
-- **Style cible explicite** : « flat vector cartoon avatar illustration, clean bold outlines, simple cel-shaded flat colors, minimal detail, sticker-like, Adobe Illustrator style »
-- Référence verbale forte : « in the visual style of modern app illustration packs (e.g. Storyset, unDraw character packs, Notion-style avatars) »
-- Cadrage : **chest-up bust on plain white background**, pas de gradient sand/ivory (le fond doit être blanc pur et uniforme pour homogénéité catalogue)
-- **Anonymat renforcé** : « generic archetypal character, intentionally non-specific facial features, never resemble any real person, no identifying marks »
-- Negative prompt élargi : ajouter `no painterly style, no Pixar 3D, no Disney render, no Studio Ghibli, no semi-realistic, no detailed shading, no textured brushstrokes, no painted portrait, no realistic skin, no recognizable likeness, no celebrity resemblance`
+Nouveau brief verrouillé :
+- **STYLE** : "modern 2D character illustration, clean digital cartoon portrait, Pixar-inspired stylization, smooth flat-shaded rendering with soft cel-shading". Explicitement : **NOT a photograph, NOT photorealistic, NOT painterly, NOT watercolor, NOT 3D render**.
+- **LINEWORK** : contours doux et propres, traits dessinés visibles mais délicats, formes simplifiées et stylisées (yeux légèrement agrandis, traits adoucis).
+- **SHADING** : aplats de couleur avec ombres douces en 2 tons max, lumière douce sans réalisme photographique, peau lisse et stylisée (pas de pores, pas de grain).
+- **ANONYMAT** : conservé via la stylisation cartoon elle-même (les traits sont déjà non-identifiants). Retrait du flou gaussien / "painterly smudging" qui donnait l'effet photo flouté.
+- **CADRAGE** : portrait poitrine, sujet centré, carré 1:1, fond blanc cassé doux ou dégradé sable très léger (cohérent avec la capture de référence).
+- **PALETTE** : douces, chaleureuses, légèrement désaturées, cohérentes avec la charte.
+- **DIGNITÉ** : préservée, pas de caricature exagérée, pas de chibi, pas d'anime stylisé, pas de comics américain.
 
-### 2. Forcer le modèle d'aperçu ET de génération finale sur le même modèle
+### 2. Mettre à jour `NEGATIVE_PROMPT`
 
-Actuellement preview = Flash Image, final = Pro Image → ça produit deux esthétiques différentes. Passer les deux sur `google/gemini-2.5-flash-image` (Nano Banana) qui rend mieux le cartoon plat demandé, ou tester les deux et garder le plus stable. À valider rapidement avec 2-3 aperçus avant d'arrêter le choix.
+- Retirer : `no sharp facial details` (le dessin a des traits nets), `no photograph` reste, ajouter explicitement `no photorealism`, `no realistic skin texture`, `no 3D render`, `no anime`, `no chibi`, `no manga`, `no comic book style`, `no painterly brushstrokes`, `no watercolor`, `no oil painting`.
+- Garder : pas de texte, logo, signature, multiples visages, stéréotypes, etc.
 
-### 3. QA : ajouter un critère « style conformity »
+### 3. Conserver intacte toute la logique fonctionnelle
 
-Dans `supabase/functions/qa-avatar/index.ts`, ajouter au scoring un critère bloquant :
-- `style_match` (0-100) : pénalise toute image painterly / 3D / photo / semi-réaliste
-- Si `style_match < 70` → rejet automatique même si le reste passe
+- `buildAvatarPrompt`, traits inférés, extensions Studio (`tired_level`, `beard`, `head_covering`, etc.), modèles (`MODEL_PREVIEW` / `MODEL_FINAL` / `MODEL_QA`), workflow, RLS, table `avatar_versions` → **aucun changement**.
+- Aucune modification de base de données, ni d'edge function autre que la lecture de ces invariants.
 
-### 4. Reset + régénération du catalogue
+## Validation après implémentation
 
-- Marquer les avatars actuellement `validated` comme `draft` (l'avatar Fatima painterly et les ~7 autres existants doivent être refaits)
-- Vider `avatar_url` pour qu'ils n'apparaissent plus en prod tant qu'un nouvel aperçu conforme n'est pas validé
-- L'utilisateur relance manuellement la génération depuis Avatar Studio (ou via `generate-avatar-batch`)
+1. Régénérer un avatar de test depuis `/admin/avatar-studio` (par ex. Fatima).
+2. Vérifier visuellement que le rendu est clairement illustré/cartoon doux, cohérent avec la capture jointe (Sophie / Abdoulaye / Chloé).
+3. Si le rendu dérive vers du semi-réaliste, durcir encore le brief (ex. ajouter "flat 2D illustration only").
 
-Migration SQL :
-```sql
-UPDATE beneficiaries
-SET avatar_status = 'draft',
-    avatar_workflow_status = 'draft',
-    avatar_url = NULL,
-    avatar_preview_url = NULL,
-    avatar_qa_score = NULL,
-    avatar_qa_report = NULL
-WHERE avatar_url IS NOT NULL OR avatar_preview_url IS NOT NULL;
-```
+## Hors-scope
 
-### 5. Garde-fou UI (`AvatarStudio.tsx`)
-
-Petit rappel visuel dans le panneau de droite : badge « Style : cartoon vectoriel plat — verrouillé » sous l'aperçu, pour bien matérialiser que c'est non négociable.
-
-## Points à confirmer avant implémentation
-
-- OK pour **reset complet** des avatars déjà validés (Fatima, Amadou, Chloé, Diogo, Irina, Jean-Pierre, etc. — ~7 profils) ? Ils repasseront tous par une génération + validation manuelle.
-- OK pour **fond blanc pur** plutôt que sable/ivoire (la mémoire `style/visual-direction` parle de blanc cassé chaleureux pour le site, mais pour les avatars un blanc franc donne un catalogue plus homogène façon Storyset) ?
+- Pas de changement de modèle d'image (on reste sur Nano Banana 2 / Pro).
+- Pas de re-génération en masse automatique : les anciens avatars restent jusqu'à régénération manuelle via le Studio.
