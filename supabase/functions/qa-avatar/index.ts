@@ -123,8 +123,17 @@ Dimensions (0=terrible, 100=excellent):
     if (!toolCall) throw new Error("No QA tool call returned");
     const args = JSON.parse(toolCall.function.arguments);
     const scores = args.scores ?? {};
-    const notes = args.notes ?? [];
-    const global = weightedScore(scores);
+    const notes: string[] = args.notes ?? [];
+    let global = weightedScore(scores);
+
+    // Hard-fail: any blocking dimension below its threshold forces a sub-pass global score
+    for (const [k, threshold] of Object.entries(HARD_FAIL_THRESHOLDS)) {
+      const s = scores[k];
+      if (typeof s === "number" && s < threshold) {
+        notes.unshift(`HARD FAIL on ${k}: ${s} < ${threshold}`);
+        global = Math.min(global, 40);
+      }
+    }
 
     return new Response(
       JSON.stringify({ scores, notes, global_score: global }),
