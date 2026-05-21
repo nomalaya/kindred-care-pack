@@ -972,6 +972,7 @@ const AvatarStudio = () => {
                     <TabsContent value="posture" className="mt-0 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <SelectField label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_mobility_aid} value={selected.avatar_mobility_aid ?? "none"} options={AVATAR_VOCAB.mobility_aid} onChange={v => patch({ avatar_mobility_aid: v })} disabled={isLocked} />
                         <SliderField label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} />
                       </div>
                       <RuleList warnings={sectionWarnings("posture")} onApply={applySuggestion} />
