@@ -1,54 +1,56 @@
-## Objectif
 
-Faire d'Avatar Studio un véritable outil de production (vue dense, scan rapide, actions à portée de main) et l'exposer à `/avatar-studio` (l'ancien `/admin/avatar-studio` redirige).
+## Contexte
 
-## 1. Nouvelle route
+L'image de référence fournie est un **cartoon illustré semi-réaliste** (style storybook / éditorial type "The New Yorker meets Pixar 2D") : traits dessinés à la main, ombrage doux au crayon/aquarelle légère, palette chaude désaturée, **décor flou en arrière-plan** (cuisine, intérieur, etc.), proportions humaines réalistes mais clairement non-photoréalistes. Ce n'est PAS le "flat vector / Storyset" actuellement verrouillé dans le code, ni une peinture, ni du 3D.
 
-- `src/App.tsx` : ajouter `<Route path="/avatar-studio" element={<AvatarStudio />} />` et remplacer `/admin/avatar-studio` par un `<Navigate to="/avatar-studio" replace />` (compatibilité liens existants).
-- `src/pages/Admin.tsx` (et tout lien interne) : mettre à jour la cible vers `/avatar-studio`.
-- Garder la garde admin (`isAdmin`) côté page.
+Objectifs :
+1. Reverrouiller le style sur cette référence (illustré cartoon doux, fond contextuel flou autorisé, anonymat préservé).
+2. Basculer la génération sur **Nano Banana 2** (`google/gemini-3.1-flash-image-preview`) en preview ET en HD.
+3. Garder l'Avatar Studio actuel (celui d'avant la grosse refonte qu'on vient de revert) mais lui apporter quelques améliorations légères de productivité.
 
-## 2. Refonte de la mise en page
+## 1. Nouveau verrou de style
 
-Passage d'un layout 3 colonnes statique à un layout **4 zones** plus fonctionnel, pleine hauteur :
+Fichier : `supabase/functions/_shared/avatarArtDirection.ts`
 
-```text
-┌──────────────── Topbar (sticky) ────────────────────────────────┐
-│  ← Admin   Avatar Studio   [stats: 12 draft · 5 generated · …] │
-│  [Recherche]  [Filtres: Tous|Brouillon|Généré|Approuvé|Verrou|Échec]  [Tri ▾]  [⟳]│
-└─────────────────────────────────────────────────────────────────┘
-┌─ Liste (280px) ─┬──── Aperçu + actions (380px) ────┬──── Éditeur attributs (1fr) ─┐
-│ vignettes denses│ image carrée + badges            │  Tabs : Visage | Cheveux |  │
-│ recherche locale│ Modèle ▾  [Aperçu] [Générer HD]  │  Masculin | Culturel |      │
-│ scroll virtuel  │ Workflow: Approuver/Verrouiller  │  Vêtements | Posture |      │
-│                 │ Versions (mini-galerie + Comparer)│  Social                    │
-└─────────────────┴──────────────────────────────────┴─────────────────────────────┘
-```
+- Remplacer `ART_DIRECTION_INVARIANTS` par une description précise du style de la référence :
+  - "Hand-drawn semi-realistic cartoon illustration, editorial storybook style"
+  - Traits d'encre fins et souples (pas de gros outlines vectoriels)
+  - Ombrage doux type crayon de couleur / aquarelle légère, grain papier subtil
+  - Palette chaude et désaturée, lumière naturelle douce
+  - Proportions humaines réalistes (PAS chibi, PAS anime, PAS 3D, PAS flat vector)
+  - **Décor d'arrière-plan flou et contextuel autorisé** (intérieur, cuisine, rue, atelier — cohérent avec la situation) — c'est un changement par rapport au "fond blanc obligatoire" actuel
+  - Cadrage portrait épaules/buste, regard caméra, expression douce
+  - **Anonymat strict** : visage générique archétypal, jamais une personne identifiable
+- Mettre à jour `NEGATIVE_PROMPT` : exclure photoréalisme, 3D, anime/manga, peinture à l'huile, aquarelle saturée, flat vector sticker, watermarks, texte.
+- `MODEL_PREVIEW` et `MODEL_FINAL` → `google/gemini-3.1-flash-image-preview` (Nano Banana 2) pour les deux.
+- Ajuster `WEIGHTS` / `HARD_FAIL_THRESHOLDS` du QA : garder `style_match` (poids 2.0, seuil 70) et `anonymity` (seuil bloquant), mais retirer toute pénalité liée au "fond blanc".
 
-Changements clés :
+Fichier : `supabase/functions/qa-avatar/index.ts`
 
-- **Topbar sticky** avec stats globales (compteurs par statut) calculées depuis `beneficiaries`, recherche + filtres déplacés ici → la liste de gauche devient plus compacte (uniquement vignettes).
-- **Aperçu déplacé au centre** (focus visuel principal de l'outil) avec actions juste en dessous : sélecteur modèle, boutons Aperçu / Générer HD, ligne workflow (Approuver / Verrouiller / Déverrouiller toujours visibles selon l'état), badge style verrouillé, état d'échec.
-- **Éditeur d'attributs à droite** : remplacer l'Accordion par des **Tabs verticales** (Visage, Yeux, Cheveux, Masculin*, Culturel*, Vêtements, Posture, Social) → on voit tous les champs d'une section sans scroll, on change de section en 1 clic. Conditionnels (`isMan`, `hasCulture`) en onglets masqués.
-- **Bouton "Déduire depuis le profil"** + **raccourcis clavier** (`G` = générer HD, `P` = aperçu, `A` = approuver, `L` = verrouiller, `/` = focus recherche, `↑`/`↓` = naviguer la liste) affichés dans un petit `?` tooltip.
-- **Liste de gauche** : vignettes plus denses (avatar + prénom + badge statut + petit indicateur QA), highlight sélection, indicateur "non généré" plus visible. Garder le filtre Échec.
-- **Versions** : passer d'une liste verticale à une **mini-galerie 3 colonnes** scrollable sous l'aperçu, clic = aperçu plein écran, sélection multi pour Comparer.
-- **Sauvegarde optimiste** : ajouter un petit indicateur "Sauvegardé" / "Sauvegarde…" à côté du nom du bénéficiaire.
-- **Garder strictement** les mêmes appels (`generate-avatar`, `qa-avatar`, table `beneficiaries`, `avatar_versions`) et la même logique de génération / workflow / règles. Seule l'organisation visuelle change.
+- Mettre à jour le `userPrompt` du QA pour décrire les critères du nouveau style (cartoon illustré, traits crayonnés, fond contextuel flou OK, anonymat strict).
+- Garder le hard-fail sur `style_match` et `anonymity` (global capé à 40).
 
-## 3. Détails techniques
+## 2. Avatar Studio — réorganisation légère (pas de refonte 4 zones)
 
-- Aucune migration DB.
-- Composants shadcn déjà disponibles (`Tabs`, `Tooltip`, `ScrollArea`, `Dialog`) — pas de nouvelle dépendance.
-- Utiliser `useHotkeys`-like custom hook minimal (un seul `useEffect` avec `keydown`) pour les raccourcis, scope = page.
-- Stats topbar : `useMemo` sur `beneficiaries.reduce(...)`.
-- Conserver `RuleList` tel quel sous chaque onglet.
-- Layout : `h-[calc(100vh-...)]` + `overflow-hidden` sur le conteneur, scroll uniquement à l'intérieur des 3 colonnes.
+Fichier : `src/pages/AvatarStudio.tsx`
+
+On part de la version actuelle (post-revert, layout 3 colonnes classique avec Accordion à droite, Aperçu à gauche) et on ajoute **uniquement** :
+
+- **Sélecteur de modèle** dans la zone Aperçu, défaut = "Nano Banana 2" (`google/gemini-3.1-flash-image-preview`). Option secondaire "Nano Banana Pro" (`google/gemini-3-pro-image-preview`) conservée mais non-défaut.
+- **Badge "Style verrouillé : cartoon illustré storybook"** mis à jour pour refléter le nouveau style.
+- **Barre de stats compacte** en haut de la liste (compteurs : Brouillon · Généré · Approuvé · Verrouillé · Échec) — une seule ligne, pas de topbar sticky pleine largeur.
+- **Filtres rapides** (chips) sous la recherche existante : Tous · Brouillon · Généré · Approuvé · Verrou · Échec.
+- **Raccourcis clavier discrets** : `P` aperçu, `G` HD, `A` approuver, `L` verrouiller, `/` focus recherche. Tooltip `?` listant les raccourcis.
+- **Indicateur "Sauvegardé / Sauvegarde…"** à côté du nom du bénéficiaire sélectionné.
+- **Reset des avatars existants** : `UPDATE beneficiaries SET avatar_url=NULL, avatar_preview_url=NULL, avatar_status=NULL, avatar_workflow_status='draft', avatar_qa_score=NULL, avatar_qa_report=NULL, avatar_model_used=NULL, avatar_generated_at=NULL` pour tous les bénéficiaires avec un avatar (force la régénération au nouveau style).
+
+On **NE touche PAS** au layout 3 colonnes, aux Accordions des attributs, ni à la route (déjà sur `/avatar-studio`).
 
 ## Fichiers modifiés
 
-- `src/App.tsx` — route `/avatar-studio` + redirect.
-- `src/pages/AvatarStudio.tsx` — refonte layout + Tabs + topbar + raccourcis.
-- `src/pages/Admin.tsx` — mise à jour du lien vers `/avatar-studio`.
+- `supabase/functions/_shared/avatarArtDirection.ts` — nouveau verrou de style + modèle Nano Banana 2 partout
+- `supabase/functions/qa-avatar/index.ts` — critères QA alignés sur le nouveau style
+- `src/pages/AvatarStudio.tsx` — sélecteur modèle (défaut NB2), stats compactes, filtres chips, raccourcis, indicateur sauvegarde, badge style mis à jour
+- Migration DB (reset des avatars existants)
 
-Pas de changement backend, pas de changement de la logique de génération ou du style verrouillé déjà en place.
+Pas de changement de route, pas de refonte du layout, pas de nouvelle dépendance.
