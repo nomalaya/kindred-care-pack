@@ -243,11 +243,16 @@ const AvatarStudio = () => {
     const keptReasons: Record<string, FieldReason[]> = {};
     for (const key of ["avatar_gender", "avatar_age_range"] as const) {
       const cur = (selected as any)[key];
-      if ((cur === null || cur === undefined || cur === "") && values[key]) {
+      const vocabKey = key.replace(/^avatar_/, "") as keyof typeof AVATAR_VOCAB;
+      const vocab = (AVATAR_VOCAB as any)[vocabKey] as string[] | undefined;
+      const isEmpty = cur === null || cur === undefined || cur === "";
+      const isInvalid = !isEmpty && Array.isArray(vocab) && typeof cur === "string" && !vocab.includes(cur);
+      if ((isEmpty || isInvalid) && values[key]) {
         toApply[key] = values[key];
         if (reasons[key]) keptReasons[key] = reasons[key];
       }
     }
+
     if (Object.keys(toApply).length > 0) {
       autoPrefilledFor.current = selected.id;
       setInferenceReasons(prev => ({ ...prev, ...keptReasons }));
