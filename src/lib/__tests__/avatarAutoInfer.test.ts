@@ -68,7 +68,11 @@ describe("inferStudioDefaultsWithReasons", () => {
       short_story: "",
       emotional_sentence: "",
     });
-    expect(Object.keys(r.reasons)).toHaveLength(0);
+    // age_known est toujours déduit dès qu'approx_age est connu — on l'exclut
+    const psychosocialReasons = Object.keys(r.reasons).filter(
+      k => k !== "avatar_age_range" && k !== "avatar_gender",
+    );
+    expect(psychosocialReasons).toHaveLength(0);
     expect(r.values.avatar_mobility_aid).toBe("none");
   });
 });
