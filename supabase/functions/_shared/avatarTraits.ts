@@ -48,6 +48,7 @@ export interface BeneficiaryInput {
   avatar_resilience_level?: number | null;
   avatar_fatigue_level?: number | null;
   avatar_dignity_level?: number | null;
+  avatar_mobility_aid?: string | null;
 }
 
 export interface AvatarTraits {
