@@ -30,6 +30,9 @@ import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
+  UserCircle, CalendarDays, Smile, Palette, Ruler, Layers, Scissors, Waves,
+  User, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility, Baby,
+  BatteryLow, Sun, CircleDot, LucideIcon,
 } from "lucide-react";
 
 type Beneficiary = any;
@@ -59,18 +62,56 @@ const FIELD_LABELS: Record<string, string> = {
   avatar_mobility_aid: "Aide à la mobilité",
 };
 
+const FIELD_ICONS: Record<string, LucideIcon> = {
+  avatar_gender: UserCircle,
+  avatar_age_range: CalendarDays,
+  avatar_face_shape: Smile,
+  avatar_skin_tone: Palette,
+  avatar_eye_shape: Eye,
+  avatar_eye_color: Eye,
+  avatar_hair_color: Palette,
+  avatar_hair_length: Ruler,
+  avatar_hair_volume: Layers,
+  avatar_hair_style: Scissors,
+  avatar_hair_type: Waves,
+  avatar_beard: User,
+  avatar_moustache: User,
+  avatar_hair_recession: ArrowUp,
+  avatar_head_covering: Crown,
+  avatar_cultural_style_override: Globe,
+  avatar_clothing_style: Shirt,
+  avatar_clothing_color_palette: Palette,
+  avatar_posture: PersonStanding,
+  avatar_mobility_aid: Accessibility,
+  avatar_expression: Smile,
+  avatar_parent_energy: Baby,
+};
+
+function FieldLabel({ icon: Icon, children, right }: { icon?: LucideIcon; children: React.ReactNode; right?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />}
+        <span>{children}</span>
+      </Label>
+      {right}
+    </div>
+  );
+}
+
 function SelectField({
-  label, value, options, onChange, disabled,
+  label, value, options, onChange, disabled, icon,
 }: {
   label: string;
   value: string | null;
   options: readonly string[];
   onChange: (v: string) => void;
   disabled?: boolean;
+  icon?: LucideIcon;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <FieldLabel icon={icon}>{label}</FieldLabel>
       <Select value={value ?? ""} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
         <SelectContent>
@@ -82,17 +123,14 @@ function SelectField({
 }
 
 function SliderField({
-  label, value, min = 0, max = 5, step = 1, onChange, disabled,
+  label, value, min = 0, max = 5, step = 1, onChange, disabled, icon,
 }: {
   label: string; value: number; min?: number; max?: number; step?: number;
-  onChange: (v: number) => void; disabled?: boolean;
+  onChange: (v: number) => void; disabled?: boolean; icon?: LucideIcon;
 }) {
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <Label className="text-xs text-muted-foreground">{label}</Label>
-        <span className="text-xs font-mono text-foreground">{value}</span>
-      </div>
+      <FieldLabel icon={icon} right={<span className="text-xs font-mono text-foreground">{value}</span>}>{label}</FieldLabel>
       <Slider
         value={[value]}
         min={min} max={max} step={step}
@@ -904,32 +942,32 @@ const AvatarStudio = () => {
                   <div className="flex-1 overflow-y-auto p-4">
                     <TabsContent value="face" className="mt-0 space-y-3">
                       <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_gender} value={selected.avatar_gender} options={AVATAR_VOCAB.gender} onChange={v => patch({ avatar_gender: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_age_range} value={selected.avatar_age_range} options={AVATAR_VOCAB.age_range} onChange={v => patch({ avatar_age_range: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_face_shape} value={selected.avatar_face_shape} options={AVATAR_VOCAB.face_shape} onChange={v => patch({ avatar_face_shape: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_skin_tone} value={selected.avatar_skin_tone} options={AVATAR_VOCAB.skin_tone} onChange={v => patch({ avatar_skin_tone: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_expression} value={selected.avatar_expression} options={AVATAR_VOCAB.expression} onChange={v => patch({ avatar_expression: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_gender} label={FIELD_LABELS.avatar_gender} value={selected.avatar_gender} options={AVATAR_VOCAB.gender} onChange={v => patch({ avatar_gender: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_age_range} label={FIELD_LABELS.avatar_age_range} value={selected.avatar_age_range} options={AVATAR_VOCAB.age_range} onChange={v => patch({ avatar_age_range: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_face_shape} label={FIELD_LABELS.avatar_face_shape} value={selected.avatar_face_shape} options={AVATAR_VOCAB.face_shape} onChange={v => patch({ avatar_face_shape: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_skin_tone} label={FIELD_LABELS.avatar_skin_tone} value={selected.avatar_skin_tone} options={AVATAR_VOCAB.skin_tone} onChange={v => patch({ avatar_skin_tone: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_expression} label={FIELD_LABELS.avatar_expression} value={selected.avatar_expression} options={AVATAR_VOCAB.expression} onChange={v => patch({ avatar_expression: v })} disabled={isLocked} />
                       </div>
                       <RuleList warnings={sectionWarnings("face")} onApply={applySuggestion} />
                     </TabsContent>
 
                     <TabsContent value="eyes" className="mt-0 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_eye_shape} value={selected.avatar_eye_shape} options={AVATAR_VOCAB.eye_shape} onChange={v => patch({ avatar_eye_shape: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_eye_color} value={selected.avatar_eye_color} options={AVATAR_VOCAB.eye_color} onChange={v => patch({ avatar_eye_color: v })} disabled={isLocked} />
-                        <SliderField label="Fatigue oculaire (0-5)" value={selected.avatar_tired_level ?? 0} onChange={v => patch({ avatar_tired_level: v })} disabled={isLocked} />
-                        <SliderField label="Luminosité émotionnelle (0-5)" value={selected.avatar_emotional_brightness ?? 3} onChange={v => patch({ avatar_emotional_brightness: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_eye_shape} label={FIELD_LABELS.avatar_eye_shape} value={selected.avatar_eye_shape} options={AVATAR_VOCAB.eye_shape} onChange={v => patch({ avatar_eye_shape: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_eye_color} label={FIELD_LABELS.avatar_eye_color} value={selected.avatar_eye_color} options={AVATAR_VOCAB.eye_color} onChange={v => patch({ avatar_eye_color: v })} disabled={isLocked} />
+                        <SliderField icon={BatteryLow} label="Fatigue oculaire (0-5)" value={selected.avatar_tired_level ?? 0} onChange={v => patch({ avatar_tired_level: v })} disabled={isLocked} />
+                        <SliderField icon={Sun} label="Luminosité émotionnelle (0-5)" value={selected.avatar_emotional_brightness ?? 3} onChange={v => patch({ avatar_emotional_brightness: v })} disabled={isLocked} />
                       </div>
                       <RuleList warnings={sectionWarnings("eyes")} onApply={applySuggestion} />
                     </TabsContent>
 
                     <TabsContent value="hair" className="mt-0 space-y-3">
                       <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_hair_type} value={selected.avatar_hair_type} options={AVATAR_VOCAB.hair_type} onChange={v => patch({ avatar_hair_type: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_hair_color} value={selected.avatar_hair_color} options={AVATAR_VOCAB.hair_color} onChange={v => patch({ avatar_hair_color: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_hair_length} value={selected.avatar_hair_length} options={AVATAR_VOCAB.hair_length} onChange={v => patch({ avatar_hair_length: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_hair_volume} value={selected.avatar_hair_volume} options={AVATAR_VOCAB.hair_volume} onChange={v => patch({ avatar_hair_volume: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_hair_style} value={selected.avatar_hair_style} options={AVATAR_VOCAB.hair_style} onChange={v => patch({ avatar_hair_style: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_hair_type} label={FIELD_LABELS.avatar_hair_type} value={selected.avatar_hair_type} options={AVATAR_VOCAB.hair_type} onChange={v => patch({ avatar_hair_type: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_hair_color} label={FIELD_LABELS.avatar_hair_color} value={selected.avatar_hair_color} options={AVATAR_VOCAB.hair_color} onChange={v => patch({ avatar_hair_color: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_hair_length} label={FIELD_LABELS.avatar_hair_length} value={selected.avatar_hair_length} options={AVATAR_VOCAB.hair_length} onChange={v => patch({ avatar_hair_length: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_hair_volume} label={FIELD_LABELS.avatar_hair_volume} value={selected.avatar_hair_volume} options={AVATAR_VOCAB.hair_volume} onChange={v => patch({ avatar_hair_volume: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_hair_style} label={FIELD_LABELS.avatar_hair_style} value={selected.avatar_hair_style} options={AVATAR_VOCAB.hair_style} onChange={v => patch({ avatar_hair_style: v })} disabled={isLocked} />
                       </div>
                       <RuleList warnings={sectionWarnings("hair")} onApply={applySuggestion} />
                     </TabsContent>
@@ -937,10 +975,10 @@ const AvatarStudio = () => {
                     {isMan && (
                       <TabsContent value="male" className="mt-0 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
-                          <SelectField label={FIELD_LABELS.avatar_beard} value={selected.avatar_beard} options={AVATAR_VOCAB.beard} onChange={v => patch({ avatar_beard: v })} disabled={isLocked} />
-                          <SelectField label={FIELD_LABELS.avatar_moustache} value={selected.avatar_moustache} options={AVATAR_VOCAB.moustache} onChange={v => patch({ avatar_moustache: v })} disabled={isLocked} />
-                          <SliderField label="Calvitie (0-100%)" value={selected.avatar_bald_level ?? 0} min={0} max={100} step={5} onChange={v => patch({ avatar_bald_level: v })} disabled={isLocked} />
-                          <SelectField label={FIELD_LABELS.avatar_hair_recession} value={selected.avatar_hair_recession} options={AVATAR_VOCAB.hair_recession} onChange={v => patch({ avatar_hair_recession: v })} disabled={isLocked} />
+                          <SelectField icon={FIELD_ICONS.avatar_beard} label={FIELD_LABELS.avatar_beard} value={selected.avatar_beard} options={AVATAR_VOCAB.beard} onChange={v => patch({ avatar_beard: v })} disabled={isLocked} />
+                          <SelectField icon={FIELD_ICONS.avatar_moustache} label={FIELD_LABELS.avatar_moustache} value={selected.avatar_moustache} options={AVATAR_VOCAB.moustache} onChange={v => patch({ avatar_moustache: v })} disabled={isLocked} />
+                          <SliderField icon={CircleDot} label="Calvitie (0-100%)" value={selected.avatar_bald_level ?? 0} min={0} max={100} step={5} onChange={v => patch({ avatar_bald_level: v })} disabled={isLocked} />
+                          <SelectField icon={FIELD_ICONS.avatar_hair_recession} label={FIELD_LABELS.avatar_hair_recession} value={selected.avatar_hair_recession} options={AVATAR_VOCAB.hair_recession} onChange={v => patch({ avatar_hair_recession: v })} disabled={isLocked} />
                         </div>
                         <RuleList warnings={sectionWarnings("male")} onApply={applySuggestion} />
                       </TabsContent>
@@ -949,7 +987,7 @@ const AvatarStudio = () => {
                     {hasCulture && (
                       <TabsContent value="cultural" className="mt-0 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
-                          <SelectField label={FIELD_LABELS.avatar_head_covering} value={selected.avatar_head_covering ?? "none"} options={AVATAR_VOCAB.head_covering} onChange={v => patch({ avatar_head_covering: v })} disabled={isLocked} />
+                          <SelectField icon={FIELD_ICONS.avatar_head_covering} label={FIELD_LABELS.avatar_head_covering} value={selected.avatar_head_covering ?? "none"} options={AVATAR_VOCAB.head_covering} onChange={v => patch({ avatar_head_covering: v })} disabled={isLocked} />
                           <div className="space-y-1.5">
                             <Label className="text-xs text-muted-foreground">{FIELD_LABELS.avatar_cultural_style_override}</Label>
                             <Input value={selected.avatar_cultural_style_override ?? ""} onChange={e => patch({ avatar_cultural_style_override: e.target.value })} disabled={isLocked} placeholder="ex. subtle_mediterranean" className="h-9" />
@@ -963,26 +1001,26 @@ const AvatarStudio = () => {
 
                     <TabsContent value="clothing" className="mt-0 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_clothing_style} value={selected.avatar_clothing_style} options={AVATAR_VOCAB.clothing_style} onChange={v => patch({ avatar_clothing_style: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_clothing_color_palette} value={selected.avatar_clothing_color_palette} options={AVATAR_VOCAB.clothing_color_palette} onChange={v => patch({ avatar_clothing_color_palette: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_clothing_style} label={FIELD_LABELS.avatar_clothing_style} value={selected.avatar_clothing_style} options={AVATAR_VOCAB.clothing_style} onChange={v => patch({ avatar_clothing_style: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_clothing_color_palette} label={FIELD_LABELS.avatar_clothing_color_palette} value={selected.avatar_clothing_color_palette} options={AVATAR_VOCAB.clothing_color_palette} onChange={v => patch({ avatar_clothing_color_palette: v })} disabled={isLocked} />
                       </div>
                       <RuleList warnings={sectionWarnings("clothing")} onApply={applySuggestion} />
                     </TabsContent>
 
                     <TabsContent value="posture" className="mt-0 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} />
-                        <SelectField label={FIELD_LABELS.avatar_mobility_aid} value={selected.avatar_mobility_aid ?? "none"} options={AVATAR_VOCAB.mobility_aid} onChange={v => patch({ avatar_mobility_aid: v })} disabled={isLocked} />
-                        <SliderField label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_posture} label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_mobility_aid} label={FIELD_LABELS.avatar_mobility_aid} value={selected.avatar_mobility_aid ?? "none"} options={AVATAR_VOCAB.mobility_aid} onChange={v => patch({ avatar_mobility_aid: v })} disabled={isLocked} />
+                        <SliderField icon={Sparkles} label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} />
                       </div>
                       <RuleList warnings={sectionWarnings("posture")} onApply={applySuggestion} />
                     </TabsContent>
 
                     <TabsContent value="social" className="mt-0 space-y-3">
                       <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                        <SelectField label={FIELD_LABELS.avatar_parent_energy} value={selected.avatar_parent_energy} options={AVATAR_VOCAB.parent_energy} onChange={v => patch({ avatar_parent_energy: v })} disabled={isLocked} />
-                        <SliderField label="Fatigue (0-5)" value={selected.avatar_fatigue_level ?? 0} onChange={v => patch({ avatar_fatigue_level: v })} disabled={isLocked} />
-                        <SliderField label="Dignité (0-5)" value={selected.avatar_dignity_level ?? 5} onChange={v => patch({ avatar_dignity_level: v })} disabled={isLocked} />
+                        <SelectField icon={FIELD_ICONS.avatar_parent_energy} label={FIELD_LABELS.avatar_parent_energy} value={selected.avatar_parent_energy} options={AVATAR_VOCAB.parent_energy} onChange={v => patch({ avatar_parent_energy: v })} disabled={isLocked} />
+                        <SliderField icon={BatteryLow} label="Fatigue (0-5)" value={selected.avatar_fatigue_level ?? 0} onChange={v => patch({ avatar_fatigue_level: v })} disabled={isLocked} />
+                        <SliderField icon={ShieldCheck} label="Dignité (0-5)" value={selected.avatar_dignity_level ?? 5} onChange={v => patch({ avatar_dignity_level: v })} disabled={isLocked} />
                       </div>
                       <RuleList warnings={sectionWarnings("social")} onApply={applySuggestion} />
                     </TabsContent>
