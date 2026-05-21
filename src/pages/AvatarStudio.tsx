@@ -661,6 +661,26 @@ const AvatarStudio = () => {
                   <Button onClick={() => generate("final")} size="sm" disabled={!!busy || isLocked} title="G">
                     <Sparkles className="h-3.5 w-3.5 mr-1" />HD
                   </Button>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleImportFile(f);
+                      e.currentTarget.value = "";
+                    }}
+                  />
+                  <Button
+                    onClick={() => importInputRef.current?.click()}
+                    variant="outline"
+                    size="sm"
+                    disabled={!!busy || isLocked}
+                    title="Importer une image externe (fal.ai, etc.)"
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1" />Importer
+                  </Button>
                 </div>
 
                 {/* Workflow row */}
