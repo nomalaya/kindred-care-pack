@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+// Tabs removed — replaced by SectionAccordion
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AVATAR_VOCAB, WORKFLOW_LABEL, WORKFLOW_COLOR, WorkflowStatus,
@@ -21,6 +22,7 @@ import { ContextPanel } from "@/features/avatar-studio/ContextPanel";
 import { InferenceReasonsPanel } from "@/features/avatar-studio/InferenceReasonsPanel";
 import { BeneficiaryListPanel } from "@/features/avatar-studio/BeneficiaryListPanel";
 import { RuleList } from "@/features/avatar-studio/RuleList";
+import { SectionAccordion, type SectionDef } from "@/features/avatar-studio/SectionAccordion";
 import {
   FIELD_LABELS, FIELD_ICONS, SelectField, SliderField,
 } from "@/features/avatar-studio/fields";
@@ -30,7 +32,7 @@ import {
 import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
-  Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby,
+  Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown,
 } from "lucide-react";
 
@@ -810,6 +812,54 @@ const AvatarStudio = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5">
+                    {/* Contexte (Histoire + Phrase émotionnelle) en popover */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" title="Contexte psychosocial">
+                          <FileText className="h-3.5 w-3.5 mr-1" />Contexte
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-[420px] p-0">
+                        <ContextPanel
+                          shortStory={selected.short_story ?? null}
+                          emotionalSentence={selected.emotional_sentence ?? null}
+                          disabled={isLocked}
+                          onSave={async (p) => {
+                            const { error } = await supabase.from("beneficiaries").update(p as any).eq("id", selected.id);
+                            if (error) { toast.error("Échec : " + error.message); return; }
+                            setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...p } : b));
+                            toast.success("Contexte enregistré");
+                          }}
+                          onReinferAndSave={async (p) => {
+                            const { error } = await supabase.from("beneficiaries").update(p as any).eq("id", selected.id);
+                            if (error) { toast.error("Échec : " + error.message); return; }
+                            const updated = { ...selected, ...p };
+                            setBeneficiaries(prev => prev.map(b => b.id === selected.id ? updated : b));
+                            const { values, reasons } = inferStudioDefaultsWithReasons(updated as any);
+                            setInferenceReasons(reasons);
+                            await supabase.from("beneficiaries").update(values as any).eq("id", selected.id);
+                            setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...p, ...values } : b));
+                            toast.success("Contexte enregistré et attributs re-déduits");
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+
+                    {/* Inférences IA en popover, déclenché par badge ✨ */}
+                    {Object.keys(inferenceReasons).length > 0 && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-primary" title="Pourquoi ces choix ?">
+                            <Sparkles className="h-3.5 w-3.5 mr-1" />
+                            {Object.keys(inferenceReasons).length}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-[360px] p-0">
+                          <InferenceReasonsPanel reasons={inferenceReasons} />
+                        </PopoverContent>
+                      </Popover>
+                    )}
+
                     <Button onClick={() => autoInfer("fill")} variant="outline" size="sm" disabled={isLocked} title="Pré-remplir les champs vides depuis le récit">
                       <Wand2 className="h-3.5 w-3.5 mr-1" />Pré-remplir
                     </Button>
@@ -828,155 +878,188 @@ const AvatarStudio = () => {
                   </div>
                 </div>
 
-                <ContextPanel
-                  shortStory={selected.short_story ?? null}
-                  emotionalSentence={selected.emotional_sentence ?? null}
-                  disabled={isLocked}
-                  onSave={async (p) => {
-                    const { error } = await supabase.from("beneficiaries").update(p as any).eq("id", selected.id);
-                    if (error) { toast.error("Échec : " + error.message); return; }
-                    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...p } : b));
-                    toast.success("Contexte enregistré");
-                  }}
-                  onReinferAndSave={async (p) => {
-                    const { error } = await supabase.from("beneficiaries").update(p as any).eq("id", selected.id);
-                    if (error) { toast.error("Échec : " + error.message); return; }
-                    const updated = { ...selected, ...p };
-                    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? updated : b));
-                    const { values, reasons } = inferStudioDefaultsWithReasons(updated as any);
-                    setInferenceReasons(reasons);
-                    await supabase.from("beneficiaries").update(values as any).eq("id", selected.id);
-                    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...p, ...values } : b));
-                    toast.success("Contexte enregistré et attributs re-déduits");
-                  }}
-                />
-
-                <InferenceReasonsPanel reasons={inferenceReasons} />
-
                 {isLocked && (
                   <div className="mx-4 mt-3 p-2 rounded-md border bg-[hsl(var(--status-locked-bg))] text-[hsl(var(--status-locked-fg))] border-[hsl(var(--status-locked-border))] text-xs flex items-center gap-2">
                     <Lock className="h-3.5 w-3.5" />Avatar verrouillé — déverrouillez pour modifier.
                   </div>
                 )}
 
+                {/* SECTIONS — accordion, vue complète scrollable */}
+                <div className="flex-1 overflow-y-auto">
+                  {(() => {
+                    const countFilled = (keys: string[]) =>
+                      keys.filter(k => {
+                        const v = (selected as any)[k];
+                        return v !== null && v !== undefined && v !== "" && v !== "none";
+                      }).length;
 
-                <Tabs defaultValue="face" className="flex-1 flex flex-col overflow-hidden">
-                  <TabsList className="mx-4 mt-3 justify-start flex-wrap h-auto">
-                    {([
-                      ["face", "Visage", Smile],
-                      ["eyes", "Yeux", Eye],
-                      ["hair", "Cheveux", Scissors],
-                      ...(isMan ? [["male", "Masculin", User]] as const : []),
-                      ...(hasCulture ? [["cultural", "Culturel", Globe]] as const : []),
-                      ["clothing", "Vêtements", Shirt],
-                      ["posture", "Posture", PersonStanding],
-                      ["social", "Social", Baby],
-                    ] as [string, string, LucideIcon][]).map(([val, lbl, Ic]) => {
-                      const hasErr = warnings.some(w => w.section === val && w.severity === "error");
-                      const hasWarn = warnings.some(w => w.section === val && w.severity === "warning");
-                      return (
-                        <TabsTrigger key={val} value={val} className="relative gap-1.5">
-                          <Ic className="h-3.5 w-3.5" />
-                          {lbl}
-                          {(hasErr || hasWarn) && (
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${hasErr ? "bg-[hsl(var(--status-failed-fg))]" : "bg-[hsl(var(--status-generated-fg))]"}`}
-                              aria-label={hasErr ? "Erreur" : "Avertissement"}
-                            />
-                          )}
-                        </TabsTrigger>
-                      );
-                    })}
-                  </TabsList>
+                    const faceKeys = [
+                      "avatar_gender", "avatar_age_range", "avatar_face_shape",
+                      "avatar_skin_tone", "avatar_expression",
+                      "avatar_eye_shape", "avatar_eye_color",
+                    ];
+                    const hairKeys = [
+                      "avatar_hair_type", "avatar_hair_color", "avatar_hair_length",
+                      "avatar_hair_volume", "avatar_hair_style",
+                      ...(isMan ? ["avatar_beard", "avatar_moustache", "avatar_hair_recession"] : []),
+                    ];
+                    const clothingKeys = [
+                      "avatar_clothing_style", "avatar_clothing_color_palette",
+                      "avatar_posture", "avatar_mobility_aid",
+                    ];
+                    const culturalKeys = ["avatar_head_covering", "avatar_cultural_style_override"];
+                    const socialKeys = ["avatar_parent_energy"];
 
+                    const sections: SectionDef[] = [
+                      {
+                        id: "visage",
+                        label: "Visage & regard",
+                        icon: Smile,
+                        filled: countFilled(faceKeys),
+                        total: faceKeys.length,
+                        errors: warnings.filter(w => (w.section === "face" || w.section === "eyes") && w.severity === "error").length,
+                        warnings: warnings.filter(w => (w.section === "face" || w.section === "eyes") && w.severity === "warning").length,
+                        content: (
+                          <div className="space-y-4">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Visage</div>
+                              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                                <SelectField icon={FIELD_ICONS.avatar_gender} label={FIELD_LABELS.avatar_gender} value={selected.avatar_gender} options={AVATAR_VOCAB.gender} onChange={v => patch({ avatar_gender: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_age_range} label={FIELD_LABELS.avatar_age_range} value={selected.avatar_age_range} options={AVATAR_VOCAB.age_range} onChange={v => patch({ avatar_age_range: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_face_shape} label={FIELD_LABELS.avatar_face_shape} value={selected.avatar_face_shape} options={AVATAR_VOCAB.face_shape} onChange={v => patch({ avatar_face_shape: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_skin_tone} label={FIELD_LABELS.avatar_skin_tone} value={selected.avatar_skin_tone} options={AVATAR_VOCAB.skin_tone} onChange={v => patch({ avatar_skin_tone: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_expression} label={FIELD_LABELS.avatar_expression} value={selected.avatar_expression} options={AVATAR_VOCAB.expression} onChange={v => patch({ avatar_expression: v })} disabled={isLocked} />
+                              </div>
+                              <RuleList warnings={sectionWarnings("face")} onApply={applySuggestion} />
+                            </div>
 
-                  <div className="flex-1 overflow-y-auto p-4">
-                    <TabsContent value="face" className="mt-0 space-y-3">
-                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                        <SelectField icon={FIELD_ICONS.avatar_gender} label={FIELD_LABELS.avatar_gender} value={selected.avatar_gender} options={AVATAR_VOCAB.gender} onChange={v => patch({ avatar_gender: v })} disabled={isLocked} />
-                        <SelectField icon={FIELD_ICONS.avatar_age_range} label={FIELD_LABELS.avatar_age_range} value={selected.avatar_age_range} options={AVATAR_VOCAB.age_range} onChange={v => patch({ avatar_age_range: v })} disabled={isLocked} />
-                        <SelectField icon={FIELD_ICONS.avatar_face_shape} label={FIELD_LABELS.avatar_face_shape} value={selected.avatar_face_shape} options={AVATAR_VOCAB.face_shape} onChange={v => patch({ avatar_face_shape: v })} disabled={isLocked} />
-                        <SelectField icon={FIELD_ICONS.avatar_skin_tone} label={FIELD_LABELS.avatar_skin_tone} value={selected.avatar_skin_tone} options={AVATAR_VOCAB.skin_tone} onChange={v => patch({ avatar_skin_tone: v })} disabled={isLocked} />
-                        <SelectField icon={FIELD_ICONS.avatar_expression} label={FIELD_LABELS.avatar_expression} value={selected.avatar_expression} options={AVATAR_VOCAB.expression} onChange={v => patch({ avatar_expression: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("face")} onApply={applySuggestion} />
-                    </TabsContent>
-
-                    <TabsContent value="eyes" className="mt-0 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <SelectField icon={FIELD_ICONS.avatar_eye_shape} label={FIELD_LABELS.avatar_eye_shape} value={selected.avatar_eye_shape} options={AVATAR_VOCAB.eye_shape} onChange={v => patch({ avatar_eye_shape: v })} disabled={isLocked} />
-                        <SelectField icon={FIELD_ICONS.avatar_eye_color} label={FIELD_LABELS.avatar_eye_color} value={selected.avatar_eye_color} options={AVATAR_VOCAB.eye_color} onChange={v => patch({ avatar_eye_color: v })} disabled={isLocked} />
-                        <SliderField icon={BatteryLow} label="Fatigue oculaire (0-5)" value={selected.avatar_tired_level ?? 0} onChange={v => patch({ avatar_tired_level: v })} disabled={isLocked} />
-                        <SliderField icon={Sun} label="Luminosité émotionnelle (0-5)" value={selected.avatar_emotional_brightness ?? 3} onChange={v => patch({ avatar_emotional_brightness: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("eyes")} onApply={applySuggestion} />
-                    </TabsContent>
-
-                    <TabsContent value="hair" className="mt-0 space-y-3">
-                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                        <SelectField icon={FIELD_ICONS.avatar_hair_type} label={FIELD_LABELS.avatar_hair_type} value={selected.avatar_hair_type} options={AVATAR_VOCAB.hair_type} onChange={v => patch({ avatar_hair_type: v })} disabled={isLocked} />
-                        <SelectField icon={FIELD_ICONS.avatar_hair_color} label={FIELD_LABELS.avatar_hair_color} value={selected.avatar_hair_color} options={AVATAR_VOCAB.hair_color} onChange={v => patch({ avatar_hair_color: v })} disabled={isLocked} />
-                        <SelectField icon={FIELD_ICONS.avatar_hair_length} label={FIELD_LABELS.avatar_hair_length} value={selected.avatar_hair_length} options={AVATAR_VOCAB.hair_length} onChange={v => patch({ avatar_hair_length: v })} disabled={isLocked} />
-                        <SelectField icon={FIELD_ICONS.avatar_hair_volume} label={FIELD_LABELS.avatar_hair_volume} value={selected.avatar_hair_volume} options={AVATAR_VOCAB.hair_volume} onChange={v => patch({ avatar_hair_volume: v })} disabled={isLocked} />
-                        <SelectField icon={FIELD_ICONS.avatar_hair_style} label={FIELD_LABELS.avatar_hair_style} value={selected.avatar_hair_style} options={AVATAR_VOCAB.hair_style} onChange={v => patch({ avatar_hair_style: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("hair")} onApply={applySuggestion} />
-                    </TabsContent>
-
-                    {isMan && (
-                      <TabsContent value="male" className="mt-0 space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <SelectField icon={FIELD_ICONS.avatar_beard} label={FIELD_LABELS.avatar_beard} value={selected.avatar_beard} options={AVATAR_VOCAB.beard} onChange={v => patch({ avatar_beard: v })} disabled={isLocked} />
-                          <SelectField icon={FIELD_ICONS.avatar_moustache} label={FIELD_LABELS.avatar_moustache} value={selected.avatar_moustache} options={AVATAR_VOCAB.moustache} onChange={v => patch({ avatar_moustache: v })} disabled={isLocked} />
-                          <SliderField icon={CircleDot} label="Calvitie (0-100%)" value={selected.avatar_bald_level ?? 0} min={0} max={100} step={5} onChange={v => patch({ avatar_bald_level: v })} disabled={isLocked} />
-                          <SelectField icon={FIELD_ICONS.avatar_hair_recession} label={FIELD_LABELS.avatar_hair_recession} value={selected.avatar_hair_recession} options={AVATAR_VOCAB.hair_recession} onChange={v => patch({ avatar_hair_recession: v })} disabled={isLocked} />
-                        </div>
-                        <RuleList warnings={sectionWarnings("male")} onApply={applySuggestion} />
-                      </TabsContent>
-                    )}
-
-                    {hasCulture && (
-                      <TabsContent value="cultural" className="mt-0 space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <SelectField icon={FIELD_ICONS.avatar_head_covering} label={FIELD_LABELS.avatar_head_covering} value={selected.avatar_head_covering ?? "none"} options={AVATAR_VOCAB.head_covering} onChange={v => patch({ avatar_head_covering: v })} disabled={isLocked} />
-                          <div className="space-y-1.5">
-                            <Label className="text-xs text-muted-foreground">{FIELD_LABELS.avatar_cultural_style_override}</Label>
-                            <Input value={selected.avatar_cultural_style_override ?? ""} onChange={e => patch({ avatar_cultural_style_override: e.target.value })} disabled={isLocked} placeholder="ex. subtle_mediterranean" className="h-9" />
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Yeux & regard</div>
+                              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                                <SelectField icon={FIELD_ICONS.avatar_eye_shape} label={FIELD_LABELS.avatar_eye_shape} value={selected.avatar_eye_shape} options={AVATAR_VOCAB.eye_shape} onChange={v => patch({ avatar_eye_shape: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_eye_color} label={FIELD_LABELS.avatar_eye_color} value={selected.avatar_eye_color} options={AVATAR_VOCAB.eye_color} onChange={v => patch({ avatar_eye_color: v })} disabled={isLocked} />
+                                <SliderField icon={BatteryLow} label="Fatigue oculaire (0-5)" value={selected.avatar_tired_level ?? 0} onChange={v => patch({ avatar_tired_level: v })} disabled={isLocked} />
+                                <SliderField icon={Sun} label="Luminosité émotionnelle (0-5)" value={selected.avatar_emotional_brightness ?? 3} onChange={v => patch({ avatar_emotional_brightness: v })} disabled={isLocked} />
+                              </div>
+                              <RuleList warnings={sectionWarnings("eyes")} onApply={applySuggestion} />
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Tags : {(selected.culture_tags || []).join(", ") || "—"}
-                        </div>
-                      </TabsContent>
-                    )}
+                        ),
+                      },
+                      {
+                        id: "cheveux",
+                        label: "Cheveux & pilosité",
+                        icon: Scissors,
+                        filled: countFilled(hairKeys),
+                        total: hairKeys.length,
+                        errors: warnings.filter(w => (w.section === "hair" || w.section === "male") && w.severity === "error").length,
+                        warnings: warnings.filter(w => (w.section === "hair" || w.section === "male") && w.severity === "warning").length,
+                        content: (
+                          <div className="space-y-4">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Cheveux</div>
+                              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                                <SelectField icon={FIELD_ICONS.avatar_hair_type} label={FIELD_LABELS.avatar_hair_type} value={selected.avatar_hair_type} options={AVATAR_VOCAB.hair_type} onChange={v => patch({ avatar_hair_type: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_hair_color} label={FIELD_LABELS.avatar_hair_color} value={selected.avatar_hair_color} options={AVATAR_VOCAB.hair_color} onChange={v => patch({ avatar_hair_color: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_hair_length} label={FIELD_LABELS.avatar_hair_length} value={selected.avatar_hair_length} options={AVATAR_VOCAB.hair_length} onChange={v => patch({ avatar_hair_length: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_hair_volume} label={FIELD_LABELS.avatar_hair_volume} value={selected.avatar_hair_volume} options={AVATAR_VOCAB.hair_volume} onChange={v => patch({ avatar_hair_volume: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_hair_style} label={FIELD_LABELS.avatar_hair_style} value={selected.avatar_hair_style} options={AVATAR_VOCAB.hair_style} onChange={v => patch({ avatar_hair_style: v })} disabled={isLocked} />
+                              </div>
+                              <RuleList warnings={sectionWarnings("hair")} onApply={applySuggestion} />
+                            </div>
 
-                    <TabsContent value="clothing" className="mt-0 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <SelectField icon={FIELD_ICONS.avatar_clothing_style} label={FIELD_LABELS.avatar_clothing_style} value={selected.avatar_clothing_style} options={AVATAR_VOCAB.clothing_style} onChange={v => patch({ avatar_clothing_style: v })} disabled={isLocked} />
-                        <SelectField icon={FIELD_ICONS.avatar_clothing_color_palette} label={FIELD_LABELS.avatar_clothing_color_palette} value={selected.avatar_clothing_color_palette} options={AVATAR_VOCAB.clothing_color_palette} onChange={v => patch({ avatar_clothing_color_palette: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("clothing")} onApply={applySuggestion} />
-                    </TabsContent>
+                            {isMan && (
+                              <div>
+                                <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Pilosité</div>
+                                <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                                  <SelectField icon={FIELD_ICONS.avatar_beard} label={FIELD_LABELS.avatar_beard} value={selected.avatar_beard} options={AVATAR_VOCAB.beard} onChange={v => patch({ avatar_beard: v })} disabled={isLocked} />
+                                  <SelectField icon={FIELD_ICONS.avatar_moustache} label={FIELD_LABELS.avatar_moustache} value={selected.avatar_moustache} options={AVATAR_VOCAB.moustache} onChange={v => patch({ avatar_moustache: v })} disabled={isLocked} />
+                                  <SliderField icon={CircleDot} label="Calvitie (0-100%)" value={selected.avatar_bald_level ?? 0} min={0} max={100} step={5} onChange={v => patch({ avatar_bald_level: v })} disabled={isLocked} />
+                                  <SelectField icon={FIELD_ICONS.avatar_hair_recession} label={FIELD_LABELS.avatar_hair_recession} value={selected.avatar_hair_recession} options={AVATAR_VOCAB.hair_recession} onChange={v => patch({ avatar_hair_recession: v })} disabled={isLocked} />
+                                </div>
+                                <RuleList warnings={sectionWarnings("male")} onApply={applySuggestion} />
+                              </div>
+                            )}
+                          </div>
+                        ),
+                      },
+                      ...(hasCulture ? [{
+                        id: "culturel",
+                        label: "Culturel",
+                        icon: Globe,
+                        filled: countFilled(culturalKeys),
+                        total: culturalKeys.length,
+                        errors: 0,
+                        warnings: 0,
+                        content: (
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                              <SelectField icon={FIELD_ICONS.avatar_head_covering} label={FIELD_LABELS.avatar_head_covering} value={selected.avatar_head_covering ?? "none"} options={AVATAR_VOCAB.head_covering} onChange={v => patch({ avatar_head_covering: v })} disabled={isLocked} />
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">{FIELD_LABELS.avatar_cultural_style_override}</Label>
+                                <Input value={selected.avatar_cultural_style_override ?? ""} onChange={e => patch({ avatar_cultural_style_override: e.target.value })} disabled={isLocked} placeholder="ex. subtle_mediterranean" className="h-9" />
+                              </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Tags : {(selected.culture_tags || []).join(", ") || "—"}
+                            </div>
+                          </div>
+                        ),
+                      } as SectionDef] : []),
+                      {
+                        id: "vetements",
+                        label: "Vêtements & posture",
+                        icon: Shirt,
+                        filled: countFilled(clothingKeys),
+                        total: clothingKeys.length,
+                        errors: warnings.filter(w => (w.section === "clothing" || w.section === "posture") && w.severity === "error").length,
+                        warnings: warnings.filter(w => (w.section === "clothing" || w.section === "posture") && w.severity === "warning").length,
+                        content: (
+                          <div className="space-y-4">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Vêtements</div>
+                              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                                <SelectField icon={FIELD_ICONS.avatar_clothing_style} label={FIELD_LABELS.avatar_clothing_style} value={selected.avatar_clothing_style} options={AVATAR_VOCAB.clothing_style} onChange={v => patch({ avatar_clothing_style: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_clothing_color_palette} label={FIELD_LABELS.avatar_clothing_color_palette} value={selected.avatar_clothing_color_palette} options={AVATAR_VOCAB.clothing_color_palette} onChange={v => patch({ avatar_clothing_color_palette: v })} disabled={isLocked} />
+                              </div>
+                              <RuleList warnings={sectionWarnings("clothing")} onApply={applySuggestion} />
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Posture</div>
+                              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                                <SelectField icon={FIELD_ICONS.avatar_posture} label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_mobility_aid} label={FIELD_LABELS.avatar_mobility_aid} value={selected.avatar_mobility_aid ?? "none"} options={AVATAR_VOCAB.mobility_aid} onChange={v => patch({ avatar_mobility_aid: v })} disabled={isLocked} />
+                                <SliderField icon={Sparkles} label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} />
+                              </div>
+                              <RuleList warnings={sectionWarnings("posture")} onApply={applySuggestion} />
+                            </div>
+                          </div>
+                        ),
+                      },
+                      {
+                        id: "social",
+                        label: "Social & émotionnel",
+                        icon: Baby,
+                        filled: countFilled(socialKeys),
+                        total: socialKeys.length,
+                        errors: warnings.filter(w => w.section === "social" && w.severity === "error").length,
+                        warnings: warnings.filter(w => w.section === "social" && w.severity === "warning").length,
+                        content: (
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                              <SelectField icon={FIELD_ICONS.avatar_parent_energy} label={FIELD_LABELS.avatar_parent_energy} value={selected.avatar_parent_energy} options={AVATAR_VOCAB.parent_energy} onChange={v => patch({ avatar_parent_energy: v })} disabled={isLocked} />
+                              <SliderField icon={BatteryLow} label="Fatigue (0-5)" value={selected.avatar_fatigue_level ?? 0} onChange={v => patch({ avatar_fatigue_level: v })} disabled={isLocked} />
+                              <SliderField icon={ShieldCheck} label="Dignité (0-5)" value={selected.avatar_dignity_level ?? 5} onChange={v => patch({ avatar_dignity_level: v })} disabled={isLocked} />
+                            </div>
+                            <RuleList warnings={sectionWarnings("social")} onApply={applySuggestion} />
+                          </div>
+                        ),
+                      },
+                    ];
 
-                    <TabsContent value="posture" className="mt-0 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <SelectField icon={FIELD_ICONS.avatar_posture} label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} />
-                        <SelectField icon={FIELD_ICONS.avatar_mobility_aid} label={FIELD_LABELS.avatar_mobility_aid} value={selected.avatar_mobility_aid ?? "none"} options={AVATAR_VOCAB.mobility_aid} onChange={v => patch({ avatar_mobility_aid: v })} disabled={isLocked} />
-                        <SliderField icon={Sparkles} label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("posture")} onApply={applySuggestion} />
-                    </TabsContent>
-
-                    <TabsContent value="social" className="mt-0 space-y-3">
-                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                        <SelectField icon={FIELD_ICONS.avatar_parent_energy} label={FIELD_LABELS.avatar_parent_energy} value={selected.avatar_parent_energy} options={AVATAR_VOCAB.parent_energy} onChange={v => patch({ avatar_parent_energy: v })} disabled={isLocked} />
-                        <SliderField icon={BatteryLow} label="Fatigue (0-5)" value={selected.avatar_fatigue_level ?? 0} onChange={v => patch({ avatar_fatigue_level: v })} disabled={isLocked} />
-                        <SliderField icon={ShieldCheck} label="Dignité (0-5)" value={selected.avatar_dignity_level ?? 5} onChange={v => patch({ avatar_dignity_level: v })} disabled={isLocked} />
-                      </div>
-                      <RuleList warnings={sectionWarnings("social")} onApply={applySuggestion} />
-                    </TabsContent>
-                  </div>
-                </Tabs>
+                    return <SectionAccordion sections={sections} />;
+                  })()}
+                </div>
               </>
             )}
           </section>
