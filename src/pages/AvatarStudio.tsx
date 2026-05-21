@@ -531,6 +531,10 @@ const AvatarStudio = () => {
                   )}
                 </div>
 
+                <div className="mb-3 text-[10px] uppercase tracking-wide text-muted-foreground border rounded-md px-2 py-1 bg-muted/40">
+                  Style verrouillé : cartoon vectoriel plat · fond blanc
+                </div>
+
                 <Badge variant="outline" className={`mb-3 self-start ${WORKFLOW_COLOR[(selected.avatar_workflow_status || "draft") as WorkflowStatus]}`}>
                   {WORKFLOW_LABEL[(selected.avatar_workflow_status || "draft") as WorkflowStatus]}
                   {selected.avatar_qa_score && ` · QA ${Math.round(selected.avatar_qa_score)}`}
