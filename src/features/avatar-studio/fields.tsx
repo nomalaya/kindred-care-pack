@@ -73,7 +73,7 @@ export const FIELD_ACCENT: Record<string, string> = {
   avatar_skin_tone: "--field-skin",
   avatar_eye_shape: "--field-eye",
   avatar_eye_color: "--field-eye",
-  avatar_tired_level: "--field-eye",
+  avatar_tired_level: "--field-fatigue",
   avatar_emotional_brightness: "--field-mood",
   avatar_hair_type: "--field-hair",
   avatar_hair_color: "--field-hair",
