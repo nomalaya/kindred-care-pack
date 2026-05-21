@@ -588,14 +588,6 @@ const AvatarStudio = () => {
   const sectionWarnings = (section: RuleWarning["section"]) =>
     warnings.filter(w => w.section === section);
 
-  const StatChip = ({ label, value, tone }: { label: string; value: number; tone: string }) => (
-    <button
-      onClick={() => setFilter(label === "Tous" ? "all" : label === "Échec" ? "failed" : (label.toLowerCase() as any))}
-      className={`text-xs px-2 py-1 rounded-md border ${tone}`}
-    >
-      <span className="font-semibold">{value}</span> <span className="opacity-70">{label}</span>
-    </button>
-  );
 
   return (
     <Layout>
