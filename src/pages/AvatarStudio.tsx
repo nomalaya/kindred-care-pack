@@ -966,36 +966,52 @@ const AvatarStudio = () => {
                     <Button onClick={() => autoInfer("fill")} variant="outline" size="sm" disabled={isLocked} title="Pré-remplir les champs vides depuis le récit">
                       <Wand2 className="h-3.5 w-3.5 mr-1" />Pré-remplir
                     </Button>
-                    <Button onClick={() => autoInfer("force")} variant="ghost" size="sm" disabled={isLocked} title="Re-déduire et écraser tous les champs">
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" disabled={isLocked} title="Actions avancées" aria-label="Actions avancées">
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => autoInfer("force")} className="text-xs">
+                          <RotateCcw className="h-3.5 w-3.5 mr-2" />Tout re-déduire (écrase manuel)
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
-                {/* Contexte psychosocial — toujours visible */}
-                {(selected.short_story || selected.emotional_sentence) && (
-                  <div className="mx-4 mt-3 rounded-md border bg-muted/30 p-3 space-y-2">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
-                      Contexte psychosocial — source des déductions
-                    </div>
-                    {selected.short_story && (
-                      <p className="text-xs leading-relaxed text-foreground/90 italic">
-                        {selected.short_story}
-                      </p>
-                    )}
-                    {selected.emotional_sentence && (
-                      <blockquote className="text-xs leading-relaxed border-l-2 border-primary/40 pl-2 text-foreground/80">
-                        «&nbsp;{selected.emotional_sentence}&nbsp;»
-                      </blockquote>
-                    )}
-                  </div>
-                )}
+                <ContextPanel
+                  shortStory={selected.short_story ?? null}
+                  emotionalSentence={selected.emotional_sentence ?? null}
+                  disabled={isLocked}
+                  onSave={async (p) => {
+                    const { error } = await supabase.from("beneficiaries").update(p as any).eq("id", selected.id);
+                    if (error) { toast.error("Échec : " + error.message); return; }
+                    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...p } : b));
+                    toast.success("Contexte enregistré");
+                  }}
+                  onReinferAndSave={async (p) => {
+                    const { error } = await supabase.from("beneficiaries").update(p as any).eq("id", selected.id);
+                    if (error) { toast.error("Échec : " + error.message); return; }
+                    const updated = { ...selected, ...p };
+                    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? updated : b));
+                    const { values, reasons } = inferStudioDefaultsWithReasons(updated as any);
+                    setInferenceReasons(reasons);
+                    await supabase.from("beneficiaries").update(values as any).eq("id", selected.id);
+                    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...p, ...values } : b));
+                    toast.success("Contexte enregistré et attributs re-déduits");
+                  }}
+                />
+
+                <InferenceReasonsPanel reasons={inferenceReasons} />
 
                 {isLocked && (
-                  <div className="mx-4 mt-3 p-2 rounded-md border border-slate-300 bg-slate-50 text-xs flex items-center gap-2">
+                  <div className="mx-4 mt-3 p-2 rounded-md border bg-[hsl(var(--status-locked-bg))] text-[hsl(var(--status-locked-fg))] border-[hsl(var(--status-locked-border))] text-xs flex items-center gap-2">
                     <Lock className="h-3.5 w-3.5" />Avatar verrouillé — déverrouillez pour modifier.
                   </div>
                 )}
+
 
                 <Tabs defaultValue="face" className="flex-1 flex flex-col overflow-hidden">
                   <TabsList className="mx-4 mt-3 justify-start flex-wrap h-auto">
