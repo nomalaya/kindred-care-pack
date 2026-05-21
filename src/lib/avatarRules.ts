@@ -22,6 +22,8 @@ interface RuleInput {
   avatar_clothing_style?: string | null;
   avatar_fatigue_level?: number | null;
   avatar_dignity_level?: number | null;
+  avatar_mobility_aid?: string | null;
+  avatar_posture?: string | null;
   children_count?: number | null;
   culture_tags?: string[] | null;
 }
