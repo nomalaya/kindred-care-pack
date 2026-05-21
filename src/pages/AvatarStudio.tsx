@@ -239,13 +239,31 @@ const AvatarStudio = () => {
 
   const applySuggestion = (s: Record<string, unknown>) => patch(s as any);
 
-  const autoInfer = () => {
+  const autoInfer = (mode: "fill" | "force" = "fill") => {
     if (!selected) return;
-    if (!confirm("Pré-remplir tous les champs depuis le profil ? Les valeurs actuelles seront écrasées.")) return;
     const defaults = inferStudioDefaults(selected);
-    patch(defaults);
-    toast.success("Attributs déduits depuis le profil");
+    let toApply: Record<string, any> = defaults;
+    if (mode === "fill") {
+      // n'écrase que les champs vides / nuls
+      toApply = Object.fromEntries(
+        Object.entries(defaults).filter(([k]) => {
+          const cur = (selected as any)[k];
+          return cur === null || cur === undefined || cur === "" || cur === "none";
+        }),
+      );
+    }
+    if (Object.keys(toApply).length === 0) {
+      toast.info("Aucun champ vide à pré-remplir. Utilisez « Tout re-déduire » pour écraser.");
+      return;
+    }
+    patch(toApply);
+    toast.success(
+      mode === "force"
+        ? "Attributs re-déduits depuis le récit"
+        : `${Object.keys(toApply).length} champ(s) pré-rempli(s) depuis le récit`,
+    );
   };
+
 
   const generate = async (mode: "preview" | "final") => {
     if (!selected) return;
