@@ -231,7 +231,11 @@ serve(async (req) => {
         console.error("avatar work error:", workErr);
         await supabase.from("beneficiaries").update({
           avatar_status: "failed",
-          avatar_qa_report: { error: workErr.message ?? String(workErr) },
+          avatar_qa_report: {
+            error: workErr.message ?? String(workErr),
+            code: workErr.code ?? null,
+            gateway_status: workErr.gatewayStatus ?? null,
+          },
         }).eq("id", beneficiary_id);
       }
     })();
