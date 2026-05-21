@@ -14,6 +14,7 @@ import UpsellDonation from "./pages/UpsellDonation";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import AvatarStudio from "./pages/AvatarStudio";
 import HowItWorks from "./pages/HowItWorks";
 import DonationPreview from "./pages/DonationPreview";
 
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/avatar-studio" element={<AvatarStudio />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/donation-preview" element={<DonationPreview />} />
             

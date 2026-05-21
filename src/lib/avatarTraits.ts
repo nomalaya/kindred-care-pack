@@ -16,7 +16,7 @@ export const AVATAR_VOCAB = {
     "half_up", "natural_waves", "bun", "braided_simple",
   ],
   face_shape: ["oval", "round", "square_soft", "heart", "long"],
-  eye_shape: ["almond", "round", "soft", "narrow"],
+  eye_shape: ["almond", "round", "soft", "narrow", "hooded", "tired", "deep_set"],
   eye_color: ["brown", "dark_brown", "hazel", "green", "blue", "gray"],
   facial_features: [
     "subtle_age_lines", "gentle_wrinkles", "light_freckles",
@@ -45,6 +45,12 @@ export const AVATAR_VOCAB = {
     "neutral_european", "soft_modern",
     "subtle_mediterranean", "subtle_west_african", "subtle_central_african",
   ],
+  // New Avatar Studio enums
+  beard: ["none", "light", "full", "grey"],
+  moustache: ["none", "light", "full"],
+  hair_recession: ["none", "light", "moderate", "strong"],
+  head_covering: ["none", "optional", "required"],
+  workflow_status: ["draft", "generated", "approved", "locked"],
 } as const;
 
 export type AvatarStatus = "pending" | "preview" | "validated" | "failed";
@@ -61,4 +67,20 @@ export const STATUS_COLOR: Record<AvatarStatus, string> = {
   preview: "bg-amber-100 text-amber-800 border-amber-300",
   validated: "bg-emerald-100 text-emerald-800 border-emerald-300",
   failed: "bg-rose-100 text-rose-800 border-rose-300",
+};
+
+export type WorkflowStatus = "draft" | "generated" | "approved" | "locked";
+
+export const WORKFLOW_LABEL: Record<WorkflowStatus, string> = {
+  draft: "Brouillon",
+  generated: "Généré",
+  approved: "Approuvé",
+  locked: "Verrouillé",
+};
+
+export const WORKFLOW_COLOR: Record<WorkflowStatus, string> = {
+  draft: "bg-muted text-muted-foreground border-border",
+  generated: "bg-amber-100 text-amber-800 border-amber-300",
+  approved: "bg-emerald-100 text-emerald-800 border-emerald-300",
+  locked: "bg-slate-200 text-slate-800 border-slate-400",
 };
