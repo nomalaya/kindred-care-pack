@@ -510,7 +510,7 @@ const AvatarStudio = () => {
                   {selected.avatar_qa_score && (
                     <Badge variant="outline">QA {Math.round(selected.avatar_qa_score)}</Badge>
                   )}
-                  <Badge variant="outline" className="text-[10px]">cartoon vectoriel · fond blanc</Badge>
+                  <Badge variant="outline" className="text-[10px]">cartoon illustré storybook · fond contextuel flou</Badge>
                 </div>
 
                 {selected.avatar_status === "failed" && (

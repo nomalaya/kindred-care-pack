@@ -13,8 +13,8 @@ const WEIGHTS: Record<string, number> = {
   framing: 1.0,
   no_watermark: 1.0,
   artifact_freedom: 1.2,
-  style_match: 2.0, // flat vector cartoon — hard requirement
-  white_background: 1.2,
+  style_match: 2.0, // hand-drawn semi-realistic cartoon illustration — hard requirement
+  background_quality: 1.0, // soft blurred contextual illustrated background
   anonymity: 1.8, // must NOT resemble a real identifiable person
   not_caricature: 1.5,
   dignity: 1.5,
@@ -51,7 +51,7 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const systemPrompt = `You are a strict QA reviewer for an NGO beneficiary portrait catalog.
-You must score the image on 9 dimensions, each from 0 (terrible) to 100 (excellent).
+You must score the image on 10 dimensions, each from 0 (terrible) to 100 (excellent).
 Be honest and discriminating — do not inflate scores. Score 50-70 for borderline issues.
 Return concise notes explaining any score below 80.`;
 
@@ -62,8 +62,8 @@ Dimensions (0=terrible, 100=excellent):
 - framing: chest-up bust, centered, ~70% frame coverage, proper margins?
 - no_watermark: free of any text, watermark, logo, signature?
 - artifact_freedom: free of AI artifacts (warped features, melted shapes, extra fingers)?
-- style_match: STRICTLY flat vector cartoon illustration with clean bold outlines and flat cel-shaded colors (like Storyset / unDraw / Notion avatars)? Score 0 if photo, photorealistic, semi-realistic, painterly, watercolor, oil painting, 3D render, Pixar, Disney, anime or comic style.
-- white_background: pure plain white uniform background, no gradient, no scene, no decoration?
+- style_match: STRICTLY a hand-drawn semi-realistic cartoon illustration in editorial storybook style (fine soft ink outlines, colored-pencil + light watercolor shading, warm desaturated palette, realistic human proportions, clearly non-photographic). Score 0 if: photograph, photorealistic, 3D/Pixar/Disney render, flat vector sticker (Storyset/unDraw/Notion style), anime, manga, chibi, comic book, oil painting, heavy saturated watercolor.
+- background_quality: soft, gently BLURRED contextual illustrated background (interior, kitchen, street, etc.) coherent with the subject, in the same hand-drawn style. Score 0 for pure white studio backgrounds, sharp detailed scenes, or busy/cluttered backgrounds.
 - anonymity: a GENERIC archetypal character that does NOT resemble any real identifiable person, celebrity or public figure? Score 0 if it looks like a specific real person.
 - not_caricature: free of cultural caricature, stereotypes, exaggeration?
 - dignity: portrayed with dignity and humanity, no misery, no pathos?

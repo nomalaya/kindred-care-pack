@@ -74,32 +74,31 @@ const HAIR_TYPE_DESC: Record<string, string> = {
 };
 
 export const ART_DIRECTION_INVARIANTS = `
-FLAT VECTOR CARTOON AVATAR — clean modern illustrated character avatar, in the visual style of contemporary app illustration packs (Storyset, unDraw, Notion-style avatars, modern mobile app onboarding characters). Bold clean outlines, simple cel-shaded flat color fills with at most 2 tones per surface, sticker-like rendering, Adobe Illustrator vector look. Friendly, generic, archetypal — intentionally non-specific.
-EXPLICITLY NOT: not a photograph, not photorealistic, not semi-realistic, not painterly, not watercolor, not oil painting, not Pixar 3D render, not Disney render, not Studio Ghibli, not anime, not manga, not chibi, not comic book, not pencil sketch.
-LINEWORK: clean, bold, deliberate vector outlines around face, hair and body. Simplified stylized features (slightly enlarged friendly eyes, simple nose, simple mouth). No painterly brush strokes.
-SHADING: pure flat color fills with one soft cel-shading tone for depth. No gradients on skin, no painted texture, no pores, no realistic skin rendering.
-ANONYMITY: generic archetypal character — must NEVER resemble any real person, public figure, celebrity, or identifiable individual. No identifying marks, no specific likeness, no facial recognition possible. The character is a friendly stand-in, not a portrait.
-FRAMING: chest-up bust, subject centered, square 1:1 composition, consistent margins, character occupies ~70% of the frame.
-BACKGROUND: pure plain white background (#FFFFFF), perfectly uniform, no gradient, no shadow, no decoration. Catalog-grade consistency.
-COLOR PALETTE: warm, friendly, slightly muted illustration colors. No neon, no oversaturation.
-DIGNITY: respectful, warm, kind expression. No caricature, no exaggeration, no stereotype, no pathos, no misery.
+HAND-DRAWN SEMI-REALISTIC CARTOON ILLUSTRATION — editorial storybook portrait, in the visual style of modern picture-book and editorial illustration (think contemporary New Yorker meets warm 2D storybook). Hand-drawn ink linework with fine, soft, organic outlines (NOT thick uniform vector outlines). Realistic human proportions and anatomy, clearly non-photographic, with subtle stylization.
+EXPLICITLY NOT: not a photograph, not photorealistic, not a 3D render, not Pixar/Disney 3D, not flat vector sticker, not Storyset/unDraw style, not anime, not manga, not chibi, not comic book, not oil painting, not heavy acrylic painting, not saturated watercolor, not pencil sketch only.
+LINEWORK: fine, slightly varying hand-drawn ink lines around face, hair, clothes. Visible but subtle. Natural imperfection — not vector-perfect.
+SHADING: soft hand-applied shading reminiscent of colored pencil + light watercolor wash, with very subtle paper-grain texture. Gentle volume on the face (cheeks, nose, jaw) without realistic skin pores or photographic detail. Warm soft natural lighting.
+COLOR PALETTE: warm, slightly desaturated, harmonious. Muted earth and warm pastel tones. No neon, no oversaturation, no high-contrast pop.
+ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure, celebrity or identifiable individual. No specific likeness, no recognizable features that could identify a real human. The character is a respectful fictional stand-in.
+FRAMING: chest-up bust, subject centered, square 1:1 composition, character occupies ~65-75% of the frame, looking softly toward the camera.
+BACKGROUND: soft, gently BLURRED contextual background coherent with the situation (warm domestic interior, kitchen, living room, simple street, workshop, outdoor garden, etc.) — illustrated in the same hand-drawn style, kept low-contrast and out of focus so the subject remains the clear focal point. NEVER a pure white studio background. NEVER a busy or sharp background.
+DIGNITY: respectful, warm, kind, gentle expression. Quiet humanity. No caricature, no exaggeration, no stereotype, no pathos, no misery, no sadness.
 `.trim();
 
 export const NEGATIVE_PROMPT = [
   "no text", "no watermark", "no logo", "no caption", "no signature",
-  "no photograph", "no photorealism", "no realistic skin texture", "no skin pores",
-  "no DSLR look", "no stock photo feel", "no passport photo", "no LinkedIn portrait",
-  "no semi-realistic style", "no painterly style", "no painted portrait",
-  "no watercolor", "no oil painting", "no acrylic painting", "no textured brushstrokes",
-  "no 3D render", "no CGI render", "no octane render", "no Pixar 3D style", "no Disney render", "no Studio Ghibli style",
-  "no anime", "no manga", "no chibi", "no comic book style", "no superhero style", "no pencil sketch",
-  "no gaussian blur", "no smudged features",
-  "no identifiable likeness of any real person", "no recognizable individual", "no celebrity resemblance", "no public figure resemblance",
-  "no colored background", "no gradient background", "no decorated background", "no scene background",
-  "no artificial commercial smile", "no dramatic lighting", "no tears", "no despair", "no exaggerated emotion",
+  "no photograph", "no photorealism", "no realistic skin texture", "no skin pores", "no DSLR look", "no stock photo", "no passport photo", "no LinkedIn portrait",
+  "no 3D render", "no CGI", "no octane render", "no Pixar 3D", "no Disney 3D render", "no Blender render",
+  "no flat vector sticker style", "no Storyset style", "no unDraw style", "no Notion avatar style", "no bold uniform vector outlines",
+  "no anime", "no manga", "no chibi", "no comic book style", "no superhero style",
+  "no oil painting", "no heavy acrylic painting", "no impasto", "no thick brush strokes", "no saturated watercolor", "no abstract painting",
+  "no pencil-only sketch", "no monochrome",
+  "no identifiable likeness of any real person", "no recognizable individual", "no celebrity resemblance", "no public figure resemblance", "no portrait of a real human",
+  "no pure white studio background", "no plain background", "no busy background", "no sharp detailed background", "no cluttered scene",
+  "no artificial commercial smile", "no dramatic lighting", "no tears", "no despair", "no exaggerated emotion", "no crying",
   "no caricature", "no cultural stereotype", "no traditional ceremonial dress",
-  "no multiple faces, single subject only", "no nudity", "no children faces in isolation",
-  "no harsh shadows", "no oversaturation", "no glossy skin",
+  "no multiple faces, single subject only", "no nudity",
+  "no harsh shadows", "no neon", "no oversaturation", "no glossy plastic skin",
 ].join(", ");
 
 export function buildAvatarPrompt(t: AvatarTraits): string {
