@@ -536,6 +536,16 @@ const AvatarStudio = () => {
                   {selected.avatar_qa_score && ` · QA ${Math.round(selected.avatar_qa_score)}`}
                 </Badge>
 
+                {selected.avatar_status === "failed" && (
+                  <div className="mb-3 text-xs rounded-md border border-destructive/40 bg-destructive/10 text-destructive px-2 py-1.5">
+                    {(selected as any).avatar_qa_report?.code === "no_credits"
+                      ? "Échec : crédits Lovable AI insuffisants. Rechargez le workspace."
+                      : (selected as any).avatar_qa_report?.code === "rate_limited"
+                      ? "Échec : trop de requêtes. Réessayez dans 1 minute."
+                      : "Dernière génération échouée. Réessayez."}
+                  </div>
+                )}
+
                 <div className="space-y-2 mb-3">
                   <Label className="text-xs text-muted-foreground">Modèle</Label>
                   <Select value={modelChoice} onValueChange={(v: any) => setModelChoice(v)}>
