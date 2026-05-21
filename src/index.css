@@ -54,21 +54,22 @@
     --status-failed-fg: 0 70% 35%;
     --status-failed-border: 0 70% 75%;
 
-    /* Avatar Studio — accents de champ (HSL) */
-    --field-identity: 270 45% 50%;
-    --field-time: 32 80% 45%;
-    --field-face: 12 65% 50%;
-    --field-skin: 30 50% 45%;
-    --field-eye: 195 70% 40%;
-    --field-hair: 25 55% 35%;
-    --field-pilosity: 28 40% 38%;
-    --field-culture: 158 55% 35%;
-    --field-clothing: 230 50% 50%;
-    --field-body: 180 50% 35%;
-    --field-mood: 8 75% 55%;
-    --field-family: 340 55% 55%;
-    --field-fatigue: 250 15% 45%;
-    --field-dignity: 42 80% 42%;
+    /* Avatar Studio — accents de champ (HSL), hues bien séparées */
+    --field-identity: 275 55% 50%;  /* violet */
+    --field-time:      40 90% 45%;  /* ambre */
+    --field-face:     325 60% 50%;  /* magenta */
+    --field-skin:      18 70% 48%;  /* terracotta */
+    --field-eye:      205 80% 42%;  /* bleu cyan */
+    --field-hair:      22 55% 30%;  /* brun foncé */
+    --field-pilosity:  90 35% 35%;  /* olive */
+    --field-culture:  150 55% 35%;  /* émeraude */
+    --field-clothing: 235 55% 55%;  /* indigo */
+    --field-body:     175 65% 32%;  /* sarcelle */
+    --field-mood:       5 80% 55%;  /* corail */
+    --field-family:   345 65% 58%;  /* rose poudré */
+    --field-fatigue:  255 25% 50%;  /* mauve gris */
+    --field-dignity:   48 90% 42%;  /* doré */
+
 
     --radius: 0.75rem;
 
