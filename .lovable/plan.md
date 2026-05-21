@@ -1,44 +1,90 @@
-# Icônes contextuelles sur les libellés de champs (Avatar Studio)
 
-## Objectif
+# Refonte Avatar Studio — 5 chantiers
 
-Permettre de scanner instantanément l'éditeur d'attributs grâce à une icône à gauche de chaque libellé (Genre, Tranche d'âge, Forme du visage, etc.).
+Tout reste **côté frontend admin** (`/avatar-studio`). Aucune modification du moteur de matching, des edge functions de génération, ni de la structure DB.
 
-## Implémentation
+---
 
-1. **Map icônes → champs** dans `src/pages/AvatarStudio.tsx` (à côté de `FIELD_LABELS`) :
+## Chantier 1 — Traçabilité de l'inférence psycho-sociale
 
-| Champ | Icône lucide |
-|---|---|
-| Genre | `VenusAndMars` |
-| Tranche d'âge | `CalendarDays` |
-| Forme du visage | `Smile` |
-| Teint | `Palette` |
-| Forme des yeux | `Eye` |
-| Couleur des yeux | `Eye` |
-| Couleur de cheveux | `Palette` |
-| Longueur | `Ruler` |
-| Volume | `Layers` |
-| Coiffure | `Scissors` |
-| Type de cheveux | `Waves` |
-| Barbe | `User` |
-| Moustache | `User` |
-| Recul des cheveux | `ArrowUp` |
-| Couvre-chef | `Crown` |
-| Style culturel (override) | `Globe` |
-| Style vêtements | `Shirt` |
-| Palette vêtements | `Palette` |
-| Posture | `PersonStanding` |
-| Aide à la mobilité | `Accessibility` |
-| Expression | `Smile` |
-| Énergie parentale | `Baby` |
+**Objectif** : l'admin voit *pourquoi* chaque champ a été déduit.
 
-Sliders (fatigue, dignité, résilience, luminosité, calvitie) reçoivent aussi des icônes : `BatteryLow`, `ShieldCheck`, `Sparkles`, `Sun`, `CircleDot`.
+- Refactor `src/lib/avatarAutoInfer.ts` : `inferStudioDefaults()` retourne désormais `{ values, reasons }` où `reasons: Record<field, { keyword: string, signal: string }[]>`.
+- Nouveau state `inferenceReasons` dans `AvatarStudio.tsx`, peuplé à chaque `autoInfer()` et persistant pour la session de sélection.
+- Pastille `<Sparkles className="h-3 w-3 text-primary/60">` à droite de chaque `FieldLabel` quand le champ a une raison ; tooltip = "Déduit de : « sclérose en plaques » → mobilité lourde".
+- Nouveau panneau pliable **"Pourquoi ces choix ?"** sous les boutons Pré-remplir, listant tous les mappings keyword → signal → champs.
 
-2. **`SelectField` et `SliderField`** acceptent un nouveau prop optionnel `icon?: LucideIcon` et l'affichent en `h-3.5 w-3.5 text-muted-foreground` à gauche du `<Label>`.
+## Chantier 2 — Realtime + suppression du polling
 
-3. **Tous les appels** dans les onglets (Visage / Yeux / Cheveux / Masculin / Culturel / Vêtements / Posture / Social) passent l'icône correspondante depuis la map.
+- Remplacer `setInterval(refresh, 4000)` + `setTimeout` par un canal Supabase Realtime sur `beneficiaries` (filtre `id=eq.${selected.id}` quand sélectionné, channel global léger sinon).
+- Activer Realtime sur `beneficiaries` via migration (`ALTER PUBLICATION supabase_realtime ADD TABLE beneficiaries;` + `REPLICA IDENTITY FULL`).
+- `busy` devient dérivé de `avatar_status` (pending → busy, validated|failed → free) plutôt que piloté par timers.
+- Accumulation des `patch()` dans une ref pour fusionner les diffs <600ms en un seul UPDATE (corrige la perte silencieuse).
 
-## Hors scope
+## Chantier 3 — Édition inline du contexte psychosocial
 
-Pas de changement de logique métier, ni de styles globaux du design system. Seulement un ajout visuel dans l'éditeur d'Avatar Studio.
+- Le panneau "Contexte psychosocial" devient éditable : `<Textarea>` pour `short_story` et `emotional_sentence`, bouton **"Re-déduire depuis ce texte"** qui relance `autoInfer("force")` après save.
+- Garde-fou : le trigger `validate_beneficiary_french` existe déjà côté DB — on affiche l'erreur retournée proprement (toast).
+- Bouton **"Régénérer HD"** directement à la suite, pour boucler texte → traits → image sans quitter l'éditeur.
+
+## Chantier 4 — UX, hiérarchie, sécurité
+
+- **Onglets** : ajouter icônes sur chaque `TabsTrigger` + badge rouge `•` quand l'onglet contient une `RuleWarning`.
+- **Bouton "Tout re-déduire" (RotateCcw)** : passage en `DropdownMenu` avec confirmation explicite (action destructive).
+- **Indicateur live sous le bouton HD** : si `avatar_dignity_level < 3`, afficher "🛡 Dignité {n}/5 — génération bloquée" + lien direct vers l'onglet Social.
+- **Validation cross-champs avant génération** : étendre `evaluateAvatarRules` avec règles mobilité (ex. `wheelchair_*` + `posture: standing_*` = warning bloquant).
+- **Versions thumbnails** : ne garder qu'une pastille (vert HD / ambre AP), QA + modèle déplacés en tooltip.
+- **Stats topbar** : supprimer les chips redondantes — les filtres existants affichent déjà les compteurs (`Brouillon (12)`).
+- **Import externe** : ajouter `confirm()` "Cette image va remplacer l'avatar actif sans contrôle qualité. Continuer ?".
+- **Couleurs en dur** (`bg-amber-50`, `text-emerald-600`, etc.) : remplacer par tokens sémantiques HSL définis dans `index.css` (`--status-generated`, `--status-approved`, `--status-locked`, `--status-failed`).
+- **Accessibilité** : `aria-label` sur thumbnails versions, `<kbd>` visibles sur boutons P/G/A/L, raccourcis annoncés.
+
+## Chantier 5 — Architecture code
+
+Éclater `src/pages/AvatarStudio.tsx` (1097 lignes) en :
+
+```text
+src/pages/AvatarStudio.tsx          (orchestrateur, ~200 l.)
+src/features/avatar-studio/
+  ├─ types.ts                       (Beneficiary type depuis Database)
+  ├─ useBeneficiaries.ts            (fetch + Realtime + patch debounced)
+  ├─ useAvatarShortcuts.ts          (raccourcis clavier)
+  ├─ BeneficiaryList.tsx            (colonne gauche)
+  ├─ PreviewPanel.tsx               (colonne milieu : image + génération + versions)
+  ├─ AttributeEditor.tsx            (colonne droite : tabs + champs)
+  ├─ ContextPanel.tsx               (story/sentence éditables)
+  ├─ InferenceReasonsPanel.tsx      ("Pourquoi ces choix ?")
+  ├─ VersionGrid.tsx
+  ├─ WorkflowActions.tsx
+  └─ fields/
+     ├─ SelectField.tsx
+     ├─ SliderField.tsx
+     └─ FieldLabel.tsx              (avec pastille Sparkles)
+```
+
+Typage strict : `type Beneficiary = Database["public"]["Tables"]["beneficiaries"]["Row"]`. Suppression de tous les `any`.
+
+---
+
+## Détails techniques
+
+- **Migration unique** (chantier 2 uniquement) : `ALTER PUBLICATION supabase_realtime ADD TABLE public.beneficiaries; ALTER TABLE public.beneficiaries REPLICA IDENTITY FULL;`
+- **Aucun changement** : `generate-avatar` edge function, `inferStudioDefaults` mapping métier (seulement la signature de retour), `avatarArtDirection.ts`, `avatarTraits.ts` vocab, RLS, autres pages.
+- **Tests** : ajout d'un fichier `src/lib/__tests__/avatarAutoInfer.test.ts` couvrant Fatima, vétéran SDF, mère isolée enceinte, enfant orphelin — vérifie traits + reasons.
+- **Risque maîtrisé** : la refonte UI reste sur `/avatar-studio` (admin), n'affecte pas l'expérience donateur (respect de la contrainte UI stability sur le parcours public).
+
+## Ce qui n'est pas inclus
+
+- Scan antivirus / vérification "image contient un humain" à l'import (proposé dans l'audit) — nécessite appel IA additionnel, à arbitrer séparément.
+- Re-encodage des uploads (sharp côté edge) — hors scope frontend.
+- Undo global (history stack) — overkill pour un outil admin, le versioning existant suffit.
+
+## Ordre d'exécution
+
+1. Migration Realtime (chantier 2, partie DB)
+2. Refactor `inferStudioDefaults` → `{values, reasons}` + tests (chantier 1)
+3. Modularisation fichier (chantier 5) — fait *avant* les ajouts UI pour éviter de doubler le travail
+4. Realtime + patch queue (chantier 2, partie code)
+5. Traçabilité UI : pastilles + panneau "Pourquoi" (chantier 1)
+6. Contexte éditable (chantier 3)
+7. UX & a11y & tokens couleur (chantier 4)
