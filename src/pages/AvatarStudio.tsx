@@ -198,12 +198,19 @@ const AvatarStudio = () => {
     let toApply: Record<string, any> = values;
     if (mode === "fill") {
       toApply = Object.fromEntries(
-        Object.entries(values).filter(([k]) => {
+        Object.entries(values).filter(([k, v]) => {
           const cur = (selected as any)[k];
-          return cur === null || cur === undefined || cur === "" || cur === "none";
+          if (cur === null || cur === undefined || cur === "" || cur === "none") return true;
+          // Si la valeur courante n'appartient pas au vocabulaire (ex: legacy "20-30"),
+          // on la considère vide pour pouvoir la remplacer.
+          const vocabKey = k.replace(/^avatar_/, "") as keyof typeof AVATAR_VOCAB;
+          const vocab = (AVATAR_VOCAB as any)[vocabKey];
+          if (Array.isArray(vocab) && typeof cur === "string" && !vocab.includes(cur)) return true;
+          return false;
         }),
       );
     }
+
     if (Object.keys(toApply).length === 0) {
       toast.info("Aucun champ vide à pré-remplir. Utilisez « Tout re-déduire » pour écraser.");
       return;
