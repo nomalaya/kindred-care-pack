@@ -1,41 +1,54 @@
 ## Objectif
 
-Les avatars générés doivent avoir un **style dessiné/illustré** (type cartoon doux, à la Pixar / Disney moderne, comme les portraits Sophie, Abdoulaye, Chloé dans la capture jointe), **pas** un rendu photo ni un rendu peinture floutée.
+Faire d'Avatar Studio un véritable outil de production (vue dense, scan rapide, actions à portée de main) et l'exposer à `/avatar-studio` (l'ancien `/admin/avatar-studio` redirige).
 
-Aujourd'hui `ART_DIRECTION_INVARIANTS` impose "stylized painterly illustration" + flou gaussien d'anonymisation + lumière naturelle de fenêtre → résultat trop "photo peinte", pas dessiné.
+## 1. Nouvelle route
 
-## Changements
+- `src/App.tsx` : ajouter `<Route path="/avatar-studio" element={<AvatarStudio />} />` et remplacer `/admin/avatar-studio` par un `<Navigate to="/avatar-studio" replace />` (compatibilité liens existants).
+- `src/pages/Admin.tsx` (et tout lien interne) : mettre à jour la cible vers `/avatar-studio`.
+- Garder la garde admin (`isAdmin`) côté page.
 
-Un seul fichier modifié : `supabase/functions/_shared/avatarArtDirection.ts`.
+## 2. Refonte de la mise en page
 
-### 1. Réécrire `ART_DIRECTION_INVARIANTS`
+Passage d'un layout 3 colonnes statique à un layout **4 zones** plus fonctionnel, pleine hauteur :
 
-Nouveau brief verrouillé :
-- **STYLE** : "modern 2D character illustration, clean digital cartoon portrait, Pixar-inspired stylization, smooth flat-shaded rendering with soft cel-shading". Explicitement : **NOT a photograph, NOT photorealistic, NOT painterly, NOT watercolor, NOT 3D render**.
-- **LINEWORK** : contours doux et propres, traits dessinés visibles mais délicats, formes simplifiées et stylisées (yeux légèrement agrandis, traits adoucis).
-- **SHADING** : aplats de couleur avec ombres douces en 2 tons max, lumière douce sans réalisme photographique, peau lisse et stylisée (pas de pores, pas de grain).
-- **ANONYMAT** : conservé via la stylisation cartoon elle-même (les traits sont déjà non-identifiants). Retrait du flou gaussien / "painterly smudging" qui donnait l'effet photo flouté.
-- **CADRAGE** : portrait poitrine, sujet centré, carré 1:1, fond blanc cassé doux ou dégradé sable très léger (cohérent avec la capture de référence).
-- **PALETTE** : douces, chaleureuses, légèrement désaturées, cohérentes avec la charte.
-- **DIGNITÉ** : préservée, pas de caricature exagérée, pas de chibi, pas d'anime stylisé, pas de comics américain.
+```text
+┌──────────────── Topbar (sticky) ────────────────────────────────┐
+│  ← Admin   Avatar Studio   [stats: 12 draft · 5 generated · …] │
+│  [Recherche]  [Filtres: Tous|Brouillon|Généré|Approuvé|Verrou|Échec]  [Tri ▾]  [⟳]│
+└─────────────────────────────────────────────────────────────────┘
+┌─ Liste (280px) ─┬──── Aperçu + actions (380px) ────┬──── Éditeur attributs (1fr) ─┐
+│ vignettes denses│ image carrée + badges            │  Tabs : Visage | Cheveux |  │
+│ recherche locale│ Modèle ▾  [Aperçu] [Générer HD]  │  Masculin | Culturel |      │
+│ scroll virtuel  │ Workflow: Approuver/Verrouiller  │  Vêtements | Posture |      │
+│                 │ Versions (mini-galerie + Comparer)│  Social                    │
+└─────────────────┴──────────────────────────────────┴─────────────────────────────┘
+```
 
-### 2. Mettre à jour `NEGATIVE_PROMPT`
+Changements clés :
 
-- Retirer : `no sharp facial details` (le dessin a des traits nets), `no photograph` reste, ajouter explicitement `no photorealism`, `no realistic skin texture`, `no 3D render`, `no anime`, `no chibi`, `no manga`, `no comic book style`, `no painterly brushstrokes`, `no watercolor`, `no oil painting`.
-- Garder : pas de texte, logo, signature, multiples visages, stéréotypes, etc.
+- **Topbar sticky** avec stats globales (compteurs par statut) calculées depuis `beneficiaries`, recherche + filtres déplacés ici → la liste de gauche devient plus compacte (uniquement vignettes).
+- **Aperçu déplacé au centre** (focus visuel principal de l'outil) avec actions juste en dessous : sélecteur modèle, boutons Aperçu / Générer HD, ligne workflow (Approuver / Verrouiller / Déverrouiller toujours visibles selon l'état), badge style verrouillé, état d'échec.
+- **Éditeur d'attributs à droite** : remplacer l'Accordion par des **Tabs verticales** (Visage, Yeux, Cheveux, Masculin*, Culturel*, Vêtements, Posture, Social) → on voit tous les champs d'une section sans scroll, on change de section en 1 clic. Conditionnels (`isMan`, `hasCulture`) en onglets masqués.
+- **Bouton "Déduire depuis le profil"** + **raccourcis clavier** (`G` = générer HD, `P` = aperçu, `A` = approuver, `L` = verrouiller, `/` = focus recherche, `↑`/`↓` = naviguer la liste) affichés dans un petit `?` tooltip.
+- **Liste de gauche** : vignettes plus denses (avatar + prénom + badge statut + petit indicateur QA), highlight sélection, indicateur "non généré" plus visible. Garder le filtre Échec.
+- **Versions** : passer d'une liste verticale à une **mini-galerie 3 colonnes** scrollable sous l'aperçu, clic = aperçu plein écran, sélection multi pour Comparer.
+- **Sauvegarde optimiste** : ajouter un petit indicateur "Sauvegardé" / "Sauvegarde…" à côté du nom du bénéficiaire.
+- **Garder strictement** les mêmes appels (`generate-avatar`, `qa-avatar`, table `beneficiaries`, `avatar_versions`) et la même logique de génération / workflow / règles. Seule l'organisation visuelle change.
 
-### 3. Conserver intacte toute la logique fonctionnelle
+## 3. Détails techniques
 
-- `buildAvatarPrompt`, traits inférés, extensions Studio (`tired_level`, `beard`, `head_covering`, etc.), modèles (`MODEL_PREVIEW` / `MODEL_FINAL` / `MODEL_QA`), workflow, RLS, table `avatar_versions` → **aucun changement**.
-- Aucune modification de base de données, ni d'edge function autre que la lecture de ces invariants.
+- Aucune migration DB.
+- Composants shadcn déjà disponibles (`Tabs`, `Tooltip`, `ScrollArea`, `Dialog`) — pas de nouvelle dépendance.
+- Utiliser `useHotkeys`-like custom hook minimal (un seul `useEffect` avec `keydown`) pour les raccourcis, scope = page.
+- Stats topbar : `useMemo` sur `beneficiaries.reduce(...)`.
+- Conserver `RuleList` tel quel sous chaque onglet.
+- Layout : `h-[calc(100vh-...)]` + `overflow-hidden` sur le conteneur, scroll uniquement à l'intérieur des 3 colonnes.
 
-## Validation après implémentation
+## Fichiers modifiés
 
-1. Régénérer un avatar de test depuis `/admin/avatar-studio` (par ex. Fatima).
-2. Vérifier visuellement que le rendu est clairement illustré/cartoon doux, cohérent avec la capture jointe (Sophie / Abdoulaye / Chloé).
-3. Si le rendu dérive vers du semi-réaliste, durcir encore le brief (ex. ajouter "flat 2D illustration only").
+- `src/App.tsx` — route `/avatar-studio` + redirect.
+- `src/pages/AvatarStudio.tsx` — refonte layout + Tabs + topbar + raccourcis.
+- `src/pages/Admin.tsx` — mise à jour du lien vers `/avatar-studio`.
 
-## Hors-scope
-
-- Pas de changement de modèle d'image (on reste sur Nano Banana 2 / Pro).
-- Pas de re-génération en masse automatique : les anciens avatars restent jusqu'à régénération manuelle via le Studio.
+Pas de changement backend, pas de changement de la logique de génération ou du style verrouillé déjà en place.
