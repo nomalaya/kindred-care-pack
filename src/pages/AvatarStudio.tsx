@@ -594,32 +594,59 @@ const AvatarStudio = () => {
                 </div>
 
                 {/* Workflow row */}
-                <div className="grid grid-cols-3 gap-1.5">
-                  <Button
-                    onClick={() => setWorkflow("approved")}
-                    size="sm"
-                    variant={selected.avatar_workflow_status === "generated" ? "default" : "outline"}
-                    disabled={selected.avatar_workflow_status !== "generated"}
-                  >
-                    <ShieldCheck className="h-3.5 w-3.5 mr-1" />Approuver
-                  </Button>
-                  <Button
-                    onClick={() => setWorkflow("locked")}
-                    size="sm"
-                    variant={selected.avatar_workflow_status === "approved" ? "secondary" : "outline"}
-                    disabled={selected.avatar_workflow_status !== "approved"}
-                  >
-                    <Lock className="h-3.5 w-3.5 mr-1" />Verrouiller
-                  </Button>
-                  <Button
-                    onClick={() => setWorkflow("draft")}
-                    size="sm"
-                    variant="outline"
-                    disabled={selected.avatar_workflow_status !== "locked"}
-                  >
-                    <Unlock className="h-3.5 w-3.5 mr-1" />Déverr.
-                  </Button>
-                </div>
+                {(() => {
+                  const ws = (selected.avatar_workflow_status || "draft") as WorkflowStatus;
+                  const hasImage = !!(selected.avatar_url || selected.avatar_preview_url);
+                  const approveHint = workflowHint("approve", ws, hasImage);
+                  const lockHint = workflowHint("lock", ws, hasImage);
+                  const unlockHint = workflowHint("unlock", ws, hasImage);
+                  const wrap = (hint: string | null, disabled: boolean, node: React.ReactNode) =>
+                    hint ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span tabIndex={0} className="inline-block">{node}</span>
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs">{hint}</TooltipContent>
+                      </Tooltip>
+                    ) : node;
+                  return (
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {wrap(approveHint, !!approveHint, (
+                        <Button
+                          onClick={() => setWorkflow("approved")}
+                          size="sm"
+                          variant={ws === "generated" ? "default" : "outline"}
+                          disabled={!!approveHint}
+                          className="w-full"
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />Approuver
+                        </Button>
+                      ))}
+                      {wrap(lockHint, !!lockHint, (
+                        <Button
+                          onClick={() => setWorkflow("locked")}
+                          size="sm"
+                          variant={ws === "approved" ? "secondary" : "outline"}
+                          disabled={!!lockHint}
+                          className="w-full"
+                        >
+                          <Lock className="h-3.5 w-3.5 mr-1" />Verrouiller
+                        </Button>
+                      ))}
+                      {wrap(unlockHint, !!unlockHint, (
+                        <Button
+                          onClick={() => setWorkflow("draft")}
+                          size="sm"
+                          variant="outline"
+                          disabled={!!unlockHint}
+                          className="w-full"
+                        >
+                          <Unlock className="h-3.5 w-3.5 mr-1" />Déverr.
+                        </Button>
+                      ))}
+                    </div>
+                  );
+                })()}
 
                 {/* Versions */}
                 <div>
@@ -637,26 +664,56 @@ const AvatarStudio = () => {
                     )}
                   </div>
                   <div className="grid grid-cols-4 gap-1.5">
-                    {versions.map(v => (
-                      <button
-                        key={v.id}
-                        onClick={() => setLightboxUrl(v.image_url)}
-                        className="relative aspect-square rounded overflow-hidden bg-muted hover:ring-2 hover:ring-primary"
-                        title={`${v.model_used?.split("/")[1] || ""} · QA ${v.qa_score ? Math.round(v.qa_score) : "—"}`}
-                      >
-                        <img src={v.image_url} alt="" className="w-full h-full object-cover" />
-                        {v.qa_score && (
-                          <span className="absolute bottom-0 right-0 bg-background/80 text-[9px] px-1 rounded-tl">
-                            {Math.round(v.qa_score)}
-                          </span>
-                        )}
-                      </button>
-                    ))}
+                    {versions.map(v => {
+                      const isActive = selected.avatar_url === v.image_url;
+                      return (
+                        <div
+                          key={v.id}
+                          className={`relative aspect-square rounded overflow-hidden bg-muted group ${
+                            isActive ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/50"
+                          }`}
+                          title={`${v.model_used?.split("/")[1] || ""} · QA ${v.qa_score ? Math.round(v.qa_score) : "—"}`}
+                        >
+                          <button
+                            onClick={() => setLightboxUrl(v.image_url)}
+                            className="block w-full h-full"
+                          >
+                            <img src={v.image_url} alt="" className="w-full h-full object-cover" />
+                          </button>
+                          {v.qa_score && (
+                            <span className="absolute bottom-0 right-0 bg-background/80 text-[9px] px-1 rounded-tl pointer-events-none">
+                              {Math.round(v.qa_score)}
+                            </span>
+                          )}
+                          {!isActive && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); restoreVersion(v); }}
+                              disabled={isLocked}
+                              className="absolute inset-x-0 bottom-0 bg-primary/90 text-primary-foreground text-[10px] py-0.5 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
+                              title="Réutiliser cette version comme avatar actif"
+                            >
+                              <RotateCcw className="h-3 w-3" />Utiliser
+                            </button>
+                          )}
+                          {isActive && (
+                            <span className="absolute top-0 left-0 bg-primary text-primary-foreground text-[9px] px-1 rounded-br pointer-events-none">
+                              Actif
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                     {versions.length === 0 && (
                       <div className="text-xs text-muted-foreground p-2 col-span-4">Aucune version archivée.</div>
                     )}
                   </div>
+                  {versions.length > 0 && (
+                    <p className="text-[10px] text-muted-foreground mt-1.5">
+                      Survolez une vignette puis cliquez sur <RotateCcw className="inline h-2.5 w-2.5" /> Utiliser pour la définir comme avatar actif.
+                    </p>
+                  )}
                 </div>
+
               </div>
             )}
           </section>
