@@ -58,6 +58,7 @@ export type Database = {
           avatar_age_range: string | null
           avatar_bald_level: number | null
           avatar_beard: string | null
+          avatar_body_type: string | null
           avatar_clothing_color_palette: string | null
           avatar_clothing_style: string | null
           avatar_cultural_style: string | null
@@ -139,6 +140,7 @@ export type Database = {
           avatar_age_range?: string | null
           avatar_bald_level?: number | null
           avatar_beard?: string | null
+          avatar_body_type?: string | null
           avatar_clothing_color_palette?: string | null
           avatar_clothing_style?: string | null
           avatar_cultural_style?: string | null
@@ -220,6 +222,7 @@ export type Database = {
           avatar_age_range?: string | null
           avatar_bald_level?: number | null
           avatar_beard?: string | null
+          avatar_body_type?: string | null
           avatar_clothing_color_palette?: string | null
           avatar_clothing_style?: string | null
           avatar_cultural_style?: string | null
