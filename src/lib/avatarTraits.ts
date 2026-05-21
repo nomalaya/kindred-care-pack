@@ -60,8 +60,10 @@ export const AVATAR_VOCAB = {
     "visible_bandage",
     "arm_sling",
     "oxygen_cannula",
+  ],
   body_type: ["very_thin", "thin", "average", "chubby", "heavy"],
   workflow_status: ["draft", "generated", "approved", "locked"],
+
 } as const;
 
 

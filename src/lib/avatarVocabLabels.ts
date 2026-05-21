@@ -177,7 +177,15 @@ export const VOCAB_LABELS = {
     arm_sling: "Bras en écharpe",
     oxygen_cannula: "Lunettes à oxygène",
   },
+  body_type: {
+    very_thin: "Très mince",
+    thin: "Mince",
+    average: "Corpulence moyenne",
+    chubby: "Légèrement enveloppée",
+    heavy: "Forte corpulence",
+  },
   workflow_status: {
+
     draft: "Brouillon",
     generated: "Généré",
     approved: "Approuvé",
