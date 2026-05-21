@@ -22,6 +22,7 @@ import { ContextPanel } from "@/features/avatar-studio/ContextPanel";
 import { InferenceReasonsPanel } from "@/features/avatar-studio/InferenceReasonsPanel";
 import { BeneficiaryListPanel } from "@/features/avatar-studio/BeneficiaryListPanel";
 import { RuleList } from "@/features/avatar-studio/RuleList";
+import { SectionAccordion, type SectionDef } from "@/features/avatar-studio/SectionAccordion";
 import {
   FIELD_LABELS, FIELD_ICONS, SelectField, SliderField,
 } from "@/features/avatar-studio/fields";
