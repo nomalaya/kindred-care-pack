@@ -367,7 +367,7 @@ const AvatarStudio = () => {
 
   const generate = async (mode: "preview" | "final") => {
     if (!selected) return;
-    if ((selected.avatar_dignity_level ?? 5) < 3) {
+    if (dignityBlocked) {
       toast.error("Génération bloquée : niveau de dignité < 3");
       return;
     }
@@ -381,8 +381,13 @@ const AvatarStudio = () => {
       setBeneficiaries(prev => prev.map(b =>
         b.id === selected.id ? { ...b, avatar_status: "pending" } : b,
       ));
-      setTimeout(refresh, 5000);
-      setTimeout(() => { refresh(); setBusy(null); }, 15000);
+      // Filet de sécurité si le Realtime ne renvoie rien dans les 30s
+      setTimeout(() => {
+        if (busyRef.current === mode) {
+          refresh();
+          setBusy(null);
+        }
+      }, 30000);
     } catch (e: any) {
       toast.error("Erreur : " + (e.message || "échec"));
       setBusy(null);
@@ -403,6 +408,9 @@ const AvatarStudio = () => {
     }
     if (file.size > 10 * 1024 * 1024) {
       toast.error("Image trop volumineuse (max 10 Mo).");
+      return;
+    }
+    if (!confirm("Cette image va remplacer l'avatar actif sans contrôle qualité IA. Continuer ?")) {
       return;
     }
     setBusy("import");
