@@ -74,9 +74,11 @@ const HAIR_TYPE_DESC: Record<string, string> = {
 };
 
 export const ART_DIRECTION_INVARIANTS = `
-SEMI-REALISTIC ILLUSTRATION STYLE, premium NGO portrait, painterly digital art (NOT photorealistic, NOT cartoon).
+STYLIZED PAINTERLY ILLUSTRATION, premium NGO portrait — explicitly NOT photorealistic, NOT a photograph, NOT a cartoon.
+ANONYMITY PRIORITY (CRITICAL): the subject must be evocative and emotionally readable but NOT individually recognizable. The viewer should imagine a real person without being able to identify a specific one. Soften and abstract all identifying facial micro-details (precise iris pattern, exact nose tip, unique mole positions, sharp eyelashes, exact lip outline). Keep silhouette, hair, skin tone, age range, expression and posture clearly readable.
+TECHNIQUE: soft impressionistic brushwork, gentle gaussian softness across the face (~3-5% blur equivalent), diffused edges, painterly smudging on facial features, watercolor-like bleeding around contours. Think Pascal Campion / Jean Jullien / contemporary editorial illustration, NOT photo-retouching.
 FRAMING: chest-up portrait, subject centered, consistent margins, square 1:1 composition.
-LIGHTING: soft natural directional light from the upper-left (window light), warm ~5200K, gentle shadows.
+LIGHTING: soft natural directional light from the upper-left (window light), warm ~5200K, gentle diffused shadows, no hard rim light.
 BACKGROUND: softly blurred warm textured background, gradient of sand, ivory and warm beige tones (never plain white, never studio passport).
 COLOR PALETTE: warm and human, earth and sand base, no neon, no saturated commercial colors.
 DIGNITY: respectful, human, true-to-life empathy; absolutely no pathos, no caricature, no stereotype.
@@ -84,6 +86,8 @@ DIGNITY: respectful, human, true-to-life empathy; absolutely no pathos, no caric
 
 export const NEGATIVE_PROMPT = [
   "no text", "no watermark", "no logo", "no caption", "no signature",
+  "no photograph", "no photorealism", "no DSLR look", "no skin pores", "no sharp facial details",
+  "no identifiable likeness of any real person", "no recognizable individual",
   "no passport photo", "no LinkedIn portrait", "no stock photo feel",
   "no studio plain white background", "no artificial commercial smile",
   "no dramatic lighting", "no tears", "no despair", "no exaggerated emotion",
