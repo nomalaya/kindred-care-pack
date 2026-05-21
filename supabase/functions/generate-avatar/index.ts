@@ -103,6 +103,18 @@ serve(async (req) => {
       .single();
     if (bErr || !b) throw new Error("Beneficiary not found");
 
+    // Studio guard: never generate if dignity floor breached
+    if ((b.avatar_dignity_level ?? 5) < 3) {
+      throw new Error("Dignity level below threshold (3) — generation blocked");
+    }
+
+    // Studio guard: locked avatars cannot regenerate without explicit unlock
+    if (b.avatar_workflow_status === "locked" && !force) {
+      return new Response(JSON.stringify({ skipped: true, reason: "locked" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (mode === "final" && b.avatar_status === "validated" && !force) {
       return new Response(JSON.stringify({ skipped: true, reason: "already validated" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
