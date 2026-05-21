@@ -1,0 +1,1 @@
+UPDATE public.beneficiaries SET avatar_url=NULL, avatar_preview_url=NULL, avatar_status='pending', avatar_workflow_status='draft', avatar_qa_score=NULL, avatar_qa_report=NULL, avatar_model_used=NULL, avatar_generated_at=NULL, avatar_seed=NULL, avatar_prompt=NULL WHERE avatar_url IS NOT NULL OR avatar_preview_url IS NOT NULL;
