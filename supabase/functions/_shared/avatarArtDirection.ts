@@ -136,6 +136,20 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
   if ((t.avatar_fatigue_level ?? 0) >= 3) extras.push("visible but dignified fatigue in the face");
   if ((t.avatar_resilience_level ?? 3) >= 4) extras.push("quiet inner strength conveyed in the posture");
 
+  const MOBILITY: Record<string, string> = {
+    wheelchair_electric: "seated in a modern electric wheelchair with discreet controls, hands resting calmly on the armrests, dignified upright posture",
+    wheelchair_manual: "seated in a simple manual wheelchair, hands resting on the lap, dignified posture",
+    cane: "holding a wooden walking cane with both hands resting in front, seated or standing calmly",
+    crutches: "with a single forearm crutch visible beside the subject, calm and dignified",
+    walker: "with a light walking frame visible in front, hands resting on the handles",
+    visible_bandage: "with a discreet white bandage visible on the forearm or hand",
+    arm_sling: "with one arm gently supported in a soft fabric sling",
+    oxygen_cannula: "wearing a discreet nasal oxygen cannula, kept understated and dignified",
+  };
+  if (t.avatar_mobility_aid && t.avatar_mobility_aid !== "none" && MOBILITY[t.avatar_mobility_aid]) {
+    extras.push(MOBILITY[t.avatar_mobility_aid]);
+  }
+
   const expression = EXPRESSION_DESCRIPTIONS[t.avatar_expression] ?? "a calm natural expression";
   const posture = POSTURE_DESCRIPTIONS[t.avatar_posture] ?? "upright posture";
   const clothing = `${CLOTHING_STYLE_DESC[t.avatar_clothing_style] ?? "simple modest clothing"} in ${PALETTE_DESC[t.avatar_clothing_color_palette] ?? "warm muted tones"}`;
