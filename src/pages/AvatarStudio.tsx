@@ -29,7 +29,7 @@ import { inferStudioDefaults } from "@/lib/avatarAutoInfer";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
-  Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search,
+  Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw,
 } from "lucide-react";
 
 type Beneficiary = any;
