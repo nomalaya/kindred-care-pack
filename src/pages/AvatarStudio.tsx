@@ -56,6 +56,7 @@ const FIELD_LABELS: Record<string, string> = {
   avatar_posture: "Posture",
   avatar_expression: "Expression",
   avatar_parent_energy: "Énergie parentale",
+  avatar_mobility_aid: "Aide à la mobilité",
 };
 
 function SelectField({
@@ -238,13 +239,31 @@ const AvatarStudio = () => {
 
   const applySuggestion = (s: Record<string, unknown>) => patch(s as any);
 
-  const autoInfer = () => {
+  const autoInfer = (mode: "fill" | "force" = "fill") => {
     if (!selected) return;
-    if (!confirm("Pré-remplir tous les champs depuis le profil ? Les valeurs actuelles seront écrasées.")) return;
     const defaults = inferStudioDefaults(selected);
-    patch(defaults);
-    toast.success("Attributs déduits depuis le profil");
+    let toApply: Record<string, any> = defaults;
+    if (mode === "fill") {
+      // n'écrase que les champs vides / nuls
+      toApply = Object.fromEntries(
+        Object.entries(defaults).filter(([k]) => {
+          const cur = (selected as any)[k];
+          return cur === null || cur === undefined || cur === "" || cur === "none";
+        }),
+      );
+    }
+    if (Object.keys(toApply).length === 0) {
+      toast.info("Aucun champ vide à pré-remplir. Utilisez « Tout re-déduire » pour écraser.");
+      return;
+    }
+    patch(toApply);
+    toast.success(
+      mode === "force"
+        ? "Attributs re-déduits depuis le récit"
+        : `${Object.keys(toApply).length} champ(s) pré-rempli(s) depuis le récit`,
+    );
   };
+
 
   const generate = async (mode: "preview" | "final") => {
     if (!selected) return;
@@ -835,10 +854,34 @@ const AvatarStudio = () => {
                       {selected.children_count > 0 && ` · ${selected.children_count} enf.`}
                     </p>
                   </div>
-                  <Button onClick={autoInfer} variant="outline" size="sm" disabled={isLocked}>
-                    <Wand2 className="h-3.5 w-3.5 mr-1" />Déduire
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <Button onClick={() => autoInfer("fill")} variant="outline" size="sm" disabled={isLocked} title="Pré-remplir les champs vides depuis le récit">
+                      <Wand2 className="h-3.5 w-3.5 mr-1" />Pré-remplir
+                    </Button>
+                    <Button onClick={() => autoInfer("force")} variant="ghost" size="sm" disabled={isLocked} title="Re-déduire et écraser tous les champs">
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
+
+                {/* Contexte psychosocial — toujours visible */}
+                {(selected.short_story || selected.emotional_sentence) && (
+                  <div className="mx-4 mt-3 rounded-md border bg-muted/30 p-3 space-y-2">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+                      Contexte psychosocial — source des déductions
+                    </div>
+                    {selected.short_story && (
+                      <p className="text-xs leading-relaxed text-foreground/90 italic">
+                        {selected.short_story}
+                      </p>
+                    )}
+                    {selected.emotional_sentence && (
+                      <blockquote className="text-xs leading-relaxed border-l-2 border-primary/40 pl-2 text-foreground/80">
+                        «&nbsp;{selected.emotional_sentence}&nbsp;»
+                      </blockquote>
+                    )}
+                  </div>
+                )}
 
                 {isLocked && (
                   <div className="mx-4 mt-3 p-2 rounded-md border border-slate-300 bg-slate-50 text-xs flex items-center gap-2">
@@ -929,6 +972,7 @@ const AvatarStudio = () => {
                     <TabsContent value="posture" className="mt-0 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <SelectField label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} />
+                        <SelectField label={FIELD_LABELS.avatar_mobility_aid} value={selected.avatar_mobility_aid ?? "none"} options={AVATAR_VOCAB.mobility_aid} onChange={v => patch({ avatar_mobility_aid: v })} disabled={isLocked} />
                         <SliderField label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} />
                       </div>
                       <RuleList warnings={sectionWarnings("posture")} onApply={applySuggestion} />
