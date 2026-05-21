@@ -62,6 +62,38 @@ export const FIELD_ICONS: Record<string, LucideIcon> = {
   avatar_parent_energy: Baby,
 };
 
+/** Couleur d'accent (token CSS HSL) appliquée au picto et au libellé de chaque champ. */
+export const FIELD_ACCENT: Record<string, string> = {
+  avatar_gender: "--field-identity",
+  avatar_age_range: "--field-time",
+  avatar_face_shape: "--field-face",
+  avatar_skin_tone: "--field-skin",
+  avatar_eye_shape: "--field-eye",
+  avatar_eye_color: "--field-eye",
+  avatar_tired_level: "--field-eye",
+  avatar_emotional_brightness: "--field-mood",
+  avatar_hair_type: "--field-hair",
+  avatar_hair_color: "--field-hair",
+  avatar_hair_length: "--field-hair",
+  avatar_hair_volume: "--field-hair",
+  avatar_hair_style: "--field-hair",
+  avatar_beard: "--field-pilosity",
+  avatar_moustache: "--field-pilosity",
+  avatar_bald_level: "--field-pilosity",
+  avatar_hair_recession: "--field-pilosity",
+  avatar_head_covering: "--field-culture",
+  avatar_cultural_style_override: "--field-culture",
+  avatar_clothing_style: "--field-clothing",
+  avatar_clothing_color_palette: "--field-clothing",
+  avatar_posture: "--field-body",
+  avatar_mobility_aid: "--field-body",
+  avatar_expression: "--field-mood",
+  avatar_parent_energy: "--field-family",
+  avatar_fatigue_level: "--field-fatigue",
+  avatar_dignity_level: "--field-dignity",
+  avatar_resilience_level: "--field-dignity",
+};
+
 export const TAB_FIELDS: Record<string, string[]> = {
   face: ["avatar_gender", "avatar_age_range", "avatar_face_shape", "avatar_skin_tone", "avatar_expression"],
   eyes: ["avatar_eye_shape", "avatar_eye_color", "avatar_tired_level", "avatar_emotional_brightness"],
@@ -92,12 +124,22 @@ export function InferredPastille({ reasons }: { reasons?: FieldReason[] }) {
 }
 
 export function FieldLabel({
-  icon: Icon, children, right, reasons,
-}: { icon?: LucideIcon; children: React.ReactNode; right?: React.ReactNode; reasons?: FieldReason[] }) {
+  icon: Icon, children, right, reasons, accentToken,
+}: {
+  icon?: LucideIcon;
+  children: React.ReactNode;
+  right?: React.ReactNode;
+  reasons?: FieldReason[];
+  accentToken?: string;
+}) {
+  const color = accentToken ? `hsl(var(${accentToken}))` : undefined;
   return (
     <div className="flex items-center justify-between gap-2">
-      <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />}
+      <Label
+        className="text-xs font-medium flex items-center gap-1.5"
+        style={color ? { color } : undefined}
+      >
+        {Icon && <Icon className="h-4 w-4 shrink-0" style={color ? { color } : undefined} />}
         <span>{children}</span>
         <InferredPastille reasons={reasons} />
       </Label>
@@ -107,7 +149,7 @@ export function FieldLabel({
 }
 
 export function SelectField({
-  label, value, options, onChange, disabled, icon, reasons,
+  label, value, options, onChange, disabled, icon, reasons, accentToken, labelFor,
 }: {
   label: string;
   value: string | null;
@@ -116,14 +158,17 @@ export function SelectField({
   disabled?: boolean;
   icon?: LucideIcon;
   reasons?: FieldReason[];
+  accentToken?: string;
+  labelFor?: (value: string) => string;
 }) {
+  const fmt = labelFor ?? ((v: string) => v);
   return (
     <div className="space-y-1.5">
-      <FieldLabel icon={icon} reasons={reasons}>{label}</FieldLabel>
+      <FieldLabel icon={icon} reasons={reasons} accentToken={accentToken}>{label}</FieldLabel>
       <Select value={value ?? ""} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
         <SelectContent>
-          {options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+          {options.map(o => <SelectItem key={o} value={o}>{fmt(o)}</SelectItem>)}
         </SelectContent>
       </Select>
     </div>
@@ -131,14 +176,22 @@ export function SelectField({
 }
 
 export function SliderField({
-  label, value, min = 0, max = 5, step = 1, onChange, disabled, icon, reasons,
+  label, value, min = 0, max = 5, step = 1, onChange, disabled, icon, reasons, accentToken,
 }: {
   label: string; value: number; min?: number; max?: number; step?: number;
   onChange: (v: number) => void; disabled?: boolean; icon?: LucideIcon; reasons?: FieldReason[];
+  accentToken?: string;
 }) {
   return (
     <div className="space-y-1.5">
-      <FieldLabel icon={icon} reasons={reasons} right={<span className="text-xs font-mono text-foreground">{value}</span>}>{label}</FieldLabel>
+      <FieldLabel
+        icon={icon}
+        reasons={reasons}
+        accentToken={accentToken}
+        right={<span className="text-xs font-mono text-foreground">{value}</span>}
+      >
+        {label}
+      </FieldLabel>
       <Slider
         value={[value]}
         min={min} max={max} step={step}
@@ -148,3 +201,4 @@ export function SliderField({
     </div>
   );
 }
+

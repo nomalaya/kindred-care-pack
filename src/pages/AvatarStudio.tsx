@@ -24,8 +24,10 @@ import { BeneficiaryListPanel } from "@/features/avatar-studio/BeneficiaryListPa
 import { RuleList } from "@/features/avatar-studio/RuleList";
 import { SectionAccordion, type SectionDef } from "@/features/avatar-studio/SectionAccordion";
 import {
-  FIELD_LABELS, FIELD_ICONS, SelectField, SliderField,
+  FIELD_LABELS, FIELD_ICONS, FIELD_ACCENT, SelectField, SliderField,
 } from "@/features/avatar-studio/fields";
+import { labelFor } from "@/lib/avatarVocabLabels";
+
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
@@ -936,11 +938,11 @@ const AvatarStudio = () => {
                             <div>
                               <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Visage</div>
                               <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                                <SelectField icon={FIELD_ICONS.avatar_gender} label={FIELD_LABELS.avatar_gender} value={selected.avatar_gender} options={AVATAR_VOCAB.gender} onChange={v => patch({ avatar_gender: v })} disabled={isLocked} />
-                                <SelectField icon={FIELD_ICONS.avatar_age_range} label={FIELD_LABELS.avatar_age_range} value={selected.avatar_age_range} options={AVATAR_VOCAB.age_range} onChange={v => patch({ avatar_age_range: v })} disabled={isLocked} />
-                                <SelectField icon={FIELD_ICONS.avatar_face_shape} label={FIELD_LABELS.avatar_face_shape} value={selected.avatar_face_shape} options={AVATAR_VOCAB.face_shape} onChange={v => patch({ avatar_face_shape: v })} disabled={isLocked} />
-                                <SelectField icon={FIELD_ICONS.avatar_skin_tone} label={FIELD_LABELS.avatar_skin_tone} value={selected.avatar_skin_tone} options={AVATAR_VOCAB.skin_tone} onChange={v => patch({ avatar_skin_tone: v })} disabled={isLocked} />
-                                <SelectField icon={FIELD_ICONS.avatar_expression} label={FIELD_LABELS.avatar_expression} value={selected.avatar_expression} options={AVATAR_VOCAB.expression} onChange={v => patch({ avatar_expression: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_gender} label={FIELD_LABELS.avatar_gender} value={selected.avatar_gender} options={AVATAR_VOCAB.gender} onChange={v => patch({ avatar_gender: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_gender} labelFor={labelFor("gender")} />
+                                <SelectField icon={FIELD_ICONS.avatar_age_range} label={FIELD_LABELS.avatar_age_range} value={selected.avatar_age_range} options={AVATAR_VOCAB.age_range} onChange={v => patch({ avatar_age_range: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_age_range} labelFor={labelFor("age_range")} />
+                                <SelectField icon={FIELD_ICONS.avatar_face_shape} label={FIELD_LABELS.avatar_face_shape} value={selected.avatar_face_shape} options={AVATAR_VOCAB.face_shape} onChange={v => patch({ avatar_face_shape: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_face_shape} labelFor={labelFor("face_shape")} />
+                                <SelectField icon={FIELD_ICONS.avatar_skin_tone} label={FIELD_LABELS.avatar_skin_tone} value={selected.avatar_skin_tone} options={AVATAR_VOCAB.skin_tone} onChange={v => patch({ avatar_skin_tone: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_skin_tone} labelFor={labelFor("skin_tone")} />
+                                <SelectField icon={FIELD_ICONS.avatar_expression} label={FIELD_LABELS.avatar_expression} value={selected.avatar_expression} options={AVATAR_VOCAB.expression} onChange={v => patch({ avatar_expression: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_expression} labelFor={labelFor("expression")} />
                               </div>
                               <RuleList warnings={sectionWarnings("face")} onApply={applySuggestion} />
                             </div>
@@ -948,10 +950,10 @@ const AvatarStudio = () => {
                             <div>
                               <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Yeux & regard</div>
                               <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                                <SelectField icon={FIELD_ICONS.avatar_eye_shape} label={FIELD_LABELS.avatar_eye_shape} value={selected.avatar_eye_shape} options={AVATAR_VOCAB.eye_shape} onChange={v => patch({ avatar_eye_shape: v })} disabled={isLocked} />
-                                <SelectField icon={FIELD_ICONS.avatar_eye_color} label={FIELD_LABELS.avatar_eye_color} value={selected.avatar_eye_color} options={AVATAR_VOCAB.eye_color} onChange={v => patch({ avatar_eye_color: v })} disabled={isLocked} />
-                                <SliderField icon={BatteryLow} label="Fatigue oculaire (0-5)" value={selected.avatar_tired_level ?? 0} onChange={v => patch({ avatar_tired_level: v })} disabled={isLocked} />
-                                <SliderField icon={Sun} label="Luminosité émotionnelle (0-5)" value={selected.avatar_emotional_brightness ?? 3} onChange={v => patch({ avatar_emotional_brightness: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_eye_shape} label={FIELD_LABELS.avatar_eye_shape} value={selected.avatar_eye_shape} options={AVATAR_VOCAB.eye_shape} onChange={v => patch({ avatar_eye_shape: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_eye_shape} labelFor={labelFor("eye_shape")} />
+                                <SelectField icon={FIELD_ICONS.avatar_eye_color} label={FIELD_LABELS.avatar_eye_color} value={selected.avatar_eye_color} options={AVATAR_VOCAB.eye_color} onChange={v => patch({ avatar_eye_color: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_eye_color} labelFor={labelFor("eye_color")} />
+                                <SliderField icon={BatteryLow} label="Fatigue oculaire (0-5)" value={selected.avatar_tired_level ?? 0} onChange={v => patch({ avatar_tired_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_tired_level} />
+                                <SliderField icon={Sun} label="Luminosité émotionnelle (0-5)" value={selected.avatar_emotional_brightness ?? 3} onChange={v => patch({ avatar_emotional_brightness: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_emotional_brightness} />
                               </div>
                               <RuleList warnings={sectionWarnings("eyes")} onApply={applySuggestion} />
                             </div>
@@ -971,11 +973,11 @@ const AvatarStudio = () => {
                             <div>
                               <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Cheveux</div>
                               <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                                <SelectField icon={FIELD_ICONS.avatar_hair_type} label={FIELD_LABELS.avatar_hair_type} value={selected.avatar_hair_type} options={AVATAR_VOCAB.hair_type} onChange={v => patch({ avatar_hair_type: v })} disabled={isLocked} />
-                                <SelectField icon={FIELD_ICONS.avatar_hair_color} label={FIELD_LABELS.avatar_hair_color} value={selected.avatar_hair_color} options={AVATAR_VOCAB.hair_color} onChange={v => patch({ avatar_hair_color: v })} disabled={isLocked} />
-                                <SelectField icon={FIELD_ICONS.avatar_hair_length} label={FIELD_LABELS.avatar_hair_length} value={selected.avatar_hair_length} options={AVATAR_VOCAB.hair_length} onChange={v => patch({ avatar_hair_length: v })} disabled={isLocked} />
-                                <SelectField icon={FIELD_ICONS.avatar_hair_volume} label={FIELD_LABELS.avatar_hair_volume} value={selected.avatar_hair_volume} options={AVATAR_VOCAB.hair_volume} onChange={v => patch({ avatar_hair_volume: v })} disabled={isLocked} />
-                                <SelectField icon={FIELD_ICONS.avatar_hair_style} label={FIELD_LABELS.avatar_hair_style} value={selected.avatar_hair_style} options={AVATAR_VOCAB.hair_style} onChange={v => patch({ avatar_hair_style: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_hair_type} label={FIELD_LABELS.avatar_hair_type} value={selected.avatar_hair_type} options={AVATAR_VOCAB.hair_type} onChange={v => patch({ avatar_hair_type: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_hair_type} labelFor={labelFor("hair_type")} />
+                                <SelectField icon={FIELD_ICONS.avatar_hair_color} label={FIELD_LABELS.avatar_hair_color} value={selected.avatar_hair_color} options={AVATAR_VOCAB.hair_color} onChange={v => patch({ avatar_hair_color: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_hair_color} labelFor={labelFor("hair_color")} />
+                                <SelectField icon={FIELD_ICONS.avatar_hair_length} label={FIELD_LABELS.avatar_hair_length} value={selected.avatar_hair_length} options={AVATAR_VOCAB.hair_length} onChange={v => patch({ avatar_hair_length: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_hair_length} labelFor={labelFor("hair_length")} />
+                                <SelectField icon={FIELD_ICONS.avatar_hair_volume} label={FIELD_LABELS.avatar_hair_volume} value={selected.avatar_hair_volume} options={AVATAR_VOCAB.hair_volume} onChange={v => patch({ avatar_hair_volume: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_hair_volume} labelFor={labelFor("hair_volume")} />
+                                <SelectField icon={FIELD_ICONS.avatar_hair_style} label={FIELD_LABELS.avatar_hair_style} value={selected.avatar_hair_style} options={AVATAR_VOCAB.hair_style} onChange={v => patch({ avatar_hair_style: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_hair_style} labelFor={labelFor("hair_style")} />
                               </div>
                               <RuleList warnings={sectionWarnings("hair")} onApply={applySuggestion} />
                             </div>
@@ -984,10 +986,10 @@ const AvatarStudio = () => {
                               <div>
                                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Pilosité</div>
                                 <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                                  <SelectField icon={FIELD_ICONS.avatar_beard} label={FIELD_LABELS.avatar_beard} value={selected.avatar_beard} options={AVATAR_VOCAB.beard} onChange={v => patch({ avatar_beard: v })} disabled={isLocked} />
-                                  <SelectField icon={FIELD_ICONS.avatar_moustache} label={FIELD_LABELS.avatar_moustache} value={selected.avatar_moustache} options={AVATAR_VOCAB.moustache} onChange={v => patch({ avatar_moustache: v })} disabled={isLocked} />
-                                  <SliderField icon={CircleDot} label="Calvitie (0-100%)" value={selected.avatar_bald_level ?? 0} min={0} max={100} step={5} onChange={v => patch({ avatar_bald_level: v })} disabled={isLocked} />
-                                  <SelectField icon={FIELD_ICONS.avatar_hair_recession} label={FIELD_LABELS.avatar_hair_recession} value={selected.avatar_hair_recession} options={AVATAR_VOCAB.hair_recession} onChange={v => patch({ avatar_hair_recession: v })} disabled={isLocked} />
+                                  <SelectField icon={FIELD_ICONS.avatar_beard} label={FIELD_LABELS.avatar_beard} value={selected.avatar_beard} options={AVATAR_VOCAB.beard} onChange={v => patch({ avatar_beard: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_beard} labelFor={labelFor("beard")} />
+                                  <SelectField icon={FIELD_ICONS.avatar_moustache} label={FIELD_LABELS.avatar_moustache} value={selected.avatar_moustache} options={AVATAR_VOCAB.moustache} onChange={v => patch({ avatar_moustache: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_moustache} labelFor={labelFor("moustache")} />
+                                  <SliderField icon={CircleDot} label="Calvitie (0-100%)" value={selected.avatar_bald_level ?? 0} min={0} max={100} step={5} onChange={v => patch({ avatar_bald_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_bald_level} />
+                                  <SelectField icon={FIELD_ICONS.avatar_hair_recession} label={FIELD_LABELS.avatar_hair_recession} value={selected.avatar_hair_recession} options={AVATAR_VOCAB.hair_recession} onChange={v => patch({ avatar_hair_recession: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_hair_recession} labelFor={labelFor("hair_recession")} />
                                 </div>
                                 <RuleList warnings={sectionWarnings("male")} onApply={applySuggestion} />
                               </div>
@@ -1006,7 +1008,7 @@ const AvatarStudio = () => {
                         content: (
                           <div className="space-y-3">
                             <div className="grid grid-cols-2 gap-3">
-                              <SelectField icon={FIELD_ICONS.avatar_head_covering} label={FIELD_LABELS.avatar_head_covering} value={selected.avatar_head_covering ?? "none"} options={AVATAR_VOCAB.head_covering} onChange={v => patch({ avatar_head_covering: v })} disabled={isLocked} />
+                              <SelectField icon={FIELD_ICONS.avatar_head_covering} label={FIELD_LABELS.avatar_head_covering} value={selected.avatar_head_covering ?? "none"} options={AVATAR_VOCAB.head_covering} onChange={v => patch({ avatar_head_covering: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_head_covering} labelFor={labelFor("head_covering")} />
                               <div className="space-y-1.5">
                                 <Label className="text-xs text-muted-foreground">{FIELD_LABELS.avatar_cultural_style_override}</Label>
                                 <Input value={selected.avatar_cultural_style_override ?? ""} onChange={e => patch({ avatar_cultural_style_override: e.target.value })} disabled={isLocked} placeholder="ex. subtle_mediterranean" className="h-9" />
@@ -1031,17 +1033,17 @@ const AvatarStudio = () => {
                             <div>
                               <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Vêtements</div>
                               <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                                <SelectField icon={FIELD_ICONS.avatar_clothing_style} label={FIELD_LABELS.avatar_clothing_style} value={selected.avatar_clothing_style} options={AVATAR_VOCAB.clothing_style} onChange={v => patch({ avatar_clothing_style: v })} disabled={isLocked} />
-                                <SelectField icon={FIELD_ICONS.avatar_clothing_color_palette} label={FIELD_LABELS.avatar_clothing_color_palette} value={selected.avatar_clothing_color_palette} options={AVATAR_VOCAB.clothing_color_palette} onChange={v => patch({ avatar_clothing_color_palette: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_clothing_style} label={FIELD_LABELS.avatar_clothing_style} value={selected.avatar_clothing_style} options={AVATAR_VOCAB.clothing_style} onChange={v => patch({ avatar_clothing_style: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_clothing_style} labelFor={labelFor("clothing_style")} />
+                                <SelectField icon={FIELD_ICONS.avatar_clothing_color_palette} label={FIELD_LABELS.avatar_clothing_color_palette} value={selected.avatar_clothing_color_palette} options={AVATAR_VOCAB.clothing_color_palette} onChange={v => patch({ avatar_clothing_color_palette: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_clothing_color_palette} labelFor={labelFor("clothing_color_palette")} />
                               </div>
                               <RuleList warnings={sectionWarnings("clothing")} onApply={applySuggestion} />
                             </div>
                             <div>
                               <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Posture</div>
                               <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                                <SelectField icon={FIELD_ICONS.avatar_posture} label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} />
-                                <SelectField icon={FIELD_ICONS.avatar_mobility_aid} label={FIELD_LABELS.avatar_mobility_aid} value={selected.avatar_mobility_aid ?? "none"} options={AVATAR_VOCAB.mobility_aid} onChange={v => patch({ avatar_mobility_aid: v })} disabled={isLocked} />
-                                <SliderField icon={Sparkles} label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} />
+                                <SelectField icon={FIELD_ICONS.avatar_posture} label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_posture} labelFor={labelFor("posture")} />
+                                <SelectField icon={FIELD_ICONS.avatar_mobility_aid} label={FIELD_LABELS.avatar_mobility_aid} value={selected.avatar_mobility_aid ?? "none"} options={AVATAR_VOCAB.mobility_aid} onChange={v => patch({ avatar_mobility_aid: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_mobility_aid} labelFor={labelFor("mobility_aid")} />
+                                <SliderField icon={Sparkles} label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_resilience_level} />
                               </div>
                               <RuleList warnings={sectionWarnings("posture")} onApply={applySuggestion} />
                             </div>
@@ -1059,9 +1061,9 @@ const AvatarStudio = () => {
                         content: (
                           <div className="space-y-3">
                             <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-                              <SelectField icon={FIELD_ICONS.avatar_parent_energy} label={FIELD_LABELS.avatar_parent_energy} value={selected.avatar_parent_energy} options={AVATAR_VOCAB.parent_energy} onChange={v => patch({ avatar_parent_energy: v })} disabled={isLocked} />
-                              <SliderField icon={BatteryLow} label="Fatigue (0-5)" value={selected.avatar_fatigue_level ?? 0} onChange={v => patch({ avatar_fatigue_level: v })} disabled={isLocked} />
-                              <SliderField icon={ShieldCheck} label="Dignité (0-5)" value={selected.avatar_dignity_level ?? 5} onChange={v => patch({ avatar_dignity_level: v })} disabled={isLocked} />
+                              <SelectField icon={FIELD_ICONS.avatar_parent_energy} label={FIELD_LABELS.avatar_parent_energy} value={selected.avatar_parent_energy} options={AVATAR_VOCAB.parent_energy} onChange={v => patch({ avatar_parent_energy: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_parent_energy} labelFor={labelFor("parent_energy")} />
+                              <SliderField icon={BatteryLow} label="Fatigue (0-5)" value={selected.avatar_fatigue_level ?? 0} onChange={v => patch({ avatar_fatigue_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_fatigue_level} />
+                              <SliderField icon={ShieldCheck} label="Dignité (0-5)" value={selected.avatar_dignity_level ?? 5} onChange={v => patch({ avatar_dignity_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_dignity_level} />
                             </div>
                             <RuleList warnings={sectionWarnings("social")} onApply={applySuggestion} />
                           </div>
