@@ -854,10 +854,34 @@ const AvatarStudio = () => {
                       {selected.children_count > 0 && ` · ${selected.children_count} enf.`}
                     </p>
                   </div>
-                  <Button onClick={autoInfer} variant="outline" size="sm" disabled={isLocked}>
-                    <Wand2 className="h-3.5 w-3.5 mr-1" />Déduire
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <Button onClick={() => autoInfer("fill")} variant="outline" size="sm" disabled={isLocked} title="Pré-remplir les champs vides depuis le récit">
+                      <Wand2 className="h-3.5 w-3.5 mr-1" />Pré-remplir
+                    </Button>
+                    <Button onClick={() => autoInfer("force")} variant="ghost" size="sm" disabled={isLocked} title="Re-déduire et écraser tous les champs">
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
+
+                {/* Contexte psychosocial — toujours visible */}
+                {(selected.short_story || selected.emotional_sentence) && (
+                  <div className="mx-4 mt-3 rounded-md border bg-muted/30 p-3 space-y-2">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+                      Contexte psychosocial — source des déductions
+                    </div>
+                    {selected.short_story && (
+                      <p className="text-xs leading-relaxed text-foreground/90 italic">
+                        {selected.short_story}
+                      </p>
+                    )}
+                    {selected.emotional_sentence && (
+                      <blockquote className="text-xs leading-relaxed border-l-2 border-primary/40 pl-2 text-foreground/80">
+                        «&nbsp;{selected.emotional_sentence}&nbsp;»
+                      </blockquote>
+                    )}
+                  </div>
+                )}
 
                 {isLocked && (
                   <div className="mx-4 mt-3 p-2 rounded-md border border-slate-300 bg-slate-50 text-xs flex items-center gap-2">
