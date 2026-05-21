@@ -198,12 +198,19 @@ const AvatarStudio = () => {
     let toApply: Record<string, any> = values;
     if (mode === "fill") {
       toApply = Object.fromEntries(
-        Object.entries(values).filter(([k]) => {
+        Object.entries(values).filter(([k, v]) => {
           const cur = (selected as any)[k];
-          return cur === null || cur === undefined || cur === "" || cur === "none";
+          if (cur === null || cur === undefined || cur === "" || cur === "none") return true;
+          // Si la valeur courante n'appartient pas au vocabulaire (ex: legacy "20-30"),
+          // on la considère vide pour pouvoir la remplacer.
+          const vocabKey = k.replace(/^avatar_/, "") as keyof typeof AVATAR_VOCAB;
+          const vocab = (AVATAR_VOCAB as any)[vocabKey];
+          if (Array.isArray(vocab) && typeof cur === "string" && !vocab.includes(cur)) return true;
+          return false;
         }),
       );
     }
+
     if (Object.keys(toApply).length === 0) {
       toast.info("Aucun champ vide à pré-remplir. Utilisez « Tout re-déduire » pour écraser.");
       return;
@@ -236,11 +243,16 @@ const AvatarStudio = () => {
     const keptReasons: Record<string, FieldReason[]> = {};
     for (const key of ["avatar_gender", "avatar_age_range"] as const) {
       const cur = (selected as any)[key];
-      if ((cur === null || cur === undefined || cur === "") && values[key]) {
+      const vocabKey = key.replace(/^avatar_/, "") as keyof typeof AVATAR_VOCAB;
+      const vocab = (AVATAR_VOCAB as any)[vocabKey] as string[] | undefined;
+      const isEmpty = cur === null || cur === undefined || cur === "";
+      const isInvalid = !isEmpty && Array.isArray(vocab) && typeof cur === "string" && !vocab.includes(cur);
+      if ((isEmpty || isInvalid) && values[key]) {
         toApply[key] = values[key];
         if (reasons[key]) keptReasons[key] = reasons[key];
       }
     }
+
     if (Object.keys(toApply).length > 0) {
       autoPrefilledFor.current = selected.id;
       setInferenceReasons(prev => ({ ...prev, ...keptReasons }));
