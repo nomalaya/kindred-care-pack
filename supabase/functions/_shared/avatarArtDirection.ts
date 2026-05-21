@@ -157,6 +157,7 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
   ].filter(Boolean).join("\n");
 }
 
+// Same model for preview and final to guarantee a single consistent cartoon style across the catalog.
 export const MODEL_PREVIEW = "google/gemini-3.1-flash-image-preview";
-export const MODEL_FINAL = "google/gemini-3-pro-image-preview";
+export const MODEL_FINAL = "google/gemini-3.1-flash-image-preview";
 export const MODEL_QA = "google/gemini-2.5-flash";
