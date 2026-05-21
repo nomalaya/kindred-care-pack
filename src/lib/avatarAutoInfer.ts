@@ -3,7 +3,7 @@
 // dans short_story + emotional_sentence et déduit des attributs visuels et émotionnels.
 // Les signaux médicaux priment toujours sur les signaux émotionnels positifs.
 
-interface InferInput {
+export interface InferInput {
   approx_age?: number | null;
   avatar_gender?: string | null;
   beneficiary_category?: string | null;
@@ -15,13 +15,22 @@ interface InferInput {
   culture_tags?: string[] | null;
 }
 
+export interface FieldReason {
+  signal: string;
+  signalLabel: string;
+  keyword: string;
+}
+
+export interface InferenceResult {
+  values: Record<string, unknown>;
+  reasons: Record<string, FieldReason[]>;
+}
+
 const norm = (s: string) =>
   s
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
-
-const hasAny = (text: string, kws: string[]) => kws.some(k => text.includes(norm(k)));
 
 // --- Dictionnaires de signaux (FR, normalisés sans accents) ---
 const KW = {
@@ -78,18 +87,63 @@ const KW = {
     "espoir", "sourire", "joie", "soulagement", "reconnaissance",
     "fierte", "famille unie",
   ],
+} as const;
+
+export const SIGNAL_LABELS: Record<keyof typeof KW, string> = {
+  mobility_severe: "Mobilité lourde",
+  mobility_light: "Mobilité réduite",
+  bandage: "Bandage / plâtre",
+  arm_sling: "Bras en écharpe",
+  oxygen: "Oxygène / respiratoire",
+  illness_heavy: "Maladie grave",
+  grief: "Deuil",
+  violence_exile: "Violence / exil",
+  solo_parent: "Parent isolé",
+  pregnant: "Grossesse",
+  isolation: "Isolement",
+  precarity_housing: "Précarité logement",
+  elderly_fragile: "Grand âge fragile",
+  resilience: "Résilience",
+  positive: "Émotion positive",
+};
+
+type SignalKey = keyof typeof KW;
+
+// Renvoie le 1er mot-clé matché, ou null
+const firstMatch = (text: string, signal: SignalKey): string | null => {
+  for (const k of KW[signal]) {
+    if (text.includes(norm(k))) return k;
+  }
+  return null;
 };
 
 const max = (a: number | undefined, b: number) => Math.max(a ?? 0, b);
 const min = (a: number | undefined, b: number) => Math.min(a ?? 5, b);
 
-export function inferStudioDefaults(b: InferInput): Record<string, unknown> {
+export function inferStudioDefaultsWithReasons(b: InferInput): InferenceResult {
   const rawText = `${b.short_story ?? ""} ${b.emotional_sentence ?? ""}`;
   const text = norm(rawText);
   const age = b.approx_age ?? 35;
   const children = b.children_count ?? 0;
   const urgency = b.urgency_level ?? 0;
   const culture = b.culture_tags ?? [];
+
+  // Détection des signaux (une seule fois)
+  const matched: Partial<Record<SignalKey, string>> = {};
+  (Object.keys(KW) as SignalKey[]).forEach(sig => {
+    const kw = firstMatch(text, sig);
+    if (kw) matched[sig] = kw;
+  });
+
+  const reasons: Record<string, FieldReason[]> = {};
+  const addReason = (field: string, sig: SignalKey) => {
+    const kw = matched[sig];
+    if (!kw) return;
+    reasons[field] = reasons[field] || [];
+    if (!reasons[field].some(r => r.signal === sig)) {
+      reasons[field].push({ signal: sig, signalLabel: SIGNAL_LABELS[sig], keyword: kw });
+    }
+  };
 
   // Valeurs cumulatives
   let expression = "calm";
@@ -103,76 +157,93 @@ export function inferStudioDefaults(b: InferInput): Record<string, unknown> {
   let clothing_style = "casual_modest";
 
   // --- Signaux médicaux / handicap (priorité maximale) ---
-  if (hasAny(text, KW.mobility_severe)) {
+  if (matched.mobility_severe) {
     mobility_aid = "wheelchair_electric";
     posture = "seated_dignified";
     fatigue = max(fatigue, 4);
     tired_level = max(tired_level, 3);
     expression = "tired_but_warm";
     brightness = min(brightness, 2);
-  } else if (hasAny(text, KW.mobility_light)) {
+    ["avatar_mobility_aid", "avatar_posture", "avatar_fatigue_level", "avatar_tired_level", "avatar_expression", "avatar_emotional_brightness"]
+      .forEach(f => addReason(f, "mobility_severe"));
+  } else if (matched.mobility_light) {
     mobility_aid = age >= 65 ? "cane" : "crutches";
     posture = "seated_dignified";
     fatigue = max(fatigue, 2);
+    ["avatar_mobility_aid", "avatar_posture", "avatar_fatigue_level"].forEach(f => addReason(f, "mobility_light"));
   }
 
-  if (hasAny(text, KW.oxygen)) {
-    mobility_aid = mobility_aid === "none" ? "oxygen_cannula" : mobility_aid;
+  if (matched.oxygen) {
+    if (mobility_aid === "none") mobility_aid = "oxygen_cannula";
     fatigue = max(fatigue, 3);
-  } else if (hasAny(text, KW.arm_sling) && mobility_aid === "none") {
+    addReason("avatar_mobility_aid", "oxygen");
+    addReason("avatar_fatigue_level", "oxygen");
+  } else if (matched.arm_sling && mobility_aid === "none") {
     mobility_aid = "arm_sling";
-  } else if (hasAny(text, KW.bandage) && mobility_aid === "none") {
+    addReason("avatar_mobility_aid", "arm_sling");
+  } else if (matched.bandage && mobility_aid === "none") {
     mobility_aid = "visible_bandage";
+    addReason("avatar_mobility_aid", "bandage");
   }
 
-  if (hasAny(text, KW.illness_heavy)) {
+  if (matched.illness_heavy) {
     expression = expression === "calm" ? "tired_but_warm" : expression;
     fatigue = max(fatigue, 3);
     tired_level = max(tired_level, 3);
     brightness = min(brightness, 2);
     resilience = Math.max(resilience, 3);
+    ["avatar_expression", "avatar_fatigue_level", "avatar_tired_level", "avatar_emotional_brightness", "avatar_resilience_level"]
+      .forEach(f => addReason(f, "illness_heavy"));
   }
 
   // --- Deuil ---
-  if (hasAny(text, KW.grief)) {
-    expression = ["tired_but_warm", "serious_soft"].includes(expression)
-      ? expression
-      : "serious_soft";
+  if (matched.grief) {
+    expression = ["tired_but_warm", "serious_soft"].includes(expression) ? expression : "serious_soft";
     brightness = min(brightness, 2);
     resilience = Math.max(resilience, 3);
+    ["avatar_expression", "avatar_emotional_brightness", "avatar_resilience_level"].forEach(f => addReason(f, "grief"));
   }
 
   // --- Violence / exil ---
-  if (hasAny(text, KW.violence_exile)) {
+  if (matched.violence_exile) {
     if (expression === "calm") expression = "serious_soft";
     brightness = min(brightness, 2);
     resilience = 4;
+    ["avatar_expression", "avatar_emotional_brightness", "avatar_resilience_level"].forEach(f => addReason(f, "violence_exile"));
   }
 
   // --- Parentalité ---
   if (b.beneficiary_category === "famille_enfants" || children > 0) {
-    const solo = hasAny(text, KW.solo_parent);
-    const tired = fatigue >= 3 || hasAny(text, ["fatigue", "epuis"]);
+    const solo = !!matched.solo_parent;
+    const tired = fatigue >= 3 || text.includes("fatigue") || text.includes("epuis");
     parent_energy = solo || tired ? "tired_but_warm_parent" : "protective_parent";
     if (posture === "upright_calm") posture = "protective";
+    if (solo) {
+      addReason("avatar_parent_energy", "solo_parent");
+      addReason("avatar_posture", "solo_parent");
+    }
   }
 
   // --- Grossesse ---
-  if (hasAny(text, KW.pregnant)) {
+  if (matched.pregnant) {
     clothing_style = "practical_warm";
     if (expression === "calm") expression = "hopeful";
+    addReason("avatar_clothing_style", "pregnant");
+    addReason("avatar_expression", "pregnant");
   }
 
-  // --- Isolement (uniquement si pas enfants) ---
-  if (children === 0 && hasAny(text, KW.isolation) && expression === "calm") {
+  // --- Isolement ---
+  if (children === 0 && matched.isolation && expression === "calm") {
     expression = "pensive";
+    addReason("avatar_expression", "isolation");
   }
 
   // --- Précarité logement ---
-  if (hasAny(text, KW.precarity_housing)) {
+  if (matched.precarity_housing) {
     clothing_style = "practical_warm";
     fatigue = max(fatigue, 3);
     tired_level = max(tired_level, 2);
+    ["avatar_clothing_style", "avatar_fatigue_level", "avatar_tired_level"].forEach(f => addReason(f, "precarity_housing"));
   }
 
   // --- Âge ---
@@ -180,22 +251,26 @@ export function inferStudioDefaults(b: InferInput): Record<string, unknown> {
     if (posture === "upright_calm") posture = "seated_dignified";
     if (clothing_style === "casual_modest") clothing_style = "classic_simple";
   }
-  if (hasAny(text, KW.elderly_fragile)) {
+  if (matched.elderly_fragile) {
     if (mobility_aid === "none") mobility_aid = "cane";
     posture = "seated_dignified";
     fatigue = max(fatigue, 2);
+    ["avatar_mobility_aid", "avatar_posture", "avatar_fatigue_level"].forEach(f => addReason(f, "elderly_fragile"));
   }
 
-  // --- Résilience / espoir (n'efface jamais un signal médical) ---
-  if (hasAny(text, KW.resilience)) {
+  // --- Résilience / espoir ---
+  if (matched.resilience) {
     resilience = Math.max(resilience, 4);
     if (expression === "calm") expression = "resilient";
-  } else if (hasAny(text, KW.positive) && expression === "calm") {
+    addReason("avatar_resilience_level", "resilience");
+    if (expression === "resilient") addReason("avatar_expression", "resilience");
+  } else if (matched.positive && expression === "calm") {
     expression = "gentle_smile";
     brightness = Math.max(brightness, 4);
+    addReason("avatar_expression", "positive");
+    addReason("avatar_emotional_brightness", "positive");
   }
 
-  // Modulations finales
   if (children >= 3) fatigue = max(fatigue, fatigue + 1);
   fatigue = Math.min(5, fatigue);
   tired_level = Math.min(5, Math.max(tired_level, Math.round(fatigue * 0.7)));
@@ -212,7 +287,7 @@ export function inferStudioDefaults(b: InferInput): Record<string, unknown> {
     clothing_style = "modest_warm";
   }
 
-  const result: Record<string, unknown> = {
+  const values: Record<string, unknown> = {
     avatar_expression: expression,
     avatar_posture: posture,
     avatar_parent_energy: parent_energy,
@@ -227,11 +302,16 @@ export function inferStudioDefaults(b: InferInput): Record<string, unknown> {
   };
 
   if (b.avatar_gender === "man") {
-    result.avatar_beard = age >= 25 ? "light" : "none";
-    result.avatar_moustache = "none";
-    result.avatar_bald_level = age >= 60 ? 35 : age >= 45 ? 15 : 0;
-    result.avatar_hair_recession = age >= 50 ? "moderate" : age >= 35 ? "light" : "none";
+    values.avatar_beard = age >= 25 ? "light" : "none";
+    values.avatar_moustache = "none";
+    values.avatar_bald_level = age >= 60 ? 35 : age >= 45 ? 15 : 0;
+    values.avatar_hair_recession = age >= 50 ? "moderate" : age >= 35 ? "light" : "none";
   }
 
-  return result;
+  return { values, reasons };
+}
+
+// Backward-compatible wrapper
+export function inferStudioDefaults(b: InferInput): Record<string, unknown> {
+  return inferStudioDefaultsWithReasons(b).values;
 }
