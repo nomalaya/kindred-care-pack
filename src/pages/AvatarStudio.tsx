@@ -7,178 +7,35 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Tabs, TabsList, TabsTrigger, TabsContent,
-} from "@/components/ui/tabs";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Tooltip, TooltipContent, TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AVATAR_VOCAB, WORKFLOW_LABEL, WORKFLOW_COLOR, WorkflowStatus,
 } from "@/lib/avatarTraits";
 import { evaluateAvatarRules, RuleWarning } from "@/lib/avatarRules";
 import { inferStudioDefaultsWithReasons, type FieldReason } from "@/lib/avatarAutoInfer";
-import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { ContextPanel } from "@/features/avatar-studio/ContextPanel";
 import { InferenceReasonsPanel } from "@/features/avatar-studio/InferenceReasonsPanel";
+import { BeneficiaryListPanel } from "@/features/avatar-studio/BeneficiaryListPanel";
+import { RuleList } from "@/features/avatar-studio/RuleList";
+import {
+  FIELD_LABELS, FIELD_ICONS, SelectField, SliderField,
+} from "@/features/avatar-studio/fields";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
-  UserCircle, CalendarDays, Smile, Palette, Ruler, Layers, Scissors, Waves,
-  User, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility, Baby,
+  Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown,
 } from "lucide-react";
 
 type Beneficiary = any;
 
-const FIELD_LABELS: Record<string, string> = {
-  avatar_gender: "Genre",
-  avatar_age_range: "Tranche d'âge",
-  avatar_face_shape: "Forme du visage",
-  avatar_skin_tone: "Teint",
-  avatar_eye_shape: "Forme des yeux",
-  avatar_eye_color: "Couleur des yeux",
-  avatar_hair_color: "Couleur de cheveux",
-  avatar_hair_length: "Longueur",
-  avatar_hair_volume: "Volume",
-  avatar_hair_style: "Coiffure",
-  avatar_hair_type: "Type de cheveux",
-  avatar_beard: "Barbe",
-  avatar_moustache: "Moustache",
-  avatar_hair_recession: "Recul des cheveux",
-  avatar_head_covering: "Couvre-chef",
-  avatar_cultural_style_override: "Style culturel (override)",
-  avatar_clothing_style: "Style vêtements",
-  avatar_clothing_color_palette: "Palette vêtements",
-  avatar_posture: "Posture",
-  avatar_expression: "Expression",
-  avatar_parent_energy: "Énergie parentale",
-  avatar_mobility_aid: "Aide à la mobilité",
-};
-
-const FIELD_ICONS: Record<string, LucideIcon> = {
-  avatar_gender: UserCircle,
-  avatar_age_range: CalendarDays,
-  avatar_face_shape: Smile,
-  avatar_skin_tone: Palette,
-  avatar_eye_shape: Eye,
-  avatar_eye_color: Eye,
-  avatar_hair_color: Palette,
-  avatar_hair_length: Ruler,
-  avatar_hair_volume: Layers,
-  avatar_hair_style: Scissors,
-  avatar_hair_type: Waves,
-  avatar_beard: User,
-  avatar_moustache: User,
-  avatar_hair_recession: ArrowUp,
-  avatar_head_covering: Crown,
-  avatar_cultural_style_override: Globe,
-  avatar_clothing_style: Shirt,
-  avatar_clothing_color_palette: Palette,
-  avatar_posture: PersonStanding,
-  avatar_mobility_aid: Accessibility,
-  avatar_expression: Smile,
-  avatar_parent_energy: Baby,
-};
-
-// Sections (tabs) → champs concernés, utilisé pour les badges "champ déduit"
-const TAB_FIELDS: Record<string, string[]> = {
-  face: ["avatar_gender", "avatar_age_range", "avatar_face_shape", "avatar_skin_tone", "avatar_expression"],
-  eyes: ["avatar_eye_shape", "avatar_eye_color", "avatar_tired_level", "avatar_emotional_brightness"],
-  hair: ["avatar_hair_type", "avatar_hair_color", "avatar_hair_length", "avatar_hair_volume", "avatar_hair_style"],
-  male: ["avatar_beard", "avatar_moustache", "avatar_bald_level", "avatar_hair_recession"],
-  cultural: ["avatar_head_covering", "avatar_cultural_style_override"],
-  clothing: ["avatar_clothing_style", "avatar_clothing_color_palette"],
-  posture: ["avatar_posture", "avatar_mobility_aid", "avatar_resilience_level"],
-  social: ["avatar_parent_energy", "avatar_fatigue_level", "avatar_dignity_level"],
-};
-
-function InferredPastille({ reasons }: { reasons?: FieldReason[] }) {
-  if (!reasons || reasons.length === 0) return null;
-  const txt = reasons.map(r => `${r.signalLabel} ← « ${r.keyword} »`).join(" · ");
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex items-center" aria-label={`Champ déduit : ${txt}`}>
-          <Sparkles className="h-3 w-3 text-primary/70" />
-        </span>
-      </TooltipTrigger>
-      <TooltipContent className="text-xs max-w-[260px]">
-        <div className="font-medium mb-0.5">Déduit du récit</div>
-        <div className="text-muted-foreground">{txt}</div>
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-function FieldLabel({
-  icon: Icon, children, right, reasons,
-}: { icon?: LucideIcon; children: React.ReactNode; right?: React.ReactNode; reasons?: FieldReason[] }) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
-        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />}
-        <span>{children}</span>
-        <InferredPastille reasons={reasons} />
-      </Label>
-      {right}
-    </div>
-  );
-}
-
-function SelectField({
-  label, value, options, onChange, disabled, icon, reasons,
-}: {
-  label: string;
-  value: string | null;
-  options: readonly string[];
-  onChange: (v: string) => void;
-  disabled?: boolean;
-  icon?: LucideIcon;
-  reasons?: FieldReason[];
-}) {
-  return (
-    <div className="space-y-1.5">
-      <FieldLabel icon={icon} reasons={reasons}>{label}</FieldLabel>
-      <Select value={value ?? ""} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-        <SelectContent>
-          {options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
-function SliderField({
-  label, value, min = 0, max = 5, step = 1, onChange, disabled, icon, reasons,
-}: {
-  label: string; value: number; min?: number; max?: number; step?: number;
-  onChange: (v: number) => void; disabled?: boolean; icon?: LucideIcon; reasons?: FieldReason[];
-}) {
-  return (
-    <div className="space-y-1.5">
-      <FieldLabel icon={icon} reasons={reasons} right={<span className="text-xs font-mono text-foreground">{value}</span>}>{label}</FieldLabel>
-      <Slider
-        value={[value]}
-        min={min} max={max} step={step}
-        onValueChange={(v) => onChange(v[0])}
-        disabled={disabled}
-      />
-    </div>
-  );
-}
 
 
 const AvatarStudio = () => {
@@ -658,51 +515,13 @@ const AvatarStudio = () => {
         {/* MAIN 3 COLUMNS */}
         <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(380px,420px)_1fr] gap-3 h-[calc(100vh-130px)]">
           {/* LEFT — list */}
-          <aside className="bg-card border rounded-xl overflow-hidden flex flex-col">
-            <div className="px-2 py-1.5 border-b text-[11px] uppercase tracking-wide text-muted-foreground bg-muted/30">
-              {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
-            </div>
-            <div className="overflow-y-auto flex-1 p-1.5 space-y-0.5">
-              {loading && <div className="text-sm text-muted-foreground p-2">Chargement…</div>}
-              {filtered.map(b => {
-                const ws = (b.avatar_workflow_status || "draft") as WorkflowStatus;
-                const isSel = b.id === selectedId;
-                const failed = b.avatar_status === "failed";
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => setSelectedId(b.id)}
-                    className={`w-full text-left p-1.5 rounded-md flex items-center gap-2 transition-colors ${
-                      isSel ? "bg-primary/10 ring-1 ring-primary/40" : "hover:bg-muted"
-                    }`}
-                  >
-                    <BeneficiaryAvatar
-                      name={b.alias_first_name}
-                      avatarUrl={b.avatar_url}
-                      previewUrl={b.avatar_preview_url}
-                      size="sm"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate flex items-center gap-1">
-                        {b.alias_first_name}
-                        {failed && <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground truncate">
-                        {b.region} · {b.approx_age}a
-                        {b.avatar_qa_score ? ` · QA ${Math.round(b.avatar_qa_score)}` : ""}
-                      </div>
-                    </div>
-                    <span className={`text-[9px] px-1 py-0.5 rounded border ${WORKFLOW_COLOR[ws]}`}>
-                      {WORKFLOW_LABEL[ws][0]}
-                    </span>
-                  </button>
-                );
-              })}
-              {!loading && filtered.length === 0 && (
-                <div className="text-sm text-muted-foreground p-3 text-center">Aucun résultat</div>
-              )}
-            </div>
-          </aside>
+          <BeneficiaryListPanel
+            filtered={filtered}
+            loading={loading}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
+
 
           {/* CENTER — preview + actions + versions */}
           <section className="bg-card border rounded-xl overflow-hidden flex flex-col">
@@ -1167,35 +986,6 @@ const AvatarStudio = () => {
   );
 };
 
-function RuleList({
-  warnings, onApply,
-}: { warnings: RuleWarning[]; onApply: (s: Record<string, unknown>) => void }) {
-  if (warnings.length === 0) return null;
-  return (
-    <div className="mt-3 space-y-1.5">
-      {warnings.map(w => (
-        <div
-          key={w.id}
-          className={`text-xs p-2 rounded border flex items-start gap-2 ${
-            w.severity === "error" ? "bg-rose-50 border-rose-200 text-rose-800" :
-            w.severity === "warning" ? "bg-amber-50 border-amber-200 text-amber-800" :
-            "bg-sky-50 border-sky-200 text-sky-800"
-          }`}
-        >
-          <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-          <div className="flex-1">{w.message}</div>
-          {w.suggestion && w.suggestionLabel && (
-            <button
-              onClick={() => onApply(w.suggestion!)}
-              className="underline font-medium whitespace-nowrap"
-            >
-              {w.suggestionLabel}
-            </button>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
+
 
 export default AvatarStudio;
