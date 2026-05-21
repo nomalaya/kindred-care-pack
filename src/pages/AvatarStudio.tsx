@@ -270,6 +270,76 @@ const AvatarStudio = () => {
     }
   };
 
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleImportFile = async (file: File) => {
+    if (!selected) return;
+    if (isLocked) {
+      toast.error("Avatar verrouillé. Déverrouillez d'abord.");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Fichier non supporté (image uniquement).");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image trop volumineuse (max 10 Mo).");
+      return;
+    }
+    setBusy("import");
+    try {
+      const ts = Date.now();
+      const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+      const canonical = `${selected.id}.${ext === "jpg" ? "jpg" : ext === "jpeg" ? "jpg" : ext === "webp" ? "webp" : "png"}`;
+      const versionPath = `versions/${selected.id}/import-${ts}.${ext === "jpeg" ? "jpg" : ext}`;
+      const contentType = file.type || "image/png";
+
+      const buf = await file.arrayBuffer();
+      const { error: e1 } = await supabase.storage
+        .from("avatars")
+        .upload(canonical, buf, { contentType, upsert: true });
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.storage
+        .from("avatars")
+        .upload(versionPath, buf, { contentType, upsert: false });
+      if (e2) throw e2;
+
+      const { data: cu } = supabase.storage.from("avatars").getPublicUrl(canonical);
+      const { data: vu } = supabase.storage.from("avatars").getPublicUrl(versionPath);
+      const url = `${cu.publicUrl}?t=${ts}`;
+
+      const updates: any = {
+        avatar_url: url,
+        avatar_preview_url: url,
+        avatar_status: "validated",
+        avatar_workflow_status:
+          selected.avatar_workflow_status === "approved" || selected.avatar_workflow_status === "locked"
+            ? selected.avatar_workflow_status
+            : "generated",
+        avatar_model_used: "import/external",
+        avatar_generated_at: new Date().toISOString(),
+      };
+      const { error: upErr } = await supabase.from("beneficiaries").update(updates).eq("id", selected.id);
+      if (upErr) throw upErr;
+
+      await supabase.from("avatar_versions" as any).insert({
+        beneficiary_id: selected.id,
+        image_url: vu.publicUrl,
+        model_used: "import/external",
+        prompt: `Imported file: ${file.name}`,
+      });
+
+      setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...updates } : b));
+      toast.success("Image importée et définie comme avatar actif");
+      refresh();
+    } catch (e: any) {
+      toast.error("Échec import : " + (e.message || "erreur"));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+
   const setWorkflow = async (status: WorkflowStatus) => {
     if (!selected) return;
     if (status === "draft" && selected.avatar_workflow_status === "locked") {
