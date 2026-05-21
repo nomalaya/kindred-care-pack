@@ -20,9 +20,31 @@ export type Database = {
           alias_first_name: string
           approx_age: number | null
           avatar_age_range: string | null
+          avatar_clothing_color_palette: string | null
+          avatar_clothing_style: string | null
+          avatar_cultural_style: string | null
+          avatar_expression: string | null
+          avatar_eye_color: string | null
+          avatar_eye_shape: string | null
+          avatar_face_shape: string | null
+          avatar_facial_features: string[] | null
           avatar_gender: string | null
+          avatar_generated_at: string | null
+          avatar_hair_color: string | null
+          avatar_hair_length: string | null
+          avatar_hair_style: string | null
           avatar_hair_type: string | null
+          avatar_hair_volume: string | null
+          avatar_model_used: string | null
+          avatar_parent_energy: string | null
+          avatar_posture: string | null
+          avatar_preview_url: string | null
+          avatar_prompt: string | null
+          avatar_qa_report: Json | null
+          avatar_qa_score: number | null
+          avatar_seed: number | null
           avatar_skin_tone: string | null
+          avatar_status: string | null
           avatar_url: string | null
           beneficiary_category: string | null
           children_count: number | null
@@ -66,9 +88,31 @@ export type Database = {
           alias_first_name: string
           approx_age?: number | null
           avatar_age_range?: string | null
+          avatar_clothing_color_palette?: string | null
+          avatar_clothing_style?: string | null
+          avatar_cultural_style?: string | null
+          avatar_expression?: string | null
+          avatar_eye_color?: string | null
+          avatar_eye_shape?: string | null
+          avatar_face_shape?: string | null
+          avatar_facial_features?: string[] | null
           avatar_gender?: string | null
+          avatar_generated_at?: string | null
+          avatar_hair_color?: string | null
+          avatar_hair_length?: string | null
+          avatar_hair_style?: string | null
           avatar_hair_type?: string | null
+          avatar_hair_volume?: string | null
+          avatar_model_used?: string | null
+          avatar_parent_energy?: string | null
+          avatar_posture?: string | null
+          avatar_preview_url?: string | null
+          avatar_prompt?: string | null
+          avatar_qa_report?: Json | null
+          avatar_qa_score?: number | null
+          avatar_seed?: number | null
           avatar_skin_tone?: string | null
+          avatar_status?: string | null
           avatar_url?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
@@ -112,9 +156,31 @@ export type Database = {
           alias_first_name?: string
           approx_age?: number | null
           avatar_age_range?: string | null
+          avatar_clothing_color_palette?: string | null
+          avatar_clothing_style?: string | null
+          avatar_cultural_style?: string | null
+          avatar_expression?: string | null
+          avatar_eye_color?: string | null
+          avatar_eye_shape?: string | null
+          avatar_face_shape?: string | null
+          avatar_facial_features?: string[] | null
           avatar_gender?: string | null
+          avatar_generated_at?: string | null
+          avatar_hair_color?: string | null
+          avatar_hair_length?: string | null
+          avatar_hair_style?: string | null
           avatar_hair_type?: string | null
+          avatar_hair_volume?: string | null
+          avatar_model_used?: string | null
+          avatar_parent_energy?: string | null
+          avatar_posture?: string | null
+          avatar_preview_url?: string | null
+          avatar_prompt?: string | null
+          avatar_qa_report?: Json | null
+          avatar_qa_score?: number | null
+          avatar_seed?: number | null
           avatar_skin_tone?: string | null
+          avatar_status?: string | null
           avatar_url?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
@@ -827,7 +893,9 @@ export type Database = {
           avatar_age_range: string | null
           avatar_gender: string | null
           avatar_hair_type: string | null
+          avatar_preview_url: string | null
           avatar_skin_tone: string | null
+          avatar_status: string | null
           avatar_url: string | null
           beneficiary_category: string | null
           children_count: number | null
@@ -854,7 +922,9 @@ export type Database = {
           avatar_age_range?: string | null
           avatar_gender?: string | null
           avatar_hair_type?: string | null
+          avatar_preview_url?: string | null
           avatar_skin_tone?: string | null
+          avatar_status?: string | null
           avatar_url?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
@@ -881,7 +951,9 @@ export type Database = {
           avatar_age_range?: string | null
           avatar_gender?: string | null
           avatar_hair_type?: string | null
+          avatar_preview_url?: string | null
           avatar_skin_tone?: string | null
+          avatar_status?: string | null
           avatar_url?: string | null
           beneficiary_category?: string | null
           children_count?: number | null
