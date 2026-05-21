@@ -2,6 +2,9 @@
 // Détecte des signaux fins (handicap, maladie, deuil, parentalité solo, exil…)
 // dans short_story + emotional_sentence et déduit des attributs visuels et émotionnels.
 // Les signaux médicaux priment toujours sur les signaux émotionnels positifs.
+import { mapApproxAgeToVocab } from "./avatarAgeRange";
+import { inferGenderFromName } from "./genderFromName";
+
 
 export interface InferInput {
   approx_age?: number | null;
