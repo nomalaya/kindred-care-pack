@@ -24,8 +24,10 @@ import { BeneficiaryListPanel } from "@/features/avatar-studio/BeneficiaryListPa
 import { RuleList } from "@/features/avatar-studio/RuleList";
 import { SectionAccordion, type SectionDef } from "@/features/avatar-studio/SectionAccordion";
 import {
-  FIELD_LABELS, FIELD_ICONS, SelectField, SliderField,
+  FIELD_LABELS, FIELD_ICONS, FIELD_ACCENT, SelectField, SliderField,
 } from "@/features/avatar-studio/fields";
+import { labelFor } from "@/lib/avatarVocabLabels";
+
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
