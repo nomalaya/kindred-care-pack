@@ -25,14 +25,19 @@ import {
   AVATAR_VOCAB, WORKFLOW_LABEL, WORKFLOW_COLOR, WorkflowStatus,
 } from "@/lib/avatarTraits";
 import { evaluateAvatarRules, RuleWarning } from "@/lib/avatarRules";
-import { inferStudioDefaults } from "@/lib/avatarAutoInfer";
+import { inferStudioDefaultsWithReasons, type FieldReason } from "@/lib/avatarAutoInfer";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
+import { ContextPanel } from "@/features/avatar-studio/ContextPanel";
+import { InferenceReasonsPanel } from "@/features/avatar-studio/InferenceReasonsPanel";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
   UserCircle, CalendarDays, Smile, Palette, Ruler, Layers, Scissors, Waves,
   User, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility, Baby,
-  BatteryLow, Sun, CircleDot, LucideIcon,
+  BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown,
 } from "lucide-react";
 
 type Beneficiary = any;
@@ -87,12 +92,45 @@ const FIELD_ICONS: Record<string, LucideIcon> = {
   avatar_parent_energy: Baby,
 };
 
-function FieldLabel({ icon: Icon, children, right }: { icon?: LucideIcon; children: React.ReactNode; right?: React.ReactNode }) {
+// Sections (tabs) → champs concernés, utilisé pour les badges "champ déduit"
+const TAB_FIELDS: Record<string, string[]> = {
+  face: ["avatar_gender", "avatar_age_range", "avatar_face_shape", "avatar_skin_tone", "avatar_expression"],
+  eyes: ["avatar_eye_shape", "avatar_eye_color", "avatar_tired_level", "avatar_emotional_brightness"],
+  hair: ["avatar_hair_type", "avatar_hair_color", "avatar_hair_length", "avatar_hair_volume", "avatar_hair_style"],
+  male: ["avatar_beard", "avatar_moustache", "avatar_bald_level", "avatar_hair_recession"],
+  cultural: ["avatar_head_covering", "avatar_cultural_style_override"],
+  clothing: ["avatar_clothing_style", "avatar_clothing_color_palette"],
+  posture: ["avatar_posture", "avatar_mobility_aid", "avatar_resilience_level"],
+  social: ["avatar_parent_energy", "avatar_fatigue_level", "avatar_dignity_level"],
+};
+
+function InferredPastille({ reasons }: { reasons?: FieldReason[] }) {
+  if (!reasons || reasons.length === 0) return null;
+  const txt = reasons.map(r => `${r.signalLabel} ← « ${r.keyword} »`).join(" · ");
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center" aria-label={`Champ déduit : ${txt}`}>
+          <Sparkles className="h-3 w-3 text-primary/70" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="text-xs max-w-[260px]">
+        <div className="font-medium mb-0.5">Déduit du récit</div>
+        <div className="text-muted-foreground">{txt}</div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function FieldLabel({
+  icon: Icon, children, right, reasons,
+}: { icon?: LucideIcon; children: React.ReactNode; right?: React.ReactNode; reasons?: FieldReason[] }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
         {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />}
         <span>{children}</span>
+        <InferredPastille reasons={reasons} />
       </Label>
       {right}
     </div>
@@ -100,7 +138,7 @@ function FieldLabel({ icon: Icon, children, right }: { icon?: LucideIcon; childr
 }
 
 function SelectField({
-  label, value, options, onChange, disabled, icon,
+  label, value, options, onChange, disabled, icon, reasons,
 }: {
   label: string;
   value: string | null;
@@ -108,10 +146,11 @@ function SelectField({
   onChange: (v: string) => void;
   disabled?: boolean;
   icon?: LucideIcon;
+  reasons?: FieldReason[];
 }) {
   return (
     <div className="space-y-1.5">
-      <FieldLabel icon={icon}>{label}</FieldLabel>
+      <FieldLabel icon={icon} reasons={reasons}>{label}</FieldLabel>
       <Select value={value ?? ""} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
         <SelectContent>
@@ -123,14 +162,14 @@ function SelectField({
 }
 
 function SliderField({
-  label, value, min = 0, max = 5, step = 1, onChange, disabled, icon,
+  label, value, min = 0, max = 5, step = 1, onChange, disabled, icon, reasons,
 }: {
   label: string; value: number; min?: number; max?: number; step?: number;
-  onChange: (v: number) => void; disabled?: boolean; icon?: LucideIcon;
+  onChange: (v: number) => void; disabled?: boolean; icon?: LucideIcon; reasons?: FieldReason[];
 }) {
   return (
     <div className="space-y-1.5">
-      <FieldLabel icon={icon} right={<span className="text-xs font-mono text-foreground">{value}</span>}>{label}</FieldLabel>
+      <FieldLabel icon={icon} reasons={reasons} right={<span className="text-xs font-mono text-foreground">{value}</span>}>{label}</FieldLabel>
       <Slider
         value={[value]}
         min={min} max={max} step={step}
@@ -140,6 +179,7 @@ function SliderField({
     </div>
   );
 }
+
 
 const AvatarStudio = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -155,14 +195,22 @@ const AvatarStudio = () => {
   const [modelChoice, setModelChoice] = useState<"preview" | "final">("final");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  const saveTimers = useRef<Record<string, any>>({});
+  const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
+  const saveTimer = useRef<any>(null);
+  const pendingPatch = useRef<Record<string, any>>({});
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const busyRef = useRef<string | null>(null);
+  busyRef.current = busy;
 
   const refresh = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("beneficiaries")
       .select("*")
       .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("Échec chargement : " + error.message);
+      return;
+    }
     setBeneficiaries(data || []);
   };
 
@@ -171,8 +219,37 @@ const AvatarStudio = () => {
     refresh().finally(() => setLoading(false));
   }, [isAdmin]);
 
+  // Realtime : remplace le polling pendant la génération
   useEffect(() => {
-    if (!selectedId) { setVersions([]); return; }
+    if (!isAdmin) return;
+    const channel = supabase
+      .channel("avatar-studio-beneficiaries")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "beneficiaries" },
+        (payload) => {
+          const next = payload.new as any;
+          setBeneficiaries(prev => prev.map(b => (b.id === next.id ? { ...b, ...next } : b)));
+          // libère busy si la génération est terminée
+          const cur = busyRef.current;
+          if (cur === "preview" && next.avatar_status === "preview") setBusy(null);
+          if (cur === "final" && next.avatar_status === "validated") setBusy(null);
+          if (next.avatar_status === "failed" && (cur === "preview" || cur === "final")) {
+            const r: any = next.avatar_qa_report || {};
+            if (r.code === "no_credits") toast.error("Crédits Lovable AI insuffisants.");
+            else if (r.code === "rate_limited") toast.error("Trop de requêtes IA. Réessayez dans 1 minute.");
+            else toast.error("Échec génération : " + (r.error || "erreur"));
+            setBusy(null);
+          }
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!selectedId) { setVersions([]); setInferenceReasons({}); return; }
+    setInferenceReasons({}); // reset à chaque changement de bénéficiaire
     (async () => {
       const { data } = await supabase
         .from("avatar_versions" as any)
@@ -182,37 +259,7 @@ const AvatarStudio = () => {
         .limit(20);
       setVersions((data as any[]) || []);
     })();
-  }, [selectedId, beneficiaries]);
-
-  useEffect(() => {
-    if (busy !== "preview" && busy !== "final") return;
-    const t = setInterval(refresh, 4000);
-    return () => clearInterval(t);
-  }, [busy]);
-
-  useEffect(() => {
-    if (busy !== "preview" && busy !== "final") return;
-    const cur = beneficiaries.find(b => b.id === selectedId);
-    if (!cur) return;
-    if (cur.avatar_status === "failed") {
-      const report: any = (cur as any).avatar_qa_report || {};
-      const code = report.code;
-      if (code === "no_credits") {
-        toast.error("Crédits Lovable AI insuffisants. Rechargez votre workspace pour générer.");
-      } else if (code === "rate_limited") {
-        toast.error("Trop de requêtes IA. Réessayez dans une minute.");
-      } else if (report.error) {
-        toast.error("Échec génération : " + String(report.error).slice(0, 120));
-      } else {
-        toast.error("Échec de génération de l'avatar.");
-      }
-      setBusy(null);
-    } else if (busy === "preview" && cur.avatar_status === "preview") {
-      setBusy(null);
-    } else if (busy === "final" && cur.avatar_status === "validated") {
-      setBusy(null);
-    }
-  }, [beneficiaries, busy, selectedId]);
+  }, [selectedId]);
 
   const selected = useMemo(
     () => beneficiaries.find(b => b.id === selectedId) || null,
@@ -248,8 +295,10 @@ const AvatarStudio = () => {
 
   const warnings: RuleWarning[] = selected ? evaluateAvatarRules(selected) : [];
   const isLocked = selected?.avatar_workflow_status === "locked";
+  const dignityBlocked = (selected?.avatar_dignity_level ?? 5) < 3;
 
-  const patch = (patchObj: Record<string, any>) => {
+  // Patch avec accumulation : fusionne tous les diffs <600ms dans un seul UPDATE
+  const patch = (patchObj: Record<string, any>, opts: { silent?: boolean } = {}) => {
     if (!selected) return;
     if (isLocked) {
       toast.error("Avatar verrouillé. Déverrouillez pour modifier.");
@@ -258,13 +307,17 @@ const AvatarStudio = () => {
     setBeneficiaries(prev => prev.map(b =>
       b.id === selected.id ? { ...b, ...patchObj } : b,
     ));
-    setSaveState("saving");
-    if (saveTimers.current[selected.id]) clearTimeout(saveTimers.current[selected.id]);
-    saveTimers.current[selected.id] = setTimeout(async () => {
+    pendingPatch.current = { ...pendingPatch.current, ...patchObj };
+    if (!opts.silent) setSaveState("saving");
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    const targetId = selected.id;
+    saveTimer.current = setTimeout(async () => {
+      const toSend = pendingPatch.current;
+      pendingPatch.current = {};
       const { error } = await supabase
         .from("beneficiaries")
-        .update(patchObj as any)
-        .eq("id", selected.id);
+        .update(toSend as any)
+        .eq("id", targetId);
       if (error) {
         toast.error("Échec sauvegarde : " + error.message);
         setSaveState("idle");
@@ -279,12 +332,14 @@ const AvatarStudio = () => {
 
   const autoInfer = (mode: "fill" | "force" = "fill") => {
     if (!selected) return;
-    const defaults = inferStudioDefaults(selected);
-    let toApply: Record<string, any> = defaults;
+    if (mode === "force" && !confirm("Re-déduire et écraser tous les attributs avatar à partir du récit ? Les modifications manuelles seront perdues.")) {
+      return;
+    }
+    const { values, reasons } = inferStudioDefaultsWithReasons(selected);
+    let toApply: Record<string, any> = values;
     if (mode === "fill") {
-      // n'écrase que les champs vides / nuls
       toApply = Object.fromEntries(
-        Object.entries(defaults).filter(([k]) => {
+        Object.entries(values).filter(([k]) => {
           const cur = (selected as any)[k];
           return cur === null || cur === undefined || cur === "" || cur === "none";
         }),
@@ -294,6 +349,11 @@ const AvatarStudio = () => {
       toast.info("Aucun champ vide à pré-remplir. Utilisez « Tout re-déduire » pour écraser.");
       return;
     }
+    // ne conserve que les raisons pour les champs réellement appliqués
+    const filteredReasons = Object.fromEntries(
+      Object.entries(reasons).filter(([k]) => k in toApply),
+    );
+    setInferenceReasons(filteredReasons);
     patch(toApply);
     toast.success(
       mode === "force"
@@ -303,9 +363,11 @@ const AvatarStudio = () => {
   };
 
 
+
+
   const generate = async (mode: "preview" | "final") => {
     if (!selected) return;
-    if ((selected.avatar_dignity_level ?? 5) < 3) {
+    if (dignityBlocked) {
       toast.error("Génération bloquée : niveau de dignité < 3");
       return;
     }
@@ -319,8 +381,13 @@ const AvatarStudio = () => {
       setBeneficiaries(prev => prev.map(b =>
         b.id === selected.id ? { ...b, avatar_status: "pending" } : b,
       ));
-      setTimeout(refresh, 5000);
-      setTimeout(() => { refresh(); setBusy(null); }, 15000);
+      // Filet de sécurité si le Realtime ne renvoie rien dans les 30s
+      setTimeout(() => {
+        if (busyRef.current === mode) {
+          refresh();
+          setBusy(null);
+        }
+      }, 30000);
     } catch (e: any) {
       toast.error("Erreur : " + (e.message || "échec"));
       setBusy(null);
@@ -341,6 +408,9 @@ const AvatarStudio = () => {
     }
     if (file.size > 10 * 1024 * 1024) {
       toast.error("Image trop volumineuse (max 10 Mo).");
+      return;
+    }
+    if (!confirm("Cette image va remplacer l'avatar actif sans contrôle qualité IA. Continuer ?")) {
       return;
     }
     setBusy("import");
@@ -518,14 +588,6 @@ const AvatarStudio = () => {
   const sectionWarnings = (section: RuleWarning["section"]) =>
     warnings.filter(w => w.section === section);
 
-  const StatChip = ({ label, value, tone }: { label: string; value: number; tone: string }) => (
-    <button
-      onClick={() => setFilter(label === "Tous" ? "all" : label === "Échec" ? "failed" : (label.toLowerCase() as any))}
-      className={`text-xs px-2 py-1 rounded-md border ${tone}`}
-    >
-      <span className="font-semibold">{value}</span> <span className="opacity-70">{label}</span>
-    </button>
-  );
 
   return (
     <Layout>
@@ -541,40 +603,39 @@ const AvatarStudio = () => {
               <span className="text-xs text-muted-foreground">{beneficiaries.length} bénéficiaires</span>
             </div>
 
-            <div className="flex items-center gap-1.5 ml-2">
-              <StatChip label="Brouillon" value={stats.draft} tone="bg-muted/40" />
-              <StatChip label="Généré" value={stats.generated} tone="bg-amber-50 border-amber-200 text-amber-800" />
-              <StatChip label="Approuvé" value={stats.approved} tone="bg-emerald-50 border-emerald-200 text-emerald-800" />
-              <StatChip label="Verrouillé" value={stats.locked} tone="bg-slate-100 border-slate-300 text-slate-800" />
-              {stats.failed > 0 && <StatChip label="Échec" value={stats.failed} tone="bg-rose-50 border-rose-200 text-rose-800" />}
-            </div>
-
             <div className="flex-1" />
 
             <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
               <Input
                 ref={searchRef}
                 placeholder="Recherche (/  pour focus)"
+                aria-label="Rechercher un bénéficiaire"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="h-8 pl-7 w-64 text-sm"
               />
             </div>
 
-            <div className="flex gap-0.5 border rounded-md p-0.5">
-              {(["all", "draft", "generated", "approved", "locked", "failed"] as const).map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`text-xs px-2 py-1 rounded ${
-                    filter === f ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                  }`}
-                >
-                  {f === "all" ? "Tous" : f === "failed" ? "Échec" : WORKFLOW_LABEL[f]}
-                </button>
-              ))}
+            <div className="flex gap-0.5 border rounded-md p-0.5" role="group" aria-label="Filtrer par statut">
+              {(["all", "draft", "generated", "approved", "locked", "failed"] as const).map(f => {
+                const count = f === "all" ? beneficiaries.length : (stats as any)[f] ?? 0;
+                const label = f === "all" ? "Tous" : f === "failed" ? "Échec" : WORKFLOW_LABEL[f];
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    aria-pressed={filter === f}
+                    className={`text-xs px-2 py-1 rounded transition-colors ${
+                      filter === f ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                    }`}
+                  >
+                    {label} <span className="opacity-70 ml-0.5">{count}</span>
+                  </button>
+                );
+              })}
             </div>
+
 
             <Button variant="ghost" size="sm" onClick={refresh}><RefreshCw className="h-3.5 w-3.5" /></Button>
 
@@ -712,10 +773,10 @@ const AvatarStudio = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={() => generate("preview")} variant="outline" size="sm" disabled={!!busy || isLocked} title="P">
+                  <Button onClick={() => generate("preview")} variant="outline" size="sm" disabled={!!busy || isLocked || dignityBlocked} title="P (raccourci)" aria-label="Générer un aperçu rapide">
                     <RefreshCw className="h-3.5 w-3.5 mr-1" />Aperçu
                   </Button>
-                  <Button onClick={() => generate("final")} size="sm" disabled={!!busy || isLocked} title="G">
+                  <Button onClick={() => generate("final")} size="sm" disabled={!!busy || isLocked || dignityBlocked} title="G (raccourci)" aria-label="Générer le portrait HD">
                     <Sparkles className="h-3.5 w-3.5 mr-1" />HD
                   </Button>
                   <input
@@ -735,10 +796,19 @@ const AvatarStudio = () => {
                     size="sm"
                     disabled={!!busy || isLocked}
                     title="Importer une image externe (fal.ai, etc.)"
+                    aria-label="Importer une image externe"
                   >
                     <Upload className="h-3.5 w-3.5 mr-1" />Importer
                   </Button>
                 </div>
+
+                {dignityBlocked && (
+                  <div className="text-xs rounded-md border border-[hsl(var(--status-failed-border))] bg-[hsl(var(--status-failed-bg))] text-[hsl(var(--status-failed-fg))] px-2 py-1.5 flex items-start gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <div>Dignité {selected.avatar_dignity_level}/5 — génération bloquée. Augmentez le niveau dans l'onglet Social.</div>
+                  </div>
+                )}
+
 
                 {/* Workflow row */}
                 {(() => {
@@ -896,48 +966,82 @@ const AvatarStudio = () => {
                     <Button onClick={() => autoInfer("fill")} variant="outline" size="sm" disabled={isLocked} title="Pré-remplir les champs vides depuis le récit">
                       <Wand2 className="h-3.5 w-3.5 mr-1" />Pré-remplir
                     </Button>
-                    <Button onClick={() => autoInfer("force")} variant="ghost" size="sm" disabled={isLocked} title="Re-déduire et écraser tous les champs">
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" disabled={isLocked} title="Actions avancées" aria-label="Actions avancées">
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => autoInfer("force")} className="text-xs">
+                          <RotateCcw className="h-3.5 w-3.5 mr-2" />Tout re-déduire (écrase manuel)
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
-                {/* Contexte psychosocial — toujours visible */}
-                {(selected.short_story || selected.emotional_sentence) && (
-                  <div className="mx-4 mt-3 rounded-md border bg-muted/30 p-3 space-y-2">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
-                      Contexte psychosocial — source des déductions
-                    </div>
-                    {selected.short_story && (
-                      <p className="text-xs leading-relaxed text-foreground/90 italic">
-                        {selected.short_story}
-                      </p>
-                    )}
-                    {selected.emotional_sentence && (
-                      <blockquote className="text-xs leading-relaxed border-l-2 border-primary/40 pl-2 text-foreground/80">
-                        «&nbsp;{selected.emotional_sentence}&nbsp;»
-                      </blockquote>
-                    )}
-                  </div>
-                )}
+                <ContextPanel
+                  shortStory={selected.short_story ?? null}
+                  emotionalSentence={selected.emotional_sentence ?? null}
+                  disabled={isLocked}
+                  onSave={async (p) => {
+                    const { error } = await supabase.from("beneficiaries").update(p as any).eq("id", selected.id);
+                    if (error) { toast.error("Échec : " + error.message); return; }
+                    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...p } : b));
+                    toast.success("Contexte enregistré");
+                  }}
+                  onReinferAndSave={async (p) => {
+                    const { error } = await supabase.from("beneficiaries").update(p as any).eq("id", selected.id);
+                    if (error) { toast.error("Échec : " + error.message); return; }
+                    const updated = { ...selected, ...p };
+                    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? updated : b));
+                    const { values, reasons } = inferStudioDefaultsWithReasons(updated as any);
+                    setInferenceReasons(reasons);
+                    await supabase.from("beneficiaries").update(values as any).eq("id", selected.id);
+                    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...p, ...values } : b));
+                    toast.success("Contexte enregistré et attributs re-déduits");
+                  }}
+                />
+
+                <InferenceReasonsPanel reasons={inferenceReasons} />
 
                 {isLocked && (
-                  <div className="mx-4 mt-3 p-2 rounded-md border border-slate-300 bg-slate-50 text-xs flex items-center gap-2">
+                  <div className="mx-4 mt-3 p-2 rounded-md border bg-[hsl(var(--status-locked-bg))] text-[hsl(var(--status-locked-fg))] border-[hsl(var(--status-locked-border))] text-xs flex items-center gap-2">
                     <Lock className="h-3.5 w-3.5" />Avatar verrouillé — déverrouillez pour modifier.
                   </div>
                 )}
 
+
                 <Tabs defaultValue="face" className="flex-1 flex flex-col overflow-hidden">
                   <TabsList className="mx-4 mt-3 justify-start flex-wrap h-auto">
-                    <TabsTrigger value="face">Visage</TabsTrigger>
-                    <TabsTrigger value="eyes">Yeux</TabsTrigger>
-                    <TabsTrigger value="hair">Cheveux</TabsTrigger>
-                    {isMan && <TabsTrigger value="male">Masculin</TabsTrigger>}
-                    {hasCulture && <TabsTrigger value="cultural">Culturel</TabsTrigger>}
-                    <TabsTrigger value="clothing">Vêtements</TabsTrigger>
-                    <TabsTrigger value="posture">Posture</TabsTrigger>
-                    <TabsTrigger value="social">Social</TabsTrigger>
+                    {([
+                      ["face", "Visage", Smile],
+                      ["eyes", "Yeux", Eye],
+                      ["hair", "Cheveux", Scissors],
+                      ...(isMan ? [["male", "Masculin", User]] as const : []),
+                      ...(hasCulture ? [["cultural", "Culturel", Globe]] as const : []),
+                      ["clothing", "Vêtements", Shirt],
+                      ["posture", "Posture", PersonStanding],
+                      ["social", "Social", Baby],
+                    ] as [string, string, LucideIcon][]).map(([val, lbl, Ic]) => {
+                      const hasErr = warnings.some(w => w.section === val && w.severity === "error");
+                      const hasWarn = warnings.some(w => w.section === val && w.severity === "warning");
+                      return (
+                        <TabsTrigger key={val} value={val} className="relative gap-1.5">
+                          <Ic className="h-3.5 w-3.5" />
+                          {lbl}
+                          {(hasErr || hasWarn) && (
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${hasErr ? "bg-[hsl(var(--status-failed-fg))]" : "bg-[hsl(var(--status-generated-fg))]"}`}
+                              aria-label={hasErr ? "Erreur" : "Avertissement"}
+                            />
+                          )}
+                        </TabsTrigger>
+                      );
+                    })}
                   </TabsList>
+
 
                   <div className="flex-1 overflow-y-auto p-4">
                     <TabsContent value="face" className="mt-0 space-y-3">

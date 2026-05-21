@@ -75,9 +75,9 @@ export const STATUS_LABEL: Record<AvatarStatus, string> = {
 
 export const STATUS_COLOR: Record<AvatarStatus, string> = {
   pending: "bg-muted text-muted-foreground",
-  preview: "bg-amber-100 text-amber-800 border-amber-300",
-  validated: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  failed: "bg-rose-100 text-rose-800 border-rose-300",
+  preview: "bg-[hsl(var(--status-generated-bg))] text-[hsl(var(--status-generated-fg))] border-[hsl(var(--status-generated-border))]",
+  validated: "bg-[hsl(var(--status-approved-bg))] text-[hsl(var(--status-approved-fg))] border-[hsl(var(--status-approved-border))]",
+  failed: "bg-[hsl(var(--status-failed-bg))] text-[hsl(var(--status-failed-fg))] border-[hsl(var(--status-failed-border))]",
 };
 
 export type WorkflowStatus = "draft" | "generated" | "approved" | "locked";
@@ -90,8 +90,8 @@ export const WORKFLOW_LABEL: Record<WorkflowStatus, string> = {
 };
 
 export const WORKFLOW_COLOR: Record<WorkflowStatus, string> = {
-  draft: "bg-muted text-muted-foreground border-border",
-  generated: "bg-amber-100 text-amber-800 border-amber-300",
-  approved: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  locked: "bg-slate-200 text-slate-800 border-slate-400",
+  draft: "bg-[hsl(var(--status-draft-bg))] text-[hsl(var(--status-draft-fg))] border-[hsl(var(--status-draft-border))]",
+  generated: "bg-[hsl(var(--status-generated-bg))] text-[hsl(var(--status-generated-fg))] border-[hsl(var(--status-generated-border))]",
+  approved: "bg-[hsl(var(--status-approved-bg))] text-[hsl(var(--status-approved-fg))] border-[hsl(var(--status-approved-border))]",
+  locked: "bg-[hsl(var(--status-locked-bg))] text-[hsl(var(--status-locked-fg))] border-[hsl(var(--status-locked-border))]",
 };

@@ -22,6 +22,8 @@ interface RuleInput {
   avatar_clothing_style?: string | null;
   avatar_fatigue_level?: number | null;
   avatar_dignity_level?: number | null;
+  avatar_mobility_aid?: string | null;
+  avatar_posture?: string | null;
   children_count?: number | null;
   culture_tags?: string[] | null;
 }
@@ -96,6 +98,19 @@ export function evaluateAvatarRules(b: RuleInput): RuleWarning[] {
       severity: "error",
       section: "social",
       message: "Le niveau de dignité ne peut pas descendre sous 3. La génération sera bloquée.",
+    });
+  }
+
+  // Cross-field: aide à la mobilité vs posture
+  const wheelchair = b.avatar_mobility_aid === "wheelchair_manual" || b.avatar_mobility_aid === "wheelchair_electric";
+  if (wheelchair && b.avatar_posture && !["seated_dignified", "relaxed"].includes(b.avatar_posture)) {
+    warnings.push({
+      id: "wheelchair_posture_mismatch",
+      severity: "warning",
+      section: "posture",
+      message: "Aide à la mobilité « fauteuil » incompatible avec une posture debout. Passez en assise digne.",
+      suggestion: { avatar_posture: "seated_dignified" },
+      suggestionLabel: "Passer en assise digne",
     });
   }
 
