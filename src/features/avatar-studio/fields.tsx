@@ -57,7 +57,7 @@ export const FIELD_ICONS: Record<string, LucideIcon> = {
   avatar_head_covering: Crown,
   avatar_cultural_style_override: Globe,
   avatar_clothing_style: Shirt,
-  avatar_clothing_color_palette: Swatchbook,
+  avatar_clothing_color_palette: SwatchBook,
   avatar_posture: PersonStanding,
   avatar_mobility_aid: Accessibility,
   avatar_expression: Smile,
