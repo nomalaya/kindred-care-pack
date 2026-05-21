@@ -5,68 +5,81 @@ interface AvatarProps {
   hairType?: string;
   size?: "sm" | "md" | "lg";
   name: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
+  previewUrl?: string | null;
 }
 
-const skinColors: Record<string, string> = {
-  light: "#FFDAB9",
-  medium: "#D2A679",
-  dark: "#8D5524",
-};
-
-const hairColors: Record<string, string> = {
-  straight: "#2C1B0E",
-  wavy: "#4A3222",
-  curly: "#1A0E05",
-  coily: "#0D0705",
-  short: "#3D2914",
-  bald: "transparent",
-  covered: "#2A9D6E",
-};
-
-const BeneficiaryAvatar = ({ gender, ageRange, skinTone, hairType, size = "md", name, avatarUrl }: AvatarProps) => {
+// Premium fallback — warm gradient circle with initial.
+// Used only when no AI portrait (final or preview) is available yet.
+const BeneficiaryAvatar = ({
+  size = "md",
+  name,
+  avatarUrl,
+  previewUrl,
+}: AvatarProps) => {
   const dimensions = { sm: 48, md: 80, lg: 120 };
   const dim = dimensions[size];
 
-  // If we have an AI-generated avatar URL, use it
-  if (avatarUrl) {
+  const resolved = avatarUrl || previewUrl;
+  const isPreview = !avatarUrl && !!previewUrl;
+
+  if (resolved) {
     return (
-      <img
-        src={avatarUrl}
-        alt={`Portrait de ${name}`}
-        width={dim}
-        height={dim}
-        className="rounded-full object-cover"
-        style={{ width: dim, height: dim }}
-      />
+      <div className="relative" style={{ width: dim, height: dim }}>
+        <img
+          src={resolved}
+          alt={`Portrait de ${name}`}
+          width={dim}
+          height={dim}
+          className="rounded-full object-cover ring-1 ring-black/5"
+          style={{ width: dim, height: dim }}
+        />
+        {isPreview && (
+          <span
+            className="absolute -bottom-0.5 -right-0.5 rounded-full bg-amber-400/90 ring-2 ring-background"
+            style={{ width: Math.max(8, dim * 0.14), height: Math.max(8, dim * 0.14) }}
+            aria-label="Aperçu IA"
+            title="Aperçu IA — non validé"
+          />
+        )}
+      </div>
     );
   }
 
-  const skin = skinColors[skinTone || "medium"] || skinColors.medium;
-  const hair = hairColors[hairType || "straight"] || hairColors.straight;
-  const isElderly = ageRange?.includes("70") || ageRange?.includes("80");
+  // Premium gradient fallback
+  const initial = (name?.trim()?.[0] ?? "•").toUpperCase();
+  const fontSize = Math.round(dim * 0.42);
 
   return (
-    <svg width={dim} height={dim} viewBox="0 0 100 100" className="rounded-full" aria-label={`Avatar de ${name}`}>
-      <circle cx="50" cy="50" r="50" fill="white" />
-      <circle cx="50" cy="40" r="22" fill={skin} />
-      {hairType !== "bald" && hairType !== "covered" && (
-        <ellipse cx="50" cy="28" rx={hairType === "curly" || hairType === "coily" ? 24 : 22} ry={hairType === "curly" || hairType === "coily" ? 16 : 12} fill={hair} />
-      )}
-      {hairType === "covered" && (
-        <path d="M28 35 Q50 10 72 35 Q72 20 50 15 Q28 20 28 35Z" fill={hair} />
-      )}
-      <circle cx="42" cy="40" r="2.5" fill="#333" />
-      <circle cx="58" cy="40" r="2.5" fill="#333" />
-      <path d="M42 48 Q50 55 58 48" fill="none" stroke="#333" strokeWidth="1.5" strokeLinecap="round" />
-      <ellipse cx="50" cy="82" rx="22" ry="18" fill="hsl(157, 68%, 33%)" />
-      {isElderly && (
-        <>
-          <line x1="36" y1="44" x2="40" y2="44" stroke="#999" strokeWidth="0.5" />
-          <line x1="60" y1="44" x2="64" y2="44" stroke="#999" strokeWidth="0.5" />
-        </>
-      )}
-    </svg>
+    <div
+      role="img"
+      aria-label={`Avatar de ${name}`}
+      className="rounded-full flex items-center justify-center select-none ring-1 ring-black/5 overflow-hidden relative"
+      style={{
+        width: dim,
+        height: dim,
+        background:
+          "radial-gradient(120% 120% at 25% 20%, hsl(36 60% 88%) 0%, hsl(28 55% 76%) 45%, hsl(15 45% 58%) 100%)",
+      }}
+    >
+      <span
+        className="font-semibold text-white/95 tracking-tight"
+        style={{
+          fontSize,
+          fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+          textShadow: "0 1px 2px rgba(60,30,10,0.18)",
+        }}
+      >
+        {initial}
+      </span>
+      <svg className="absolute inset-0 w-full h-full opacity-[0.12] mix-blend-overlay" aria-hidden>
+        <filter id="ba-noise">
+          <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" stitchTiles="stitch" />
+          <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#ba-noise)" />
+      </svg>
+    </div>
   );
 };
 

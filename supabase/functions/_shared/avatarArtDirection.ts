@@ -1,0 +1,129 @@
+// Centralized art direction — invariants injected in every avatar prompt.
+// Locked: not editable from admin panel. Guarantees premium homogeneous catalog.
+
+import { AvatarTraits } from "./avatarTraits.ts";
+
+const EXPRESSION_DESCRIPTIONS: Record<string, string> = {
+  gentle_smile: "a gentle, sincere smile, warm eyes",
+  hopeful: "a hopeful, soft expression, eyes looking slightly upward",
+  calm: "a calm, peaceful expression, relaxed mouth",
+  discreet_smile: "a discreet, almost imperceptible smile, kind eyes",
+  tired_but_warm: "subtle fatigue around the eyes but warmth and humanity preserved",
+  resilient: "a resilient, composed expression, quiet strength",
+  serious_soft: "a serious but soft expression, gentle gaze, no harshness",
+  thoughtful: "a thoughtful, contemplative expression, eyes slightly downward",
+  pensive: "a pensive expression, looking slightly away, introspective",
+  reserved: "a reserved, modest expression, soft gaze",
+};
+
+const POSTURE_DESCRIPTIONS: Record<string, string> = {
+  upright_calm: "upright posture, shoulders relaxed",
+  leaning_slightly: "leaning slightly forward, engaged",
+  relaxed: "relaxed natural posture",
+  protective: "protective posture, slightly turned, conveying care",
+  seated_dignified: "seated, dignified posture",
+};
+
+const CLOTHING_STYLE_DESC: Record<string, string> = {
+  casual_modest: "modest casual clothing, simple cotton sweater or shirt",
+  simple_layered: "simple layered everyday clothing",
+  practical_warm: "practical warm clothing, cardigan or jumper",
+  classic_simple: "classic simple clothing, soft knit",
+  soft_cardigan: "soft cardigan over a simple top",
+  modest_warm: "modest warm clothing, shawl or wool layer",
+};
+
+const PALETTE_DESC: Record<string, string> = {
+  warm_earth: "warm earth tones (terracotta, ochre, sand)",
+  muted_neutral: "muted neutrals (cream, soft gray, beige)",
+  soft_jewel: "soft jewel tones (dusty teal, faded plum, muted rose)",
+  sand_ivory: "sand and ivory tones",
+  dusty_blue: "dusty blue and sage tones",
+};
+
+const CULTURAL_STYLE_DESC: Record<string, string> = {
+  neutral_european: "",
+  soft_modern: "",
+  subtle_mediterranean: "with subtle Mediterranean styling cues (kept understated)",
+  subtle_west_african: "with subtle West African styling cues (kept understated, no traditional dress)",
+  subtle_central_african: "with subtle Central African styling cues (kept understated)",
+};
+
+const FACIAL_FEATURE_DESC: Record<string, string> = {
+  subtle_age_lines: "subtle age lines",
+  gentle_wrinkles: "gentle wrinkles around the eyes",
+  light_freckles: "light freckles",
+  soft_dimples: "soft dimples",
+  expressive_brows: "expressive eyebrows",
+};
+
+const SKIN_DESC: Record<string, string> = {
+  fair: "fair skin", light: "light skin", medium: "medium skin",
+  olive: "olive skin", tan: "tan skin", medium_dark: "medium-dark skin",
+  dark: "dark skin", deep: "deep skin",
+};
+
+const HAIR_COLOR_DESC: Record<string, string> = {
+  black: "black hair", dark_brown: "dark brown hair", light_brown: "light brown hair",
+  blonde: "blonde hair", red: "red hair", auburn: "auburn hair",
+  gray: "gray hair", white: "white hair",
+};
+
+const HAIR_TYPE_DESC: Record<string, string> = {
+  straight: "straight", wavy: "wavy", curly: "curly", coily: "coily",
+};
+
+export const ART_DIRECTION_INVARIANTS = `
+SEMI-REALISTIC ILLUSTRATION STYLE, premium NGO portrait, painterly digital art (NOT photorealistic, NOT cartoon).
+FRAMING: chest-up portrait, subject centered, consistent margins, square 1:1 composition.
+LIGHTING: soft natural directional light from the upper-left (window light), warm ~5200K, gentle shadows.
+BACKGROUND: softly blurred warm textured background, gradient of sand, ivory and warm beige tones (never plain white, never studio passport).
+COLOR PALETTE: warm and human, earth and sand base, no neon, no saturated commercial colors.
+DIGNITY: respectful, human, true-to-life empathy; absolutely no pathos, no caricature, no stereotype.
+`.trim();
+
+export const NEGATIVE_PROMPT = [
+  "no text", "no watermark", "no logo", "no caption", "no signature",
+  "no passport photo", "no LinkedIn portrait", "no stock photo feel",
+  "no studio plain white background", "no artificial commercial smile",
+  "no dramatic lighting", "no tears", "no despair", "no exaggerated emotion",
+  "no caricature", "no cultural stereotype", "no traditional ceremonial dress",
+  "no multiple faces, single subject only", "no nudity", "no children faces in isolation",
+  "no harsh shadows", "no oversaturation", "no glossy skin",
+].join(", ");
+
+export function buildAvatarPrompt(t: AvatarTraits): string {
+  const features = t.avatar_facial_features
+    .map(f => FACIAL_FEATURE_DESC[f])
+    .filter(Boolean)
+    .join(", ");
+
+  const subject = [
+    `a ${t.avatar_age_range} year old ${t.avatar_gender}`,
+    SKIN_DESC[t.avatar_skin_tone] ?? `${t.avatar_skin_tone} skin`,
+    `${t.avatar_face_shape.replace("_", " ")} face shape`,
+    `${t.avatar_eye_shape} ${t.avatar_eye_color} eyes`,
+    features ? features : "",
+    `${HAIR_TYPE_DESC[t.avatar_hair_type] ?? t.avatar_hair_type} ${t.avatar_hair_length} ${HAIR_COLOR_DESC[t.avatar_hair_color] ?? t.avatar_hair_color}, ${t.avatar_hair_style.replace("_", " ")} style, ${t.avatar_hair_volume} volume`,
+  ].filter(Boolean).join(", ");
+
+  const expression = EXPRESSION_DESCRIPTIONS[t.avatar_expression] ?? "a calm natural expression";
+  const posture = POSTURE_DESCRIPTIONS[t.avatar_posture] ?? "upright posture";
+  const clothing = `${CLOTHING_STYLE_DESC[t.avatar_clothing_style] ?? "simple modest clothing"} in ${PALETTE_DESC[t.avatar_clothing_color_palette] ?? "warm muted tones"}`;
+  const culturalCue = CULTURAL_STYLE_DESC[t.avatar_cultural_style] ?? "";
+
+  return [
+    ART_DIRECTION_INVARIANTS,
+    "",
+    `SUBJECT: ${subject}.`,
+    `EXPRESSION: ${expression}.`,
+    `POSTURE: ${posture}.`,
+    `CLOTHING: ${clothing} ${culturalCue}`.trim() + ".",
+    "",
+    `AVOID: ${NEGATIVE_PROMPT}.`,
+  ].join("\n");
+}
+
+export const MODEL_PREVIEW = "google/gemini-3.1-flash-image-preview";
+export const MODEL_FINAL = "google/gemini-3-pro-image-preview";
+export const MODEL_QA = "google/gemini-2.5-flash";
