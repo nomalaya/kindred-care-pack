@@ -666,13 +666,14 @@ const AvatarStudio = () => {
                   <div className="grid grid-cols-4 gap-1.5">
                     {versions.map(v => {
                       const isActive = selected.avatar_url === v.image_url;
+                      const isHD = !!v.qa_score || (v.image_url && !v.image_url.includes("/preview/"));
                       return (
                         <div
                           key={v.id}
                           className={`relative aspect-square rounded overflow-hidden bg-muted group ${
-                            isActive ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/50"
+                            isActive ? "ring-2 ring-primary" : isHD ? "hover:ring-2 hover:ring-primary/50" : "hover:ring-2 hover:ring-amber-400/50"
                           }`}
-                          title={`${v.model_used?.split("/")[1] || ""} · QA ${v.qa_score ? Math.round(v.qa_score) : "—"}`}
+                          title={`${isHD ? "HD" : "Aperçu"} · ${v.model_used?.split("/")[1] || ""} · QA ${v.qa_score ? Math.round(v.qa_score) : "—"}`}
                         >
                           <button
                             onClick={() => setLightboxUrl(v.image_url)}
@@ -680,9 +681,14 @@ const AvatarStudio = () => {
                           >
                             <img src={v.image_url} alt="" className="w-full h-full object-cover" />
                           </button>
+                          <span className={`absolute top-0 right-0 text-[9px] px-1 rounded-bl pointer-events-none font-semibold ${
+                            isHD ? "bg-emerald-600 text-white" : "bg-amber-400 text-amber-950"
+                          }`}>
+                            {isHD ? "HD" : "AP"}
+                          </span>
                           {v.qa_score && (
                             <span className="absolute bottom-0 right-0 bg-background/80 text-[9px] px-1 rounded-tl pointer-events-none">
-                              {Math.round(v.qa_score)}
+                              QA {Math.round(v.qa_score)}
                             </span>
                           )}
                           {!isActive && (
@@ -707,6 +713,7 @@ const AvatarStudio = () => {
                       <div className="text-xs text-muted-foreground p-2 col-span-4">Aucune version archivée.</div>
                     )}
                   </div>
+
                   {versions.length > 0 && (
                     <p className="text-[10px] text-muted-foreground mt-1.5">
                       Survolez une vignette puis cliquez sur <RotateCcw className="inline h-2.5 w-2.5" /> Utiliser pour la définir comme avatar actif.
