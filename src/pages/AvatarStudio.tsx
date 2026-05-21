@@ -62,18 +62,56 @@ const FIELD_LABELS: Record<string, string> = {
   avatar_mobility_aid: "Aide à la mobilité",
 };
 
+const FIELD_ICONS: Record<string, LucideIcon> = {
+  avatar_gender: UserCircle,
+  avatar_age_range: CalendarDays,
+  avatar_face_shape: Smile,
+  avatar_skin_tone: Palette,
+  avatar_eye_shape: Eye,
+  avatar_eye_color: Eye,
+  avatar_hair_color: Palette,
+  avatar_hair_length: Ruler,
+  avatar_hair_volume: Layers,
+  avatar_hair_style: Scissors,
+  avatar_hair_type: Waves,
+  avatar_beard: User,
+  avatar_moustache: User,
+  avatar_hair_recession: ArrowUp,
+  avatar_head_covering: Crown,
+  avatar_cultural_style_override: Globe,
+  avatar_clothing_style: Shirt,
+  avatar_clothing_color_palette: Palette,
+  avatar_posture: PersonStanding,
+  avatar_mobility_aid: Accessibility,
+  avatar_expression: Smile,
+  avatar_parent_energy: Baby,
+};
+
+function FieldLabel({ icon: Icon, children, right }: { icon?: LucideIcon; children: React.ReactNode; right?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground/80 shrink-0" />}
+        <span>{children}</span>
+      </Label>
+      {right}
+    </div>
+  );
+}
+
 function SelectField({
-  label, value, options, onChange, disabled,
+  label, value, options, onChange, disabled, icon,
 }: {
   label: string;
   value: string | null;
   options: readonly string[];
   onChange: (v: string) => void;
   disabled?: boolean;
+  icon?: LucideIcon;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <FieldLabel icon={icon}>{label}</FieldLabel>
       <Select value={value ?? ""} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
         <SelectContent>
@@ -85,17 +123,14 @@ function SelectField({
 }
 
 function SliderField({
-  label, value, min = 0, max = 5, step = 1, onChange, disabled,
+  label, value, min = 0, max = 5, step = 1, onChange, disabled, icon,
 }: {
   label: string; value: number; min?: number; max?: number; step?: number;
-  onChange: (v: number) => void; disabled?: boolean;
+  onChange: (v: number) => void; disabled?: boolean; icon?: LucideIcon;
 }) {
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <Label className="text-xs text-muted-foreground">{label}</Label>
-        <span className="text-xs font-mono text-foreground">{value}</span>
-      </div>
+      <FieldLabel icon={icon} right={<span className="text-xs font-mono text-foreground">{value}</span>}>{label}</FieldLabel>
       <Slider
         value={[value]}
         min={min} max={max} step={step}
