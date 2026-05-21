@@ -25,14 +25,22 @@ const BeneficiaryAvatar = ({
 
   if (resolved) {
     return (
-      <div className="relative" style={{ width: dim, height: dim }}>
+      <div
+        className="relative rounded-full overflow-hidden ring-1 ring-black/5"
+        style={{ width: dim, height: dim }}
+      >
         <img
           src={resolved}
           alt={`Portrait de ${name}`}
           width={dim}
           height={dim}
-          className="rounded-full object-cover ring-1 ring-black/5"
-          style={{ width: dim, height: dim }}
+          className="object-cover"
+          style={{
+            width: dim,
+            height: dim,
+            filter: "blur(22px)",
+            transform: "scale(1.12)",
+          }}
         />
         {isPreview && (
           <span
