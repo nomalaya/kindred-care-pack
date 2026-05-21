@@ -6,10 +6,11 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Sparkles, VenusAndMars, CalendarDays, Smile, Palette, Ruler, Layers, Scissors,
+  Sparkles, Users, CalendarDays, Smile, Palette, Ruler, Layers, Scissors,
   Waves, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility,
-  Baby, Eye, Pipette, Brush, Slash, Droplet, Swatchbook, ScanFace, type LucideIcon,
+  Baby, Eye, Pipette, Brush, Slash, Droplet, SwatchBook, ScanFace, type LucideIcon,
 } from "lucide-react";
+
 import type { FieldReason } from "@/lib/avatarAutoInfer";
 
 export const FIELD_LABELS: Record<string, string> = {
