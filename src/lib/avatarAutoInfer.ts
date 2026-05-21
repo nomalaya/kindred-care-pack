@@ -304,7 +304,32 @@ export function inferStudioDefaultsWithReasons(b: InferInput): InferenceResult {
     avatar_clothing_style: clothing_style,
   };
 
-  if (b.avatar_gender === "man") {
+  // --- Pré-remplissage genre + tranche d'âge depuis prénom/age ---
+  const ageRange = mapApproxAgeToVocab(b.approx_age ?? null);
+  if (ageRange) {
+    values.avatar_age_range = ageRange;
+    reasons.avatar_age_range = [{
+      signal: "age_known",
+      signalLabel: "Âge connu",
+      keyword: String(b.approx_age),
+    }];
+  }
+  const { gender: inferredGender, matchedName } = inferGenderFromName(
+    b.real_first_name, b.alias_first_name,
+  );
+  const effectiveGender = b.avatar_gender ?? inferredGender;
+  if (inferredGender) {
+    values.avatar_gender = inferredGender;
+    if (matchedName) {
+      reasons.avatar_gender = [{
+        signal: "name_known",
+        signalLabel: "Prénom",
+        keyword: matchedName,
+      }];
+    }
+  }
+
+  if (effectiveGender === "man") {
     values.avatar_beard = age >= 25 ? "light" : "none";
     values.avatar_moustache = "none";
     values.avatar_bald_level = age >= 60 ? 35 : age >= 45 ? 15 : 0;
