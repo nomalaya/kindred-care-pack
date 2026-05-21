@@ -476,5 +476,6 @@ export function inferAvatarTraits(b: BeneficiaryInput): AvatarTraits {
     avatar_resilience_level: b.avatar_resilience_level ?? undefined,
     avatar_fatigue_level: b.avatar_fatigue_level ?? undefined,
     avatar_dignity_level: b.avatar_dignity_level ?? undefined,
+    avatar_mobility_aid: b.avatar_mobility_aid ?? undefined,
   };
 }
