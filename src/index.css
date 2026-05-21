@@ -116,20 +116,21 @@
     --sidebar-ring: 160 44% 53%;
 
     /* Avatar Studio — accents de champ (dark) */
-    --field-identity: 270 55% 70%;
-    --field-time: 32 85% 65%;
-    --field-face: 12 70% 65%;
-    --field-skin: 30 55% 65%;
-    --field-eye: 195 70% 65%;
-    --field-hair: 25 50% 60%;
-    --field-pilosity: 28 45% 60%;
-    --field-culture: 158 55% 60%;
-    --field-clothing: 230 60% 70%;
-    --field-body: 180 55% 60%;
-    --field-mood: 8 80% 70%;
-    --field-family: 340 60% 70%;
-    --field-fatigue: 250 25% 65%;
-    --field-dignity: 42 85% 60%;
+    --field-identity: 275 65% 72%;
+    --field-time:      40 90% 65%;
+    --field-face:     325 70% 70%;
+    --field-skin:      18 75% 65%;
+    --field-eye:      205 80% 65%;
+    --field-hair:      22 55% 60%;
+    --field-pilosity:  90 40% 60%;
+    --field-culture:  150 55% 60%;
+    --field-clothing: 235 70% 72%;
+    --field-body:     175 65% 60%;
+    --field-mood:       5 85% 70%;
+    --field-family:   345 75% 72%;
+    --field-fatigue:  255 35% 68%;
+    --field-dignity:   48 90% 62%;
+
 
   }
 }
