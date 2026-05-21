@@ -74,21 +74,24 @@ const HAIR_TYPE_DESC: Record<string, string> = {
 };
 
 export const ART_DIRECTION_INVARIANTS = `
-STYLIZED PAINTERLY ILLUSTRATION, premium NGO portrait — explicitly NOT photorealistic, NOT a photograph, NOT a cartoon.
-ANONYMITY PRIORITY (CRITICAL): the subject must be evocative and emotionally readable but NOT individually recognizable. The viewer should imagine a real person without being able to identify a specific one. Soften and abstract all identifying facial micro-details (precise iris pattern, exact nose tip, unique mole positions, sharp eyelashes, exact lip outline). Keep silhouette, hair, skin tone, age range, expression and posture clearly readable.
-TECHNIQUE: soft impressionistic brushwork, gentle gaussian softness across the face (~3-5% blur equivalent), diffused edges, painterly smudging on facial features, watercolor-like bleeding around contours. Think Pascal Campion / Jean Jullien / contemporary editorial illustration, NOT photo-retouching.
-FRAMING: chest-up portrait, subject centered, consistent margins, square 1:1 composition.
-LIGHTING: soft natural directional light from the upper-left (window light), warm ~5200K, gentle diffused shadows, no hard rim light.
-BACKGROUND: softly blurred warm textured background, gradient of sand, ivory and warm beige tones (never plain white, never studio passport).
-COLOR PALETTE: warm and human, earth and sand base, no neon, no saturated commercial colors.
-DIGNITY: respectful, human, true-to-life empathy; absolutely no pathos, no caricature, no stereotype.
+MODERN 2D CHARACTER ILLUSTRATION — clean digital cartoon portrait, Pixar-inspired stylization, smooth flat-shaded rendering with soft cel-shading. Explicitly NOT a photograph, NOT photorealistic, NOT a painterly/watercolor/oil rendering, NOT a 3D render, NOT anime, NOT manga, NOT chibi, NOT American comic book.
+LINEWORK: soft, clean, deliberately drawn contours; simplified and stylized features (slightly enlarged friendly eyes, softened nose and jaw). Visible illustrator's hand without harshness.
+SHADING: flat color fills with gentle 2-tone cel-shading, soft ambient light, perfectly smooth stylized skin (no pores, no grain, no photo texture). Crisp edges where it serves the drawing, never blurry.
+ANONYMITY: ensured naturally by the cartoon stylization itself — the subject is evocative and emotionally readable but never an identifiable real person. Do NOT add gaussian blur or smudging.
+FRAMING: chest-up portrait, subject centered, square 1:1 composition, consistent margins.
+BACKGROUND: soft warm off-white or very light sand/ivory gradient — clean and uncluttered, consistent across all portraits.
+COLOR PALETTE: warm, human, slightly desaturated earth and sand tones; no neon, no saturated commercial colors.
+DIGNITY: respectful, warm, true-to-life empathy; no caricature, no exaggeration, no stereotype, no pathos.
 `.trim();
 
 export const NEGATIVE_PROMPT = [
   "no text", "no watermark", "no logo", "no caption", "no signature",
-  "no photograph", "no photorealism", "no DSLR look", "no skin pores", "no sharp facial details",
+  "no photograph", "no photorealism", "no realistic skin texture", "no skin pores",
+  "no DSLR look", "no stock photo feel", "no passport photo", "no LinkedIn portrait",
+  "no 3D render", "no CGI render", "no octane render",
+  "no painterly brushstrokes", "no watercolor", "no oil painting", "no gaussian blur", "no smudged features",
+  "no anime", "no manga", "no chibi", "no comic book style", "no superhero style",
   "no identifiable likeness of any real person", "no recognizable individual",
-  "no passport photo", "no LinkedIn portrait", "no stock photo feel",
   "no studio plain white background", "no artificial commercial smile",
   "no dramatic lighting", "no tears", "no despair", "no exaggerated emotion",
   "no caricature", "no cultural stereotype", "no traditional ceremonial dress",
