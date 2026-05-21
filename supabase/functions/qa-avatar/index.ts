@@ -55,18 +55,19 @@ You must score the image on 9 dimensions, each from 0 (terrible) to 100 (excelle
 Be honest and discriminating — do not inflate scores. Score 50-70 for borderline issues.
 Return concise notes explaining any score below 80.`;
 
-    const userPrompt = `Score this portrait. Respond ONLY via the tool call.
+    const userPrompt = `Score this avatar. Respond ONLY via the tool call.
 
-Dimensions:
-- single_face: exactly ONE human face fully visible? (100 = perfect, 0 = multiple faces or no face)
-- framing: chest-up portrait, centered, with proper margins?
+Dimensions (0=terrible, 100=excellent):
+- single_face: exactly ONE character face fully visible? (0 = multiple faces or no face)
+- framing: chest-up bust, centered, ~70% frame coverage, proper margins?
 - no_watermark: free of any text, watermark, logo, signature?
-- artifact_freedom: free of AI artifacts (warped hands, distorted features, melted background, extra fingers)?
-- style_consistency: semi-realistic painterly NGO style (NOT photorealistic, NOT cartoon)?
-- not_stock_photo_feel: free of generic stock-photo / LinkedIn / passport feel?
+- artifact_freedom: free of AI artifacts (warped features, melted shapes, extra fingers)?
+- style_match: STRICTLY flat vector cartoon illustration with clean bold outlines and flat cel-shaded colors (like Storyset / unDraw / Notion avatars)? Score 0 if photo, photorealistic, semi-realistic, painterly, watercolor, oil painting, 3D render, Pixar, Disney, anime or comic style.
+- white_background: pure plain white uniform background, no gradient, no scene, no decoration?
+- anonymity: a GENERIC archetypal character that does NOT resemble any real identifiable person, celebrity or public figure? Score 0 if it looks like a specific real person.
 - not_caricature: free of cultural caricature, stereotypes, exaggeration?
-- dignity: portrayed with dignity and humanity, no misery porn, no pathos?
-- human_warmth: emotionally credible, real human warmth visible (not commercial smile, not cold)?`;
+- dignity: portrayed with dignity and humanity, no misery, no pathos?
+- human_warmth: emotionally credible, warm, kind (not commercial smile, not cold)?`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
