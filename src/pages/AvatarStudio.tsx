@@ -139,12 +139,37 @@ const AvatarStudio = () => {
     })();
   }, [selectedId, beneficiaries]);
 
-  // Auto-refresh while a generation is pending
+  // Auto-refresh while a generation is pending + surface failures clearly
   useEffect(() => {
     if (busy !== "preview" && busy !== "final") return;
     const t = setInterval(refresh, 4000);
     return () => clearInterval(t);
   }, [busy]);
+
+  // Detect generation failure on the selected beneficiary and report it
+  useEffect(() => {
+    if (busy !== "preview" && busy !== "final") return;
+    const cur = beneficiaries.find(b => b.id === selectedId);
+    if (!cur) return;
+    if (cur.avatar_status === "failed") {
+      const report: any = (cur as any).avatar_qa_report || {};
+      const code = report.code;
+      if (code === "no_credits") {
+        toast.error("Crédits Lovable AI insuffisants. Rechargez votre workspace pour générer.");
+      } else if (code === "rate_limited") {
+        toast.error("Trop de requêtes IA. Réessayez dans une minute.");
+      } else if (report.error) {
+        toast.error("Échec génération : " + String(report.error).slice(0, 120));
+      } else {
+        toast.error("Échec de génération de l'avatar.");
+      }
+      setBusy(null);
+    } else if (busy === "preview" && cur.avatar_status === "preview") {
+      setBusy(null);
+    } else if (busy === "final" && cur.avatar_status === "validated") {
+      setBusy(null);
+    }
+  }, [beneficiaries, busy, selectedId]);
 
   const selected = useMemo(
     () => beneficiaries.find(b => b.id === selectedId) || null,
