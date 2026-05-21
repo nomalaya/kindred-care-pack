@@ -6,9 +6,9 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Sparkles, UserCircle, CalendarDays, Smile, Palette, Ruler, Layers, Scissors,
-  Waves, User, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility,
-  Baby, Eye, type LucideIcon,
+  Sparkles, VenusAndMars, CalendarDays, Smile, Palette, Ruler, Layers, Scissors,
+  Waves, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility,
+  Baby, Eye, Pipette, Brush, Slash, Droplet, Swatchbook, ScanFace, type LucideIcon,
 } from "lucide-react";
 import type { FieldReason } from "@/lib/avatarAutoInfer";
 
@@ -37,30 +37,32 @@ export const FIELD_LABELS: Record<string, string> = {
   avatar_mobility_aid: "Aide à la mobilité",
 };
 
+// Chaque champ a son propre picto, distinct de tous les autres.
 export const FIELD_ICONS: Record<string, LucideIcon> = {
-  avatar_gender: UserCircle,
+  avatar_gender: VenusAndMars,
   avatar_age_range: CalendarDays,
-  avatar_face_shape: Smile,
-  avatar_skin_tone: Palette,
+  avatar_face_shape: ScanFace,
+  avatar_skin_tone: Droplet,
   avatar_eye_shape: Eye,
-  avatar_eye_color: Eye,
+  avatar_eye_color: Pipette,
   avatar_hair_color: Palette,
   avatar_hair_length: Ruler,
   avatar_hair_volume: Layers,
   avatar_hair_style: Scissors,
   avatar_hair_type: Waves,
-  avatar_beard: User,
-  avatar_moustache: User,
+  avatar_beard: Brush,
+  avatar_moustache: Slash,
   avatar_hair_recession: ArrowUp,
   avatar_head_covering: Crown,
   avatar_cultural_style_override: Globe,
   avatar_clothing_style: Shirt,
-  avatar_clothing_color_palette: Palette,
+  avatar_clothing_color_palette: Swatchbook,
   avatar_posture: PersonStanding,
   avatar_mobility_aid: Accessibility,
   avatar_expression: Smile,
   avatar_parent_energy: Baby,
 };
+
 
 /** Couleur d'accent (token CSS HSL) appliquée au picto et au libellé de chaque champ. */
 export const FIELD_ACCENT: Record<string, string> = {
