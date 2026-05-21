@@ -40,7 +40,7 @@ export const FIELD_LABELS: Record<string, string> = {
 
 // Chaque champ a son propre picto, distinct de tous les autres.
 export const FIELD_ICONS: Record<string, LucideIcon> = {
-  avatar_gender: VenusAndMars,
+  avatar_gender: Users,
   avatar_age_range: CalendarDays,
   avatar_face_shape: ScanFace,
   avatar_skin_tone: Droplet,
