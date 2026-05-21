@@ -50,6 +50,17 @@ export const AVATAR_VOCAB = {
   moustache: ["none", "light", "full"],
   hair_recession: ["none", "light", "moderate", "strong"],
   head_covering: ["none", "optional", "required"],
+  mobility_aid: [
+    "none",
+    "wheelchair_manual",
+    "wheelchair_electric",
+    "cane",
+    "crutches",
+    "walker",
+    "visible_bandage",
+    "arm_sling",
+    "oxygen_cannula",
+  ],
   workflow_status: ["draft", "generated", "approved", "locked"],
 } as const;
 
