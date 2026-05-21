@@ -146,23 +146,28 @@ serve(async (req) => {
 
         if (mode === "preview") {
           const bytes = await generateImage(prompt, MODEL_PREVIEW);
+          const ts = Date.now();
           const fileName = `preview/${beneficiary_id}.png`;
+          const versionFileName = `versions/${beneficiary_id}/preview-${ts}.png`;
           const { error: upErr } = await supabase.storage.from("avatars").upload(
             fileName, bytes, { contentType: "image/png", upsert: true },
           );
           if (upErr) throw upErr;
+          await supabase.storage.from("avatars").upload(
+            versionFileName, bytes, { contentType: "image/png", upsert: false },
+          );
           const { data: u } = supabase.storage.from("avatars").getPublicUrl(fileName);
-          const url = `${u.publicUrl}?t=${Date.now()}`;
+          const { data: vu } = supabase.storage.from("avatars").getPublicUrl(versionFileName);
+          const url = `${u.publicUrl}?t=${ts}`;
           await supabase.from("beneficiaries").update({
             ...traitsUpdate,
             avatar_preview_url: url,
             avatar_status: "preview",
             avatar_model_used: MODEL_PREVIEW,
           }).eq("id", beneficiary_id);
-          // Archive preview version
           await supabase.from("avatar_versions").insert({
             beneficiary_id,
-            image_url: url,
+            image_url: vu.publicUrl,
             model_used: MODEL_PREVIEW,
             seed: traits.avatar_seed,
             prompt,
@@ -175,13 +180,19 @@ serve(async (req) => {
         const qa = best.qa!;
 
         if (qa.global_score >= QA_PASS) {
+          const ts = Date.now();
           const fileName = `${beneficiary_id}.png`;
+          const versionFileName = `versions/${beneficiary_id}/final-${ts}.png`;
           const { error: upErr } = await supabase.storage.from("avatars").upload(
             fileName, best.bytes, { contentType: "image/png", upsert: true },
           );
           if (upErr) throw upErr;
+          await supabase.storage.from("avatars").upload(
+            versionFileName, best.bytes, { contentType: "image/png", upsert: false },
+          );
           const { data: u } = supabase.storage.from("avatars").getPublicUrl(fileName);
-          const url = `${u.publicUrl}?t=${Date.now()}`;
+          const { data: vu } = supabase.storage.from("avatars").getPublicUrl(versionFileName);
+          const url = `${u.publicUrl}?t=${ts}`;
           // Preserve approved/locked workflow status; otherwise transition to "generated"
           const nextWorkflow =
             b.avatar_workflow_status === "approved" || b.avatar_workflow_status === "locked"
@@ -196,10 +207,10 @@ serve(async (req) => {
             avatar_qa_report: { scores: qa.scores, notes: qa.notes, attempts: attempts.length },
             avatar_qa_score: qa.global_score,
           }).eq("id", beneficiary_id);
-          // Archive final version
+          // Archive final version under immutable URL
           await supabase.from("avatar_versions").insert({
             beneficiary_id,
-            image_url: url,
+            image_url: vu.publicUrl,
             model_used: MODEL_FINAL,
             qa_score: qa.global_score,
             qa_report: { scores: qa.scores, notes: qa.notes },
