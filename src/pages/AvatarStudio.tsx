@@ -611,40 +611,39 @@ const AvatarStudio = () => {
               <span className="text-xs text-muted-foreground">{beneficiaries.length} bénéficiaires</span>
             </div>
 
-            <div className="flex items-center gap-1.5 ml-2">
-              <StatChip label="Brouillon" value={stats.draft} tone="bg-muted/40" />
-              <StatChip label="Généré" value={stats.generated} tone="bg-amber-50 border-amber-200 text-amber-800" />
-              <StatChip label="Approuvé" value={stats.approved} tone="bg-emerald-50 border-emerald-200 text-emerald-800" />
-              <StatChip label="Verrouillé" value={stats.locked} tone="bg-slate-100 border-slate-300 text-slate-800" />
-              {stats.failed > 0 && <StatChip label="Échec" value={stats.failed} tone="bg-rose-50 border-rose-200 text-rose-800" />}
-            </div>
-
             <div className="flex-1" />
 
             <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
               <Input
                 ref={searchRef}
                 placeholder="Recherche (/  pour focus)"
+                aria-label="Rechercher un bénéficiaire"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="h-8 pl-7 w-64 text-sm"
               />
             </div>
 
-            <div className="flex gap-0.5 border rounded-md p-0.5">
-              {(["all", "draft", "generated", "approved", "locked", "failed"] as const).map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`text-xs px-2 py-1 rounded ${
-                    filter === f ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                  }`}
-                >
-                  {f === "all" ? "Tous" : f === "failed" ? "Échec" : WORKFLOW_LABEL[f]}
-                </button>
-              ))}
+            <div className="flex gap-0.5 border rounded-md p-0.5" role="group" aria-label="Filtrer par statut">
+              {(["all", "draft", "generated", "approved", "locked", "failed"] as const).map(f => {
+                const count = f === "all" ? beneficiaries.length : (stats as any)[f] ?? 0;
+                const label = f === "all" ? "Tous" : f === "failed" ? "Échec" : WORKFLOW_LABEL[f];
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    aria-pressed={filter === f}
+                    className={`text-xs px-2 py-1 rounded transition-colors ${
+                      filter === f ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                    }`}
+                  >
+                    {label} <span className="opacity-70 ml-0.5">{count}</span>
+                  </button>
+                );
+              })}
             </div>
+
 
             <Button variant="ghost" size="sm" onClick={refresh}><RefreshCw className="h-3.5 w-3.5" /></Button>
 
