@@ -1,88 +1,92 @@
-## Objectif
+## Diagnostic de l'interface actuelle
 
-Quand on sélectionne un bénéficiaire dans Avatar Studio, les champs **Genre** et **Tranche d'âge** doivent être pré-remplis automatiquement à partir des données déjà connues (`real_first_name`, `alias_first_name`, `approx_age`), sans que l'admin ait à cliquer sur « Pré-remplir ».
+J'ai analysé `AvatarStudio.tsx` (1019 lignes, 7 onglets `Tabs` superposés + Contexte + Inférence + Règles). Les douleurs concrètes :
 
-## Comportement attendu
+1. **Trop d'onglets horizontaux** (Visage, Yeux, Cheveux, Masculin, Culturel, Vêtements, Posture, Social) → ils passent à la ligne (`flex-wrap`) et l'utilisateur perd le repère.
+2. **Coupure verticale** : chaque onglet déclenche un scroll interne (`overflow-y-auto`) dans une zone déjà comprimée par le `ContextPanel`, le bandeau d'inférence et le bandeau de verrou. Sur 638 px de haut, il reste ~250 px utiles pour les champs → d'où le sentiment de "coupé en bas".
+3. **Navigation par onglets = on ne voit qu'une catégorie à la fois** → impossible de comparer rapidement visage + cheveux, ou de scanner l'ensemble avant génération.
+4. **Hiérarchie peu lisible** : pas de progression visible (combien de champs remplis ? combien restants ?), pas de regroupement "essentiel / avancé".
+5. **Actions critiques (Pré-remplir, Générer, Verrouiller) noyées** dans la colonne de droite, parfois sous le pli.
+6. **Contexte (histoire courte, phrase émotionnelle)** prend une place fixe alors qu'il est rarement édité après création.
 
-- **Tranche d'âge** : mappée depuis `approx_age` vers le vocabulaire `AVATAR_VOCAB.age_range` (`"18-25"`, `"25-35"`, …, `"75-85"`).
-- **Genre** : déduit du prénom (concat `real_first_name + alias_first_name`) via un dictionnaire de prénoms français + heuristique de terminaisons (« -a », « -ette », « -ine » → féminin ; « -ic », « -an », « -er » → masculin).
-- **Prénoms ambigus** (Camille, Dominique, Claude, Alex, Maxime, Sacha…) → `"woman"` par défaut.
-- **Prénom inconnu** → `"person"` (valeur neutre du vocab).
-- **Écrasement** : on ne remplit que si le champ existant est vide/`null`. Les valeurs déjà saisies manuellement sont préservées.
-- Pas de toast bruyant : l'application est silencieuse à la sélection ; un petit badge ✨ (composant `InferredPastille` existant) signale les champs déduits.
+---
 
-## Implémentation
+## Proposition de refonte (UX, sans changer la logique métier)
 
-### 1. Nouveau helper `src/lib/genderFromName.ts`
-- Export `inferGenderFromName(...names: (string | null | undefined)[]): "woman" | "man" | "person" | null`.
-- Dictionnaire FR avec ~250 prénoms les plus fréquents (Insee top 200 + prénoms maghrébins/africains/arabes courants présents dans la base : Fatima, Aïcha, Mohamed, Karim, Aminata, Issa, etc.).
-- Normalisation : lowercase + suppression diacritiques + suppression seconds prénoms (split sur espace/`-`).
-- Si non trouvé : règles de terminaison FR.
-- Si ambigu (présent dans set `AMBIGUOUS_FR`) → `"woman"` (choix produit).
-- Retourne `null` uniquement si toutes les entrées sont vides.
-
-### 2. Helper `src/lib/avatarAgeRange.ts`
-- Export `mapApproxAgeToVocab(age: number | null | undefined): string | null`.
-- Bornes alignées sur `AVATAR_VOCAB.age_range` : `<25 → "18-25"`, `<35 → "25-35"`, `<45 → "35-45"`, `<55 → "45-55"`, `<65 → "55-65"`, `<75 → "65-75"`, `≥75 → "75-85"`.
-- Distinct du `getAgeRange` existant (qui renvoie « 18-25 ans » pour l'affichage). Ne pas modifier le fichier d'affichage.
-
-### 3. Extension de `src/lib/avatarAutoInfer.ts`
-- Dans `inferStudioDefaultsWithReasons`, ajouter en début :
-  - Si `avatar_age_range` peut être déduit depuis `approx_age` → mettre dans `values`, raison `{ signal: "age_known", signalLabel: "Âge connu", keyword: String(approx_age) }`.
-  - Si genre déduit du prénom → mettre dans `values`, raison `{ signal: "name_known", signalLabel: "Prénom", keyword: prenomMatché }`.
-- Ajouter `real_first_name` et `alias_first_name` dans `InferInput`.
-- Ajouter `SIGNAL_LABELS.age_known` et `SIGNAL_LABELS.name_known`.
-
-### 4. Auto-déclenchement dans `AvatarStudio.tsx`
-- Dans le `useEffect([selectedId])` existant (qui charge les versions), ajouter une étape :
-  - Si `selected.avatar_gender == null` OU `selected.avatar_age_range == null`, appeler `inferStudioDefaultsWithReasons` puis filtrer aux 2 champs ciblés + champs vides, et déclencher `patch(toApply, { silent: true })`.
-  - Mettre à jour `inferenceReasons` avec les raisons correspondantes (badge ✨ visible).
-- N'affecte rien d'autre : la logique « Pré-remplir » manuelle reste identique.
-
-### 5. Tests `src/lib/__tests__/genderAndAge.test.ts`
-- `mapApproxAgeToVocab` : bornes (24→18-25, 25→25-35, 80→75-85, null→null).
-- `inferGenderFromName` :
-  - `"Fatima"` → `woman`
-  - `"Mohamed"` → `man`
-  - `"Camille"` (ambigu) → `woman`
-  - `"Xyzqw"` (inconnu) → `person`
-  - `(null, null)` → `null`
-- `inferStudioDefaultsWithReasons` : un bénéficiaire avec `real_first_name="Karim"`, `approx_age=42`, et tous champs vides → `values.avatar_gender === "man"`, `values.avatar_age_range === "35-45"`, raisons présentes.
-
-## Non-objectifs
-
-- Pas de changement sur l'edge function `generate-avatar`.
-- Pas de migration SQL.
-- Pas de modification du moteur de matching ni des règles métier.
-- Pas de toucher au composant `BeneficiaryListPanel` (lecture seule).
-
-## Diagramme de flux
+### A. Remplacer les onglets horizontaux par une **navigation latérale fine** (rail gauche dans le panneau d'édition)
 
 ```text
-selectedId change
-       │
-       ▼
-load versions ──┐
-                │
-                ▼
-   gender or age_range vide ?
-       │ oui
-       ▼
-inferStudioDefaultsWithReasons(b)
-       │
-       ▼
-filtrer aux champs vides
-       │
-       ▼
-patch(values, { silent: true })  →  setInferenceReasons(reasons)
-       │
-       ▼
-UI : champs remplis + badge ✨ + tooltip « Déduit du prénom / âge »
+┌─────────────────────────────────────────────────────────┐
+│  [Rail]    │  Section active (scroll naturel)           │
+│  ◉ Visage  │                                            │
+│  ○ Yeux    │   ┌────────────┐ ┌────────────┐            │
+│  ○ Cheveux │   │ Genre      │ │ Âge        │            │
+│  ○ Masculin│   └────────────┘ └────────────┘            │
+│  ○ Culturel│   ...                                       │
+│  ○ Vêtements                                            │
+│  ○ Posture │                                            │
+│  ○ Social  │                                            │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## Critères d'acceptation
+- Le rail reste visible en permanence, avec **pastille de complétion** (3/5) et **point d'alerte** (warnings/erreurs).
+- Plus de wrap, plus d'onglets qui disparaissent.
 
-- Sélectionner un bénéficiaire sans `avatar_gender` ni `avatar_age_range` → les deux Select se remplissent en <1s sans clic.
-- Un champ déjà rempli manuellement n'est jamais écrasé.
-- Le badge ✨ apparaît à côté du label des champs déduits avec le tooltip « Prénom ← « Karim » » / « Âge connu ← « 42 » ».
-- Les 14 tests existants passent ; les nouveaux tests passent.
+### B. Mode alternatif : **accordéon "tout sur une page"** (toggle utilisateur)
+
+- Bouton de bascule "Vue par section ↔ Vue complète" en haut.
+- Vue complète = toutes les sections empilées avec en-têtes sticky → l'utilisateur scrolle d'un trait, fait Ctrl+F, etc.
+- Mémorisé par utilisateur (localStorage).
+
+### C. **Barre d'actions sticky** en haut du panneau d'édition
+
+Regroupe : Pré-remplir ✨ · Générer (preview/final) · Verrouiller 🔒 · Sauvegarde auto (état). Toujours visible, jamais sous le pli.
+
+### D. Compresser **Contexte + Inférence**
+
+- `ContextPanel` → repliable par défaut une fois rempli (résumé sur 1 ligne).
+- `InferenceReasonsPanel` → popover déclenché par un badge ✨ "X champs auto-déduits" (au lieu d'un bandeau permanent).
+
+### E. Indicateurs de **progression et qualité**
+
+- En-tête de panneau : "Avatar 14/18 critères · 2 alertes" + barre de progression fine.
+- Pastilles par section dans le rail (déjà partiellement présentes pour les warnings).
+
+### F. Groupements plus naturels (sans changer les champs)
+
+- Fusionner **Visage + Yeux** en "Visage" (sous-titres).
+- Fusionner **Cheveux + Masculin** en "Cheveux & pilosité" (conditionnel).
+- Garder Culturel / Vêtements / Posture / Social.
+- Passe de 7-8 onglets à **5 sections**.
+
+### G. Densité et lisibilité
+
+- Grille responsive : `grid-cols-1 md:grid-cols-2 xl:grid-cols-3` partout, gap 4 → confort sur 1170 px (viewport actuel).
+- Labels `SelectField` raccourcis (déjà icônifiés).
+- Hauteur des selects harmonisée (h-9).
+
+---
+
+## Détails techniques
+
+- **Fichier principal** : `src/pages/AvatarStudio.tsx` (remplacement du bloc `<Tabs>` lignes 863-979).
+- **Nouveaux composants** :
+  - `src/features/avatar-studio/SectionRail.tsx` — rail latéral + pastilles complétion/warnings.
+  - `src/features/avatar-studio/StickyActionBar.tsx` — extraction de la barre d'actions existante.
+  - `src/features/avatar-studio/SectionAccordion.tsx` — vue "tout sur une page".
+- **Hook** : `useAvatarSectionCompletion(selected)` — compte champs remplis par section, dérive warnings.
+- **Persistance préférence** : `localStorage["avatar-studio.view-mode"] = "tabs" | "full"`.
+- **Zéro changement** : schéma BDD, edge functions, `evaluateAvatarRules`, `inferStudioDefaultsWithReasons`, vocabulaire `AVATAR_VOCAB`, matching engine.
+- **Respect mémoire `ui-stability**` : la logique d'inférence/règles/génération reste strictement inchangée, seule la présentation des champs change.
+
+---
+
+## Questions avant implémentation
+
+Avant de coder, je préfère valider l'orientation. Trois choix structurants :
+
+1. **Navigation** : rail latéral (B) ou vue accordéon repliable (A) par défaut — ou les deux avec toggle ? A
+2. **Regroupement** : passe-t-on à 5 sections (fusion Visage+Yeux et Cheveux+Masculin) ou garde-t-on les 7-8 actuelles ? 5 sections
+3. **Contexte / Inférence** : on les replie en popovers, ou on conserve les panneaux pleins ? replie en popovers
+
+Je peux poser ces 3 questions de manière interactive après ton "Implémenter le plan", ou tu peux me répondre directement ici.
