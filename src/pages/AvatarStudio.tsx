@@ -30,6 +30,9 @@ import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
+  VenusAndMars, CalendarDays, Smile, Palette, Ruler, Layers, Scissors, Waves,
+  User, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility, Baby,
+  BatteryLow, Sun, CircleDot, LucideIcon,
 } from "lucide-react";
 
 type Beneficiary = any;
