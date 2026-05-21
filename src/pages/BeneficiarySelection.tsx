@@ -215,11 +215,8 @@ const BeneficiarySelection = () => {
                   <div className="flex justify-center mb-4 mt-4">
                     <BeneficiaryAvatar
                       name={b.alias_first_name}
-                      gender={b.avatar_gender}
-                      ageRange={b.avatar_age_range}
-                      hairType={b.avatar_hair_type}
-                      skinTone={b.avatar_skin_tone}
                       avatarUrl={b.avatar_url}
+                      previewUrl={(b as any).avatar_preview_url}
                       size="lg"
                     />
                   </div>
