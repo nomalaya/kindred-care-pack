@@ -155,6 +155,14 @@ serve(async (req) => {
             avatar_status: "preview",
             avatar_model_used: MODEL_PREVIEW,
           }).eq("id", beneficiary_id);
+          // Archive preview version
+          await supabase.from("avatar_versions").insert({
+            beneficiary_id,
+            image_url: url,
+            model_used: MODEL_PREVIEW,
+            seed: traits.avatar_seed,
+            prompt,
+          });
           return;
         }
 
@@ -170,14 +178,30 @@ serve(async (req) => {
           if (upErr) throw upErr;
           const { data: u } = supabase.storage.from("avatars").getPublicUrl(fileName);
           const url = `${u.publicUrl}?t=${Date.now()}`;
+          // Preserve approved/locked workflow status; otherwise transition to "generated"
+          const nextWorkflow =
+            b.avatar_workflow_status === "approved" || b.avatar_workflow_status === "locked"
+              ? b.avatar_workflow_status
+              : "generated";
           await supabase.from("beneficiaries").update({
             ...traitsUpdate,
             avatar_url: url,
             avatar_status: "validated",
+            avatar_workflow_status: nextWorkflow,
             avatar_model_used: MODEL_FINAL,
             avatar_qa_report: { scores: qa.scores, notes: qa.notes, attempts: attempts.length },
             avatar_qa_score: qa.global_score,
           }).eq("id", beneficiary_id);
+          // Archive final version
+          await supabase.from("avatar_versions").insert({
+            beneficiary_id,
+            image_url: url,
+            model_used: MODEL_FINAL,
+            qa_score: qa.global_score,
+            qa_report: { scores: qa.scores, notes: qa.notes },
+            seed: traits.avatar_seed,
+            prompt,
+          });
         } else {
           // Rejected — store in rejected/ for audit, keep avatar_url untouched
           const ts = Date.now();
