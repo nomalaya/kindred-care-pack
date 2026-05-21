@@ -220,6 +220,34 @@ const AvatarStudio = () => {
   };
 
 
+  // Auto-prefill genre + tranche d'âge à la sélection (depuis prénom/age connus)
+  const autoPrefilledFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selected || isLocked) return;
+    if (autoPrefilledFor.current === selected.id) return;
+    if (selected.avatar_gender && selected.avatar_age_range) {
+      autoPrefilledFor.current = selected.id;
+      return;
+    }
+    const { values, reasons } = inferStudioDefaultsWithReasons(selected);
+    const toApply: Record<string, any> = {};
+    const keptReasons: Record<string, FieldReason[]> = {};
+    for (const key of ["avatar_gender", "avatar_age_range"] as const) {
+      const cur = (selected as any)[key];
+      if ((cur === null || cur === undefined || cur === "") && values[key]) {
+        toApply[key] = values[key];
+        if (reasons[key]) keptReasons[key] = reasons[key];
+      }
+    }
+    if (Object.keys(toApply).length > 0) {
+      autoPrefilledFor.current = selected.id;
+      setInferenceReasons(prev => ({ ...prev, ...keptReasons }));
+      patch(toApply, { silent: true });
+    } else {
+      autoPrefilledFor.current = selected.id;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id, selected?.avatar_gender, selected?.avatar_age_range, isLocked]);
 
 
   const generate = async (mode: "preview" | "final") => {
