@@ -195,14 +195,22 @@ const AvatarStudio = () => {
   const [modelChoice, setModelChoice] = useState<"preview" | "final">("final");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  const saveTimers = useRef<Record<string, any>>({});
+  const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
+  const saveTimer = useRef<any>(null);
+  const pendingPatch = useRef<Record<string, any>>({});
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const busyRef = useRef<string | null>(null);
+  busyRef.current = busy;
 
   const refresh = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("beneficiaries")
       .select("*")
       .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("Échec chargement : " + error.message);
+      return;
+    }
     setBeneficiaries(data || []);
   };
 
@@ -211,8 +219,37 @@ const AvatarStudio = () => {
     refresh().finally(() => setLoading(false));
   }, [isAdmin]);
 
+  // Realtime : remplace le polling pendant la génération
   useEffect(() => {
-    if (!selectedId) { setVersions([]); return; }
+    if (!isAdmin) return;
+    const channel = supabase
+      .channel("avatar-studio-beneficiaries")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "beneficiaries" },
+        (payload) => {
+          const next = payload.new as any;
+          setBeneficiaries(prev => prev.map(b => (b.id === next.id ? { ...b, ...next } : b)));
+          // libère busy si la génération est terminée
+          const cur = busyRef.current;
+          if (cur === "preview" && next.avatar_status === "preview") setBusy(null);
+          if (cur === "final" && next.avatar_status === "validated") setBusy(null);
+          if (next.avatar_status === "failed" && (cur === "preview" || cur === "final")) {
+            const r: any = next.avatar_qa_report || {};
+            if (r.code === "no_credits") toast.error("Crédits Lovable AI insuffisants.");
+            else if (r.code === "rate_limited") toast.error("Trop de requêtes IA. Réessayez dans 1 minute.");
+            else toast.error("Échec génération : " + (r.error || "erreur"));
+            setBusy(null);
+          }
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!selectedId) { setVersions([]); setInferenceReasons({}); return; }
+    setInferenceReasons({}); // reset à chaque changement de bénéficiaire
     (async () => {
       const { data } = await supabase
         .from("avatar_versions" as any)
@@ -222,37 +259,7 @@ const AvatarStudio = () => {
         .limit(20);
       setVersions((data as any[]) || []);
     })();
-  }, [selectedId, beneficiaries]);
-
-  useEffect(() => {
-    if (busy !== "preview" && busy !== "final") return;
-    const t = setInterval(refresh, 4000);
-    return () => clearInterval(t);
-  }, [busy]);
-
-  useEffect(() => {
-    if (busy !== "preview" && busy !== "final") return;
-    const cur = beneficiaries.find(b => b.id === selectedId);
-    if (!cur) return;
-    if (cur.avatar_status === "failed") {
-      const report: any = (cur as any).avatar_qa_report || {};
-      const code = report.code;
-      if (code === "no_credits") {
-        toast.error("Crédits Lovable AI insuffisants. Rechargez votre workspace pour générer.");
-      } else if (code === "rate_limited") {
-        toast.error("Trop de requêtes IA. Réessayez dans une minute.");
-      } else if (report.error) {
-        toast.error("Échec génération : " + String(report.error).slice(0, 120));
-      } else {
-        toast.error("Échec de génération de l'avatar.");
-      }
-      setBusy(null);
-    } else if (busy === "preview" && cur.avatar_status === "preview") {
-      setBusy(null);
-    } else if (busy === "final" && cur.avatar_status === "validated") {
-      setBusy(null);
-    }
-  }, [beneficiaries, busy, selectedId]);
+  }, [selectedId]);
 
   const selected = useMemo(
     () => beneficiaries.find(b => b.id === selectedId) || null,
@@ -288,8 +295,10 @@ const AvatarStudio = () => {
 
   const warnings: RuleWarning[] = selected ? evaluateAvatarRules(selected) : [];
   const isLocked = selected?.avatar_workflow_status === "locked";
+  const dignityBlocked = (selected?.avatar_dignity_level ?? 5) < 3;
 
-  const patch = (patchObj: Record<string, any>) => {
+  // Patch avec accumulation : fusionne tous les diffs <600ms dans un seul UPDATE
+  const patch = (patchObj: Record<string, any>, opts: { silent?: boolean } = {}) => {
     if (!selected) return;
     if (isLocked) {
       toast.error("Avatar verrouillé. Déverrouillez pour modifier.");
@@ -298,13 +307,17 @@ const AvatarStudio = () => {
     setBeneficiaries(prev => prev.map(b =>
       b.id === selected.id ? { ...b, ...patchObj } : b,
     ));
-    setSaveState("saving");
-    if (saveTimers.current[selected.id]) clearTimeout(saveTimers.current[selected.id]);
-    saveTimers.current[selected.id] = setTimeout(async () => {
+    pendingPatch.current = { ...pendingPatch.current, ...patchObj };
+    if (!opts.silent) setSaveState("saving");
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    const targetId = selected.id;
+    saveTimer.current = setTimeout(async () => {
+      const toSend = pendingPatch.current;
+      pendingPatch.current = {};
       const { error } = await supabase
         .from("beneficiaries")
-        .update(patchObj as any)
-        .eq("id", selected.id);
+        .update(toSend as any)
+        .eq("id", targetId);
       if (error) {
         toast.error("Échec sauvegarde : " + error.message);
         setSaveState("idle");
@@ -319,12 +332,14 @@ const AvatarStudio = () => {
 
   const autoInfer = (mode: "fill" | "force" = "fill") => {
     if (!selected) return;
-    const defaults = inferStudioDefaults(selected);
-    let toApply: Record<string, any> = defaults;
+    if (mode === "force" && !confirm("Re-déduire et écraser tous les attributs avatar à partir du récit ? Les modifications manuelles seront perdues.")) {
+      return;
+    }
+    const { values, reasons } = inferStudioDefaultsWithReasons(selected);
+    let toApply: Record<string, any> = values;
     if (mode === "fill") {
-      // n'écrase que les champs vides / nuls
       toApply = Object.fromEntries(
-        Object.entries(defaults).filter(([k]) => {
+        Object.entries(values).filter(([k]) => {
           const cur = (selected as any)[k];
           return cur === null || cur === undefined || cur === "" || cur === "none";
         }),
@@ -334,6 +349,11 @@ const AvatarStudio = () => {
       toast.info("Aucun champ vide à pré-remplir. Utilisez « Tout re-déduire » pour écraser.");
       return;
     }
+    // ne conserve que les raisons pour les champs réellement appliqués
+    const filteredReasons = Object.fromEntries(
+      Object.entries(reasons).filter(([k]) => k in toApply),
+    );
+    setInferenceReasons(filteredReasons);
     patch(toApply);
     toast.success(
       mode === "force"
@@ -341,6 +361,8 @@ const AvatarStudio = () => {
         : `${Object.keys(toApply).length} champ(s) pré-rempli(s) depuis le récit`,
     );
   };
+
+
 
 
   const generate = async (mode: "preview" | "final") => {
