@@ -773,10 +773,10 @@ const AvatarStudio = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={() => generate("preview")} variant="outline" size="sm" disabled={!!busy || isLocked} title="P">
+                  <Button onClick={() => generate("preview")} variant="outline" size="sm" disabled={!!busy || isLocked || dignityBlocked} title="P (raccourci)" aria-label="Générer un aperçu rapide">
                     <RefreshCw className="h-3.5 w-3.5 mr-1" />Aperçu
                   </Button>
-                  <Button onClick={() => generate("final")} size="sm" disabled={!!busy || isLocked} title="G">
+                  <Button onClick={() => generate("final")} size="sm" disabled={!!busy || isLocked || dignityBlocked} title="G (raccourci)" aria-label="Générer le portrait HD">
                     <Sparkles className="h-3.5 w-3.5 mr-1" />HD
                   </Button>
                   <input
@@ -796,10 +796,19 @@ const AvatarStudio = () => {
                     size="sm"
                     disabled={!!busy || isLocked}
                     title="Importer une image externe (fal.ai, etc.)"
+                    aria-label="Importer une image externe"
                   >
                     <Upload className="h-3.5 w-3.5 mr-1" />Importer
                   </Button>
                 </div>
+
+                {dignityBlocked && (
+                  <div className="text-xs rounded-md border border-[hsl(var(--status-failed-border))] bg-[hsl(var(--status-failed-bg))] text-[hsl(var(--status-failed-fg))] px-2 py-1.5 flex items-start gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <div>Dignité {selected.avatar_dignity_level}/5 — génération bloquée. Augmentez le niveau dans l'onglet Social.</div>
+                  </div>
+                )}
+
 
                 {/* Workflow row */}
                 {(() => {
