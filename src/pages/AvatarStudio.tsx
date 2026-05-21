@@ -288,6 +288,54 @@ const AvatarStudio = () => {
     }
   };
 
+  const restoreVersion = async (v: any) => {
+    if (!selected) return;
+    if (isLocked) {
+      toast.error("Avatar verrouillé. Déverrouillez d'abord.");
+      return;
+    }
+    if (!confirm("Réutiliser cette version comme avatar actif ? L'avatar actuel sera remplacé (statut passera à « Généré »).")) return;
+    const updates: any = {
+      avatar_url: v.image_url,
+      avatar_preview_url: v.image_url,
+      avatar_status: "validated",
+      avatar_workflow_status: "generated",
+      avatar_model_used: v.model_used ?? null,
+      avatar_qa_score: v.qa_score ?? null,
+      avatar_qa_report: v.qa_report ?? null,
+      avatar_seed: v.seed ?? null,
+      avatar_prompt: v.prompt ?? null,
+      avatar_generated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from("beneficiaries").update(updates).eq("id", selected.id);
+    if (error) {
+      toast.error("Échec : " + error.message);
+      return;
+    }
+    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...updates } : b));
+    toast.success("Version restaurée comme avatar actif");
+  };
+
+  const workflowHint = (action: "approve" | "lock" | "unlock", status: WorkflowStatus, hasImage: boolean): string | null => {
+    if (action === "approve") {
+      if (status === "approved") return "Avatar déjà approuvé";
+      if (status === "locked") return "Avatar verrouillé — déverrouillez d'abord";
+      if (status !== "generated") return hasImage ? "Réutilisez une version ou régénérez pour approuver" : "Générez d'abord un avatar HD";
+      return null;
+    }
+    if (action === "lock") {
+      if (status === "locked") return "Déjà verrouillé";
+      if (status !== "approved") return "Approuvez d'abord l'avatar";
+      return null;
+    }
+    if (action === "unlock") {
+      if (status !== "locked") return "Disponible uniquement sur un avatar verrouillé";
+      return null;
+    }
+    return null;
+  };
+
+
   // Keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
