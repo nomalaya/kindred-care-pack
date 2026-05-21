@@ -1,54 +1,55 @@
+
 ## Objectif
 
-Faire d'Avatar Studio un véritable outil de production (vue dense, scan rapide, actions à portée de main) et l'exposer à `/avatar-studio` (l'ancien `/admin/avatar-studio` redirige).
+Garantir que **100% des avatars** suivent le même style graphique : illustration cartoon vectorielle plate (référence : avatar Khaled / avatar Valérie fournis), jamais une peinture, jamais une photo, jamais reconnaissable.
 
-## 1. Nouvelle route
+Aujourd'hui le prompt mentionne déjà « cartoon » mais le modèle dérive vers du painterly/Pixar-réaliste (cf. Fatima validée). Il faut **durcir l'art direction** et **régénérer tout le catalogue** existant.
 
-- `src/App.tsx` : ajouter `<Route path="/avatar-studio" element={<AvatarStudio />} />` et remplacer `/admin/avatar-studio` par un `<Navigate to="/avatar-studio" replace />` (compatibilité liens existants).
-- `src/pages/Admin.tsx` (et tout lien interne) : mettre à jour la cible vers `/avatar-studio`.
-- Garder la garde admin (`isAdmin`) côté page.
+## Plan
 
-## 2. Refonte de la mise en page
+### 1. Durcir l'art direction (`supabase/functions/_shared/avatarArtDirection.ts`)
 
-Passage d'un layout 3 colonnes statique à un layout **4 zones** plus fonctionnel, pleine hauteur :
+Réécrire `ART_DIRECTION_INVARIANTS` et `NEGATIVE_PROMPT` pour verrouiller un seul style :
 
-```text
-┌──────────────── Topbar (sticky) ────────────────────────────────┐
-│  ← Admin   Avatar Studio   [stats: 12 draft · 5 generated · …] │
-│  [Recherche]  [Filtres: Tous|Brouillon|Généré|Approuvé|Verrou|Échec]  [Tri ▾]  [⟳]│
-└─────────────────────────────────────────────────────────────────┘
-┌─ Liste (280px) ─┬──── Aperçu + actions (380px) ────┬──── Éditeur attributs (1fr) ─┐
-│ vignettes denses│ image carrée + badges            │  Tabs : Visage | Cheveux |  │
-│ recherche locale│ Modèle ▾  [Aperçu] [Générer HD]  │  Masculin | Culturel |      │
-│ scroll virtuel  │ Workflow: Approuver/Verrouiller  │  Vêtements | Posture |      │
-│                 │ Versions (mini-galerie + Comparer)│  Social                    │
-└─────────────────┴──────────────────────────────────┴─────────────────────────────┘
+- **Style cible explicite** : « flat vector cartoon avatar illustration, clean bold outlines, simple cel-shaded flat colors, minimal detail, sticker-like, Adobe Illustrator style »
+- Référence verbale forte : « in the visual style of modern app illustration packs (e.g. Storyset, unDraw character packs, Notion-style avatars) »
+- Cadrage : **chest-up bust on plain white background**, pas de gradient sand/ivory (le fond doit être blanc pur et uniforme pour homogénéité catalogue)
+- **Anonymat renforcé** : « generic archetypal character, intentionally non-specific facial features, never resemble any real person, no identifying marks »
+- Negative prompt élargi : ajouter `no painterly style, no Pixar 3D, no Disney render, no Studio Ghibli, no semi-realistic, no detailed shading, no textured brushstrokes, no painted portrait, no realistic skin, no recognizable likeness, no celebrity resemblance`
+
+### 2. Forcer le modèle d'aperçu ET de génération finale sur le même modèle
+
+Actuellement preview = Flash Image, final = Pro Image → ça produit deux esthétiques différentes. Passer les deux sur `google/gemini-2.5-flash-image` (Nano Banana) qui rend mieux le cartoon plat demandé, ou tester les deux et garder le plus stable. À valider rapidement avec 2-3 aperçus avant d'arrêter le choix.
+
+### 3. QA : ajouter un critère « style conformity »
+
+Dans `supabase/functions/qa-avatar/index.ts`, ajouter au scoring un critère bloquant :
+- `style_match` (0-100) : pénalise toute image painterly / 3D / photo / semi-réaliste
+- Si `style_match < 70` → rejet automatique même si le reste passe
+
+### 4. Reset + régénération du catalogue
+
+- Marquer les avatars actuellement `validated` comme `draft` (l'avatar Fatima painterly et les ~7 autres existants doivent être refaits)
+- Vider `avatar_url` pour qu'ils n'apparaissent plus en prod tant qu'un nouvel aperçu conforme n'est pas validé
+- L'utilisateur relance manuellement la génération depuis Avatar Studio (ou via `generate-avatar-batch`)
+
+Migration SQL :
+```sql
+UPDATE beneficiaries
+SET avatar_status = 'draft',
+    avatar_workflow_status = 'draft',
+    avatar_url = NULL,
+    avatar_preview_url = NULL,
+    avatar_qa_score = NULL,
+    avatar_qa_report = NULL
+WHERE avatar_url IS NOT NULL OR avatar_preview_url IS NOT NULL;
 ```
 
-Changements clés :
+### 5. Garde-fou UI (`AvatarStudio.tsx`)
 
-- **Topbar sticky** avec stats globales (compteurs par statut) calculées depuis `beneficiaries`, recherche + filtres déplacés ici → la liste de gauche devient plus compacte (uniquement vignettes).
-- **Aperçu déplacé au centre** (focus visuel principal de l'outil) avec actions juste en dessous : sélecteur modèle, boutons Aperçu / Générer HD, ligne workflow (Approuver / Verrouiller / Déverrouiller toujours visibles selon l'état), badge style verrouillé, état d'échec.
-- **Éditeur d'attributs à droite** : remplacer l'Accordion par des **Tabs verticales** (Visage, Yeux, Cheveux, Masculin*, Culturel*, Vêtements, Posture, Social) → on voit tous les champs d'une section sans scroll, on change de section en 1 clic. Conditionnels (`isMan`, `hasCulture`) en onglets masqués.
-- **Bouton "Déduire depuis le profil"** + **raccourcis clavier** (`G` = générer HD, `P` = aperçu, `A` = approuver, `L` = verrouiller, `/` = focus recherche, `↑`/`↓` = naviguer la liste) affichés dans un petit `?` tooltip.
-- **Liste de gauche** : vignettes plus denses (avatar + prénom + badge statut + petit indicateur QA), highlight sélection, indicateur "non généré" plus visible. Garder le filtre Échec.
-- **Versions** : passer d'une liste verticale à une **mini-galerie 3 colonnes** scrollable sous l'aperçu, clic = aperçu plein écran, sélection multi pour Comparer.
-- **Sauvegarde optimiste** : ajouter un petit indicateur "Sauvegardé" / "Sauvegarde…" à côté du nom du bénéficiaire.
-- **Garder strictement** les mêmes appels (`generate-avatar`, `qa-avatar`, table `beneficiaries`, `avatar_versions`) et la même logique de génération / workflow / règles. Seule l'organisation visuelle change.
+Petit rappel visuel dans le panneau de droite : badge « Style : cartoon vectoriel plat — verrouillé » sous l'aperçu, pour bien matérialiser que c'est non négociable.
 
-## 3. Détails techniques
+## Points à confirmer avant implémentation
 
-- Aucune migration DB.
-- Composants shadcn déjà disponibles (`Tabs`, `Tooltip`, `ScrollArea`, `Dialog`) — pas de nouvelle dépendance.
-- Utiliser `useHotkeys`-like custom hook minimal (un seul `useEffect` avec `keydown`) pour les raccourcis, scope = page.
-- Stats topbar : `useMemo` sur `beneficiaries.reduce(...)`.
-- Conserver `RuleList` tel quel sous chaque onglet.
-- Layout : `h-[calc(100vh-...)]` + `overflow-hidden` sur le conteneur, scroll uniquement à l'intérieur des 3 colonnes.
-
-## Fichiers modifiés
-
-- `src/App.tsx` — route `/avatar-studio` + redirect.
-- `src/pages/AvatarStudio.tsx` — refonte layout + Tabs + topbar + raccourcis.
-- `src/pages/Admin.tsx` — mise à jour du lien vers `/avatar-studio`.
-
-Pas de changement backend, pas de changement de la logique de génération ou du style verrouillé déjà en place.
+- OK pour **reset complet** des avatars déjà validés (Fatima, Amadou, Chloé, Diogo, Irina, Jean-Pierre, etc. — ~7 profils) ? Ils repasseront tous par une génération + validation manuelle.
+- OK pour **fond blanc pur** plutôt que sable/ivoire (la mémoire `style/visual-direction` parle de blanc cassé chaleureux pour le site, mais pour les avatars un blanc franc donne un catalogue plus homogène façon Storyset) ?

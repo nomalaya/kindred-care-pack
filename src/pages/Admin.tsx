@@ -247,7 +247,7 @@ const Admin = () => {
                     Régénère les portraits HD via {TARGET_MODEL.split("/")[1]} avec scoring qualité automatique.
                   </p>
                 </div>
-                <a href="/avatar-studio">
+                <a href="/admin/avatar-studio">
                   <Button variant="default" size="sm">
                     <Sparkles className="h-4 w-4 mr-1" />Ouvrir Avatar Studio
                   </Button>
