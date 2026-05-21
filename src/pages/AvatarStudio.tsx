@@ -515,51 +515,13 @@ const AvatarStudio = () => {
         {/* MAIN 3 COLUMNS */}
         <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(380px,420px)_1fr] gap-3 h-[calc(100vh-130px)]">
           {/* LEFT — list */}
-          <aside className="bg-card border rounded-xl overflow-hidden flex flex-col">
-            <div className="px-2 py-1.5 border-b text-[11px] uppercase tracking-wide text-muted-foreground bg-muted/30">
-              {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
-            </div>
-            <div className="overflow-y-auto flex-1 p-1.5 space-y-0.5">
-              {loading && <div className="text-sm text-muted-foreground p-2">Chargement…</div>}
-              {filtered.map(b => {
-                const ws = (b.avatar_workflow_status || "draft") as WorkflowStatus;
-                const isSel = b.id === selectedId;
-                const failed = b.avatar_status === "failed";
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => setSelectedId(b.id)}
-                    className={`w-full text-left p-1.5 rounded-md flex items-center gap-2 transition-colors ${
-                      isSel ? "bg-primary/10 ring-1 ring-primary/40" : "hover:bg-muted"
-                    }`}
-                  >
-                    <BeneficiaryAvatar
-                      name={b.alias_first_name}
-                      avatarUrl={b.avatar_url}
-                      previewUrl={b.avatar_preview_url}
-                      size="sm"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate flex items-center gap-1">
-                        {b.alias_first_name}
-                        {failed && <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground truncate">
-                        {b.region} · {b.approx_age}a
-                        {b.avatar_qa_score ? ` · QA ${Math.round(b.avatar_qa_score)}` : ""}
-                      </div>
-                    </div>
-                    <span className={`text-[9px] px-1 py-0.5 rounded border ${WORKFLOW_COLOR[ws]}`}>
-                      {WORKFLOW_LABEL[ws][0]}
-                    </span>
-                  </button>
-                );
-              })}
-              {!loading && filtered.length === 0 && (
-                <div className="text-sm text-muted-foreground p-3 text-center">Aucun résultat</div>
-              )}
-            </div>
-          </aside>
+          <BeneficiaryListPanel
+            filtered={filtered}
+            loading={loading}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
+
 
           {/* CENTER — preview + actions + versions */}
           <section className="bg-card border rounded-xl overflow-hidden flex flex-col">
