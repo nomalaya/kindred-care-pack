@@ -7,36 +7,30 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Tabs, TabsList, TabsTrigger, TabsContent,
-} from "@/components/ui/tabs";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Tooltip, TooltipContent, TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AVATAR_VOCAB, WORKFLOW_LABEL, WORKFLOW_COLOR, WorkflowStatus,
 } from "@/lib/avatarTraits";
 import { evaluateAvatarRules, RuleWarning } from "@/lib/avatarRules";
 import { inferStudioDefaultsWithReasons, type FieldReason } from "@/lib/avatarAutoInfer";
-import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { ContextPanel } from "@/features/avatar-studio/ContextPanel";
 import { InferenceReasonsPanel } from "@/features/avatar-studio/InferenceReasonsPanel";
+import { BeneficiaryListPanel } from "@/features/avatar-studio/BeneficiaryListPanel";
+import { RuleList } from "@/features/avatar-studio/RuleList";
+import {
+  FIELD_LABELS, FIELD_ICONS, SelectField, SliderField,
+} from "@/features/avatar-studio/fields";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
-  UserCircle, CalendarDays, Smile, Palette, Ruler, Layers, Scissors, Waves,
-  User, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility, Baby,
+  Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown,
 } from "lucide-react";
 
