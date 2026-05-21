@@ -79,6 +79,7 @@ export type Database = {
           avatar_hair_type: string | null
           avatar_hair_volume: string | null
           avatar_head_covering: string | null
+          avatar_mobility_aid: string | null
           avatar_model_used: string | null
           avatar_moustache: string | null
           avatar_parent_energy: string | null
@@ -159,6 +160,7 @@ export type Database = {
           avatar_hair_type?: string | null
           avatar_hair_volume?: string | null
           avatar_head_covering?: string | null
+          avatar_mobility_aid?: string | null
           avatar_model_used?: string | null
           avatar_moustache?: string | null
           avatar_parent_energy?: string | null
@@ -239,6 +241,7 @@ export type Database = {
           avatar_hair_type?: string | null
           avatar_hair_volume?: string | null
           avatar_head_covering?: string | null
+          avatar_mobility_aid?: string | null
           avatar_model_used?: string | null
           avatar_moustache?: string | null
           avatar_parent_energy?: string | null
