@@ -8,8 +8,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   Sparkles, Users, CalendarDays, Smile, Palette, Ruler, Layers, Scissors,
   Waves, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility,
-  Baby, Eye, Pipette, Brush, Slash, Droplet, SwatchBook, ScanFace, type LucideIcon,
+  Baby, Eye, Pipette, Brush, Slash, Droplet, SwatchBook, ScanFace, Scale, type LucideIcon,
 } from "lucide-react";
+
 
 import type { FieldReason } from "@/lib/avatarAutoInfer";
 
@@ -33,9 +34,11 @@ export const FIELD_LABELS: Record<string, string> = {
   avatar_clothing_style: "Style vêtements",
   avatar_clothing_color_palette: "Palette vêtements",
   avatar_posture: "Posture",
+  avatar_body_type: "Corpulence",
   avatar_expression: "Expression",
   avatar_parent_energy: "Énergie parentale",
   avatar_mobility_aid: "Aide à la mobilité",
+
 };
 
 // Chaque champ a son propre picto, distinct de tous les autres.
@@ -59,9 +62,11 @@ export const FIELD_ICONS: Record<string, LucideIcon> = {
   avatar_clothing_style: Shirt,
   avatar_clothing_color_palette: SwatchBook,
   avatar_posture: PersonStanding,
+  avatar_body_type: Scale,
   avatar_mobility_aid: Accessibility,
   avatar_expression: Smile,
   avatar_parent_energy: Baby,
+
 };
 
 
@@ -89,7 +94,9 @@ export const FIELD_ACCENT: Record<string, string> = {
   avatar_clothing_style: "--field-clothing",
   avatar_clothing_color_palette: "--field-clothing",
   avatar_posture: "--field-body",
+  avatar_body_type: "--field-build",
   avatar_mobility_aid: "--field-body",
+
   avatar_expression: "--field-mood",
   avatar_parent_energy: "--field-family",
   avatar_fatigue_level: "--field-fatigue",

@@ -61,8 +61,11 @@ export const AVATAR_VOCAB = {
     "arm_sling",
     "oxygen_cannula",
   ],
+  body_type: ["very_thin", "thin", "average", "chubby", "heavy"],
   workflow_status: ["draft", "generated", "approved", "locked"],
+
 } as const;
+
 
 export type AvatarStatus = "pending" | "preview" | "validated" | "failed";
 
