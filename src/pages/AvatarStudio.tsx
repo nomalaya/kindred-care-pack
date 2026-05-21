@@ -139,12 +139,37 @@ const AvatarStudio = () => {
     })();
   }, [selectedId, beneficiaries]);
 
-  // Auto-refresh while a generation is pending
+  // Auto-refresh while a generation is pending + surface failures clearly
   useEffect(() => {
     if (busy !== "preview" && busy !== "final") return;
     const t = setInterval(refresh, 4000);
     return () => clearInterval(t);
   }, [busy]);
+
+  // Detect generation failure on the selected beneficiary and report it
+  useEffect(() => {
+    if (busy !== "preview" && busy !== "final") return;
+    const cur = beneficiaries.find(b => b.id === selectedId);
+    if (!cur) return;
+    if (cur.avatar_status === "failed") {
+      const report: any = (cur as any).avatar_qa_report || {};
+      const code = report.code;
+      if (code === "no_credits") {
+        toast.error("Crédits Lovable AI insuffisants. Rechargez votre workspace pour générer.");
+      } else if (code === "rate_limited") {
+        toast.error("Trop de requêtes IA. Réessayez dans une minute.");
+      } else if (report.error) {
+        toast.error("Échec génération : " + String(report.error).slice(0, 120));
+      } else {
+        toast.error("Échec de génération de l'avatar.");
+      }
+      setBusy(null);
+    } else if (busy === "preview" && cur.avatar_status === "preview") {
+      setBusy(null);
+    } else if (busy === "final" && cur.avatar_status === "validated") {
+      setBusy(null);
+    }
+  }, [beneficiaries, busy, selectedId]);
 
   const selected = useMemo(
     () => beneficiaries.find(b => b.id === selectedId) || null,
@@ -510,6 +535,16 @@ const AvatarStudio = () => {
                   {WORKFLOW_LABEL[(selected.avatar_workflow_status || "draft") as WorkflowStatus]}
                   {selected.avatar_qa_score && ` · QA ${Math.round(selected.avatar_qa_score)}`}
                 </Badge>
+
+                {selected.avatar_status === "failed" && (
+                  <div className="mb-3 text-xs rounded-md border border-destructive/40 bg-destructive/10 text-destructive px-2 py-1.5">
+                    {(selected as any).avatar_qa_report?.code === "no_credits"
+                      ? "Échec : crédits Lovable AI insuffisants. Rechargez le workspace."
+                      : (selected as any).avatar_qa_report?.code === "rate_limited"
+                      ? "Échec : trop de requêtes. Réessayez dans 1 minute."
+                      : "Dernière génération échouée. Réessayez."}
+                  </div>
+                )}
 
                 <div className="space-y-2 mb-3">
                   <Label className="text-xs text-muted-foreground">Modèle</Label>

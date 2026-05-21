@@ -35,7 +35,11 @@ async function generateImage(prompt: string, model: string): Promise<Uint8Array>
   });
   if (!resp.ok) {
     const t = await resp.text();
-    throw new Error(`AI gateway ${resp.status}: ${t}`);
+    const err: any = new Error(`AI gateway ${resp.status}: ${t}`);
+    err.gatewayStatus = resp.status;
+    if (resp.status === 402) err.code = "no_credits";
+    else if (resp.status === 429) err.code = "rate_limited";
+    throw err;
   }
   const data = await resp.json();
   const url = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
@@ -227,7 +231,11 @@ serve(async (req) => {
         console.error("avatar work error:", workErr);
         await supabase.from("beneficiaries").update({
           avatar_status: "failed",
-          avatar_qa_report: { error: workErr.message ?? String(workErr) },
+          avatar_qa_report: {
+            error: workErr.message ?? String(workErr),
+            code: workErr.code ?? null,
+            gateway_status: workErr.gatewayStatus ?? null,
+          },
         }).eq("id", beneficiary_id);
       }
     })();
