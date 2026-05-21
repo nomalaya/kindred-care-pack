@@ -37,6 +37,23 @@
     --input: 25 15% 88%;
     --ring: 157 68% 33%;
 
+    /* Avatar Studio status tokens (HSL) */
+    --status-draft-bg: 25 15% 92%;
+    --status-draft-fg: 0 0% 35%;
+    --status-draft-border: 25 15% 80%;
+    --status-generated-bg: 44 95% 92%;
+    --status-generated-fg: 32 80% 30%;
+    --status-generated-border: 44 90% 75%;
+    --status-approved-bg: 157 50% 92%;
+    --status-approved-fg: 157 68% 25%;
+    --status-approved-border: 157 50% 70%;
+    --status-locked-bg: 220 12% 90%;
+    --status-locked-fg: 220 15% 25%;
+    --status-locked-border: 220 12% 70%;
+    --status-failed-bg: 0 80% 95%;
+    --status-failed-fg: 0 70% 35%;
+    --status-failed-border: 0 70% 75%;
+
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
