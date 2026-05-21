@@ -56,6 +56,7 @@ const FIELD_LABELS: Record<string, string> = {
   avatar_posture: "Posture",
   avatar_expression: "Expression",
   avatar_parent_energy: "Énergie parentale",
+  avatar_mobility_aid: "Aide à la mobilité",
 };
 
 function SelectField({
