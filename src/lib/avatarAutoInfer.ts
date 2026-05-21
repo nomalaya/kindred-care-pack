@@ -6,6 +6,9 @@
 export interface InferInput {
   approx_age?: number | null;
   avatar_gender?: string | null;
+  avatar_age_range?: string | null;
+  real_first_name?: string | null;
+  alias_first_name?: string | null;
   beneficiary_category?: string | null;
   profile_type?: string | null;
   children_count?: number | null;
