@@ -44,7 +44,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/avatar-studio" element={<AvatarStudio />} />
-            <Route path="/admin/avatar-studio" element={<Navigate to="/avatar-studio" replace />} />
+            
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/donation-preview" element={<DonationPreview />} />
             
