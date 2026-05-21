@@ -13,11 +13,19 @@ const WEIGHTS: Record<string, number> = {
   framing: 1.0,
   no_watermark: 1.0,
   artifact_freedom: 1.2,
-  style_consistency: 1.2,
-  not_stock_photo_feel: 1.0,
+  style_match: 2.0, // flat vector cartoon — hard requirement
+  white_background: 1.2,
+  anonymity: 1.8, // must NOT resemble a real identifiable person
   not_caricature: 1.5,
   dignity: 1.5,
   human_warmth: 1.0,
+};
+
+// Hard fail (force rejection) if any of these dimensions falls below threshold,
+// regardless of the global weighted score.
+const HARD_FAIL_THRESHOLDS: Record<string, number> = {
+  style_match: 70,
+  anonymity: 70,
 };
 
 function weightedScore(scores: Record<string, number>): number {
