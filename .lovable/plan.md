@@ -1,48 +1,33 @@
-## Problème
+## Conseil sur Aperçu vs HD
 
-Les infobulles sur les boutons « Enregistrer » et « Enregistrer + re-déduire » n'apparaissent pas dans le panneau « Contexte psychosocial » d'Avatar Studio. Deux causes probables :
+**Recommandation : garder les deux**, mais en clarifiant les rôles.
 
-1. Le panneau est rendu à l'intérieur d'une `Popover` Radix. Un `Tooltip` Radix imbriqué dans une `Popover` est rendu dans un autre portail dont le z-index passe **en-dessous** du contenu Popover ouvert → la bulle existe dans le DOM mais reste invisible.
-2. Même si elles s'affichaient, le survol n'est pas un mode de découverte adapté pour des actions admin à fort impact (publication sur la fiche publique).
+- **Aperçu (Nano Banana 2)** : rapide (~3s) et peu coûteux. Sert à itérer sur le prompt, tester une posture, valider un cadrage. C'est l'outil de travail.
+- **HD (Nano Banana Pro)** : plus lent et plus cher. Sert à produire le portrait final approuvable.
 
-## Solution
+Les supprimer reviendrait soit à brûler des crédits HD à chaque essai, soit à priver l'équipe de la qualité finale. Le sélecteur "Modèle" juste à côté fait déjà doublon — c'est lui qu'on peut retirer (le bouton choisit déjà la qualité).
 
-Remplacer le pattern « tooltip au survol » par une **aide pédagogique inline toujours visible**, plus un comportement de découverte progressive :
+Petit ajustement proposé : retirer le sélecteur "Modèle" devenu redondant et garder les deux boutons **Aperçu** / **HD** avec leur sémantique actuelle.
 
-### 1. Bloc d'aide toujours visible
-Sous les deux boutons (uniquement quand `dirty === true`), afficher un petit bloc info compact en deux colonnes :
+## Unification des boutons workflow
 
-```
-┌──────────────────────────┬──────────────────────────┐
-│ 💾 Enregistrer            │ ✨ Enregistrer + re-déduire│
-│ Sauvegarde uniquement     │ Sauvegarde + recalcule    │
-│ les textes. Les attributs │ tous les attributs visuels│
-│ visuels restent inchangés.│ (expression, posture…).   │
-└──────────────────────────┴──────────────────────────┘
-```
+Remplacer les trois boutons **Approuver / Verrouiller / Déverr.** par **un seul bouton contextuel** qui change de libellé, d'icône et d'action selon l'état actuel :
 
-- Texte 10–11px, `text-muted-foreground`, icônes assorties aux boutons.
-- Sur mobile, passage en stack vertical.
-- Toujours visible dès qu'il y a une modification → impossible à manquer.
+| État actuel    | Bouton affiché                  | Action            |
+|----------------|----------------------------------|-------------------|
+| `draft`        | « Approuver » (désactivé + tooltip explicatif) | — |
+| `generated`    | « Approuver » (ShieldCheck, primary) | → `approved` |
+| `approved`     | « Verrouiller » (Lock, secondary) | → `locked` |
+| `locked`       | « Déverrouiller » (Unlock, outline) | → `draft` |
 
-### 2. Avertissement régénération
-Sous le bloc info, une ligne unique en jaune ambré :
+Un second bouton secondaire **« Revenir en arrière »** (icône Undo, petit, ghost) apparaît à droite quand l'état est `approved` (retour à `generated` via `setWorkflow("generated")`) ou `locked` (passe par déverrouillage). Cela remplace la fonction du bouton Déverr. tout en gardant un seul bouton principal mis en avant.
 
-> ⚠️ L'avatar existant n'est pas régénéré automatiquement — cliquez sur « Générer » après pour produire un nouveau portrait.
+Layout : `flex gap-1.5` avec le bouton principal en `flex-1` et le secondaire en taille auto, au lieu de l'actuelle grille à 3 colonnes.
 
-### 3. Suppression des tooltips Radix
-Retirer le `TooltipProvider` + `Tooltip` + `TooltipTrigger` + `TooltipContent` du fichier (cause du bug + redondants avec le bloc inline).
+## Fichier modifié
 
-## Modifications
+- `src/pages/AvatarStudio.tsx` (lignes 628–729) :
+  - retirer le `<Select>` Modèle (lignes 629–638) et faire passer la rangée à `grid-cols-[1fr_1fr_auto]` pour Aperçu / HD / Importer
+  - remplacer le bloc `(() => { ... })()` workflow (lignes 677–729) par le bouton contextuel unique décrit ci-dessus, en réutilisant `workflowHint` pour les tooltips
 
-**`src/features/avatar-studio/ContextPanel.tsx`** (seul fichier touché)
-- Supprimer l'import et l'usage de `Tooltip*`.
-- Garder les boutons simples (sans `TooltipTrigger asChild`).
-- Ajouter sous les boutons un `<div>` en grille 2 colonnes (`grid grid-cols-1 sm:grid-cols-2 gap-2`) avec le contenu pédagogique.
-- Ajouter en-dessous la ligne d'avertissement régénération.
-
-## Hors périmètre
-
-- Pas de changement de la `AlertDialog` de confirmation (déjà claire).
-- Pas de changement de `AvatarStudio.tsx`.
-- Pas de changement d'autres composants Avatar Studio.
+Aucune modification backend, aucun changement de logique métier — uniquement présentation.
