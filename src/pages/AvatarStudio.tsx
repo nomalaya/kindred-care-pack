@@ -625,21 +625,11 @@ const AvatarStudio = () => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-[1fr_auto_auto] gap-1.5 items-end">
-                  <div>
-                    <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Modèle</Label>
-                    <Select value={modelChoice} onValueChange={(v: any) => setModelChoice(v)}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="preview">Nano Banana 2 (rapide)</SelectItem>
-                        <SelectItem value="final">Nano Banana Pro (HD)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button onClick={() => generate("preview")} variant="outline" size="sm" disabled={!!busy || isLocked || dignityBlocked} title="P (raccourci)" aria-label="Générer un aperçu rapide">
+                <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-end">
+                  <Button onClick={() => generate("preview")} variant="outline" size="sm" disabled={!!busy || isLocked || dignityBlocked} title="Nano Banana 2 — rapide & économique (P)" aria-label="Générer un aperçu rapide">
                     <RefreshCw className="h-3.5 w-3.5 mr-1" />Aperçu
                   </Button>
-                  <Button onClick={() => generate("final")} size="sm" disabled={!!busy || isLocked || dignityBlocked} title="G (raccourci)" aria-label="Générer le portrait HD">
+                  <Button onClick={() => generate("final")} size="sm" disabled={!!busy || isLocked || dignityBlocked} title="Nano Banana Pro — qualité finale (G)" aria-label="Générer le portrait HD">
                     <Sparkles className="h-3.5 w-3.5 mr-1" />HD
                   </Button>
                   <input
@@ -671,59 +661,61 @@ const AvatarStudio = () => {
                     <div>Dignité {selected.avatar_dignity_level}/5 — génération bloquée. Augmentez le niveau dans l'onglet Social.</div>
                   </div>
                 )}
-
-
-                {/* Workflow row */}
+                {/* Workflow — bouton contextuel unique */}
                 {(() => {
                   const ws = (selected.avatar_workflow_status || "draft") as WorkflowStatus;
                   const hasImage = !!(selected.avatar_url || selected.avatar_preview_url);
-                  const approveHint = workflowHint("approve", ws, hasImage);
-                  const lockHint = workflowHint("lock", ws, hasImage);
-                  const unlockHint = workflowHint("unlock", ws, hasImage);
-                  const wrap = (hint: string | null, disabled: boolean, node: React.ReactNode) =>
-                    hint ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span tabIndex={0} className="inline-block">{node}</span>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-xs">{hint}</TooltipContent>
-                      </Tooltip>
-                    ) : node;
+
+                  type Cfg = { label: string; icon: LucideIcon; variant: "default" | "secondary" | "outline"; onClick: () => void; hint: string | null };
+                  let main: Cfg;
+                  if (ws === "approved") {
+                    main = { label: "Verrouiller", icon: Lock, variant: "secondary", onClick: () => setWorkflow("locked"), hint: workflowHint("lock", ws, hasImage) };
+                  } else if (ws === "locked") {
+                    main = { label: "Déverrouiller", icon: Unlock, variant: "outline", onClick: () => setWorkflow("draft"), hint: workflowHint("unlock", ws, hasImage) };
+                  } else {
+                    main = { label: "Approuver", icon: ShieldCheck, variant: "default", onClick: () => setWorkflow("approved"), hint: workflowHint("approve", ws, hasImage) };
+                  }
+
+                  const showUndo = ws === "approved";
+                  const MainIcon = main.icon;
+
+                  const mainBtn = (
+                    <Button
+                      onClick={main.onClick}
+                      size="sm"
+                      variant={main.variant}
+                      disabled={!!main.hint}
+                      className="flex-1"
+                    >
+                      <MainIcon className="h-3.5 w-3.5 mr-1" />{main.label}
+                    </Button>
+                  );
+
                   return (
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {wrap(approveHint, !!approveHint, (
-                        <Button
-                          onClick={() => setWorkflow("approved")}
-                          size="sm"
-                          variant={ws === "generated" ? "default" : "outline"}
-                          disabled={!!approveHint}
-                          className="w-full"
-                        >
-                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />Approuver
-                        </Button>
-                      ))}
-                      {wrap(lockHint, !!lockHint, (
-                        <Button
-                          onClick={() => setWorkflow("locked")}
-                          size="sm"
-                          variant={ws === "approved" ? "secondary" : "outline"}
-                          disabled={!!lockHint}
-                          className="w-full"
-                        >
-                          <Lock className="h-3.5 w-3.5 mr-1" />Verrouiller
-                        </Button>
-                      ))}
-                      {wrap(unlockHint, !!unlockHint, (
-                        <Button
-                          onClick={() => setWorkflow("draft")}
-                          size="sm"
-                          variant="outline"
-                          disabled={!!unlockHint}
-                          className="w-full"
-                        >
-                          <Unlock className="h-3.5 w-3.5 mr-1" />Déverr.
-                        </Button>
-                      ))}
+                    <div className="flex gap-1.5">
+                      {main.hint ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span tabIndex={0} className="flex-1 inline-flex">{mainBtn}</span>
+                          </TooltipTrigger>
+                          <TooltipContent className="text-xs">{main.hint}</TooltipContent>
+                        </Tooltip>
+                      ) : mainBtn}
+                      {showUndo && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              onClick={() => setWorkflow("generated")}
+                              size="sm"
+                              variant="ghost"
+                              aria-label="Revenir à l'état généré"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="text-xs">Revenir en arrière (retirer l'approbation)</TooltipContent>
+                        </Tooltip>
+                      )}
                     </div>
                   );
                 })()}
