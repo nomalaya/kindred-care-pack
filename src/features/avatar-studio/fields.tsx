@@ -145,10 +145,7 @@ export function FieldLabel({
   const color = accentToken ? `hsl(var(${accentToken}))` : undefined;
   return (
     <div className="flex items-center justify-between gap-2">
-      <Label
-        className="text-xs font-medium flex items-center gap-1.5"
-        style={color ? { color } : undefined}
-      >
+      <Label className="text-xs font-medium flex items-center gap-1.5">
         {Icon && <Icon className="h-4 w-4 shrink-0" style={color ? { color } : undefined} />}
         <span>{children}</span>
         <InferredPastille reasons={reasons} />
