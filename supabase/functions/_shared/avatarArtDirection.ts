@@ -126,6 +126,9 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
 
   // Studio extensions — appended only when set
   const extras: string[] = [];
+  if (t.avatar_body_type && BODY_TYPE_DESC[t.avatar_body_type] && t.avatar_body_type !== "average") {
+    extras.push(BODY_TYPE_DESC[t.avatar_body_type]);
+  }
   if ((t.avatar_tired_level ?? 0) >= 3) extras.push("noticeably tired eyes");
   else if ((t.avatar_tired_level ?? 0) >= 1) extras.push("slight tiredness in the eyes");
   if ((t.avatar_emotional_brightness ?? 3) <= 1) extras.push("low emotional brightness, subdued gaze");
