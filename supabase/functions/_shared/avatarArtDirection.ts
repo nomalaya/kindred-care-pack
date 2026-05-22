@@ -147,6 +147,15 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
   if ((t.avatar_fatigue_level ?? 0) >= 3) extras.push("visible but dignified fatigue in the face");
   if ((t.avatar_resilience_level ?? 3) >= 4) extras.push("quiet inner strength conveyed in the posture");
 
+  const PARENT_ENERGY: Record<string, string> = {
+    protective_parent: "warm protective parental presence, gentle but watchful",
+    practical_parent: "calm grounded parental presence, focused and capable",
+    tired_but_warm_parent: "weary parental presence softened by warmth and tenderness",
+  };
+  if (t.avatar_parent_energy && t.avatar_parent_energy !== "none" && PARENT_ENERGY[t.avatar_parent_energy]) {
+    extras.push(PARENT_ENERGY[t.avatar_parent_energy]);
+  }
+
   const MOBILITY: Record<string, string> = {
     wheelchair_electric: "seated in a modern electric wheelchair with discreet controls, hands resting calmly on the armrests, dignified upright posture",
     wheelchair_manual: "seated in a simple manual wheelchair, hands resting on the lap, dignified posture",
