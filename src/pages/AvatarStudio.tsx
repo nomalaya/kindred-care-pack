@@ -1044,7 +1044,6 @@ const AvatarStudio = () => {
                               <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Posture</div>
                               <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                                 <SelectField icon={FIELD_ICONS.avatar_posture} label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_posture} labelFor={labelFor("posture")} />
-                                <SelectField icon={FIELD_ICONS.avatar_body_type} label={FIELD_LABELS.avatar_body_type} value={(selected as any).avatar_body_type} options={AVATAR_VOCAB.body_type} onChange={v => patch({ avatar_body_type: v } as any)} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_body_type} labelFor={labelFor("body_type")} />
                                 <SelectField icon={FIELD_ICONS.avatar_mobility_aid} label={FIELD_LABELS.avatar_mobility_aid} value={selected.avatar_mobility_aid ?? "none"} options={AVATAR_VOCAB.mobility_aid} onChange={v => patch({ avatar_mobility_aid: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_mobility_aid} labelFor={labelFor("mobility_aid")} />
 
                                 <SliderField icon={Sparkles} label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_resilience_level} />
