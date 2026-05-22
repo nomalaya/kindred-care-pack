@@ -21,6 +21,8 @@ import { inferStudioDefaultsWithReasons, type FieldReason } from "@/lib/avatarAu
 import { ContextPanel } from "@/features/avatar-studio/ContextPanel";
 import { InferenceReasonsPanel } from "@/features/avatar-studio/InferenceReasonsPanel";
 import { BeneficiaryListPanel } from "@/features/avatar-studio/BeneficiaryListPanel";
+import { BatchActionsBar, type BatchProgress } from "@/features/avatar-studio/BatchActionsBar";
+import { computePrefillPatch, selectBatchPool, chunk, type BatchScope } from "@/features/avatar-studio/batchPrefill";
 import { RuleList } from "@/features/avatar-studio/RuleList";
 import { SectionAccordion, type SectionDef } from "@/features/avatar-studio/SectionAccordion";
 import {
@@ -196,22 +198,8 @@ const AvatarStudio = () => {
     if (mode === "force" && !confirm("Re-déduire et écraser tous les attributs avatar à partir du récit ? Les modifications manuelles seront perdues.")) {
       return;
     }
-    const { values, reasons } = inferStudioDefaultsWithReasons(selected);
-    let toApply: Record<string, any> = values;
-    if (mode === "fill") {
-      toApply = Object.fromEntries(
-        Object.entries(values).filter(([k, v]) => {
-          const cur = (selected as any)[k];
-          if (cur === null || cur === undefined || cur === "" || cur === "none") return true;
-          // Si la valeur courante n'appartient pas au vocabulaire (ex: legacy "20-30"),
-          // on la considère vide pour pouvoir la remplacer.
-          const vocabKey = k.replace(/^avatar_/, "") as keyof typeof AVATAR_VOCAB;
-          const vocab = (AVATAR_VOCAB as any)[vocabKey];
-          if (Array.isArray(vocab) && typeof cur === "string" && !vocab.includes(cur)) return true;
-          return false;
-        }),
-      );
-    }
+    const { reasons } = inferStudioDefaultsWithReasons(selected);
+    const toApply: Record<string, any> = computePrefillPatch(selected, mode);
 
     if (Object.keys(toApply).length === 0) {
       toast.info("Aucun champ vide à pré-remplir. Utilisez « Tout re-déduire » pour écraser.");
@@ -293,6 +281,84 @@ const AvatarStudio = () => {
       toast.error("Erreur : " + (e.message || "échec"));
       setBusy(null);
     }
+  };
+
+  // ===== Batch : Pré-remplir + Générer =====
+  const [batchProgress, setBatchProgress] = useState<BatchProgress>({ done: 0, total: 0, failed: 0, running: false });
+  const batchAbortRef = useRef(false);
+
+  const runBatchPrefillAndGenerate = async (opts: {
+    scope: BatchScope; mode: "fill" | "force"; chunkSize: number; maxItems: number;
+  }) => {
+    const { eligible } = selectBatchPool(filtered, opts.scope);
+    const targets = eligible.slice(0, opts.maxItems);
+    if (targets.length === 0) {
+      toast.info("Aucun bénéficiaire éligible.");
+      return;
+    }
+    batchAbortRef.current = false;
+    setBatchProgress({ done: 0, total: targets.length, failed: 0, running: true });
+    toast.info(`Lot lancé sur ${targets.length} bénéficiaire(s).`);
+
+    let done = 0;
+    let failed = 0;
+
+    for (const group of chunk(targets, opts.chunkSize)) {
+      if (batchAbortRef.current) break;
+
+      // 1) Pré-remplissage : UPDATE par bénéficiaire (uniquement si patch non vide)
+      const updates = await Promise.all(group.map(async (b) => {
+        try {
+          const patchObj = computePrefillPatch(b, opts.mode);
+          if (Object.keys(patchObj).length > 0) {
+            const { error } = await supabase.from("beneficiaries").update(patchObj as any).eq("id", b.id);
+            if (error) throw error;
+            setBeneficiaries(prev => prev.map(x => x.id === b.id ? { ...x, ...patchObj } : x));
+          }
+          return { id: b.id, ok: true };
+        } catch (e) {
+          return { id: b.id, ok: false };
+        }
+      }));
+
+      const okIds = updates.filter(u => u.ok).map(u => u.id);
+      failed += updates.length - okIds.length;
+
+      // 2) Marquer pending + déclencher la génération HD pour le paquet
+      if (okIds.length > 0) {
+        try {
+          await supabase.from("beneficiaries").update({ avatar_status: "pending" } as any).in("id", okIds);
+          setBeneficiaries(prev => prev.map(b => okIds.includes(b.id) ? { ...b, avatar_status: "pending" } : b));
+          const { error } = await supabase.functions.invoke("generate-avatar-batch", {
+            body: { beneficiary_ids: okIds, mode: "final" },
+          });
+          if (error) {
+            failed += okIds.length;
+          } else {
+            done += okIds.length;
+          }
+        } catch {
+          failed += okIds.length;
+        }
+      }
+
+      setBatchProgress(p => ({ ...p, done: done, failed }));
+      // léger délai pour soulager l'edge function
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    setBatchProgress(p => ({ ...p, running: false }));
+    if (batchAbortRef.current) {
+      toast.warning(`Lot interrompu — ${done}/${targets.length} traité(s), ${failed} échec(s).`);
+    } else {
+      toast.success(`Lot terminé — ${done}/${targets.length} traité(s)${failed > 0 ? `, ${failed} échec(s)` : ""}.`);
+    }
+    refresh();
+  };
+
+  const stopBatch = () => {
+    batchAbortRef.current = true;
+    toast.info("Arrêt demandé — le paquet en cours va se terminer.");
   };
 
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -537,6 +603,13 @@ const AvatarStudio = () => {
               })}
             </div>
 
+
+            <BatchActionsBar
+              pool={filtered}
+              progress={batchProgress}
+              onLaunch={runBatchPrefillAndGenerate}
+              onStop={stopBatch}
+            />
 
             <Button variant="ghost" size="sm" onClick={refresh}><RefreshCw className="h-3.5 w-3.5" /></Button>
 
