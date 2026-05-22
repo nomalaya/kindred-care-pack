@@ -909,7 +909,7 @@ const AvatarStudio = () => {
 
                     const faceKeys = [
                       "avatar_gender", "avatar_age_range", "avatar_face_shape",
-                      "avatar_skin_tone", "avatar_expression",
+                      "avatar_skin_tone", "avatar_body_type", "avatar_expression",
                       "avatar_eye_shape", "avatar_eye_color",
                     ];
                     const hairKeys = [
@@ -919,7 +919,7 @@ const AvatarStudio = () => {
                     ];
                     const clothingKeys = [
                       "avatar_clothing_style", "avatar_clothing_color_palette",
-                      "avatar_posture", "avatar_body_type", "avatar_mobility_aid",
+                      "avatar_posture", "avatar_mobility_aid",
                     ];
 
                     const culturalKeys = ["avatar_head_covering", "avatar_cultural_style_override"];
@@ -943,6 +943,7 @@ const AvatarStudio = () => {
                                 <SelectField icon={FIELD_ICONS.avatar_age_range} label={FIELD_LABELS.avatar_age_range} value={selected.avatar_age_range} options={AVATAR_VOCAB.age_range} onChange={v => patch({ avatar_age_range: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_age_range} labelFor={labelFor("age_range")} />
                                 <SelectField icon={FIELD_ICONS.avatar_face_shape} label={FIELD_LABELS.avatar_face_shape} value={selected.avatar_face_shape} options={AVATAR_VOCAB.face_shape} onChange={v => patch({ avatar_face_shape: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_face_shape} labelFor={labelFor("face_shape")} />
                                 <SelectField icon={FIELD_ICONS.avatar_skin_tone} label={FIELD_LABELS.avatar_skin_tone} value={selected.avatar_skin_tone} options={AVATAR_VOCAB.skin_tone} onChange={v => patch({ avatar_skin_tone: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_skin_tone} labelFor={labelFor("skin_tone")} />
+                                <SelectField icon={FIELD_ICONS.avatar_body_type} label={FIELD_LABELS.avatar_body_type} value={(selected as any).avatar_body_type} options={AVATAR_VOCAB.body_type} onChange={v => patch({ avatar_body_type: v } as any)} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_body_type} labelFor={labelFor("body_type")} />
                                 <SelectField icon={FIELD_ICONS.avatar_expression} label={FIELD_LABELS.avatar_expression} value={selected.avatar_expression} options={AVATAR_VOCAB.expression} onChange={v => patch({ avatar_expression: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_expression} labelFor={labelFor("expression")} />
                               </div>
                               <RuleList warnings={sectionWarnings("face")} onApply={applySuggestion} />
@@ -1043,7 +1044,6 @@ const AvatarStudio = () => {
                               <div className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">Posture</div>
                               <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                                 <SelectField icon={FIELD_ICONS.avatar_posture} label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_posture} labelFor={labelFor("posture")} />
-                                <SelectField icon={FIELD_ICONS.avatar_body_type} label={FIELD_LABELS.avatar_body_type} value={(selected as any).avatar_body_type} options={AVATAR_VOCAB.body_type} onChange={v => patch({ avatar_body_type: v } as any)} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_body_type} labelFor={labelFor("body_type")} />
                                 <SelectField icon={FIELD_ICONS.avatar_mobility_aid} label={FIELD_LABELS.avatar_mobility_aid} value={selected.avatar_mobility_aid ?? "none"} options={AVATAR_VOCAB.mobility_aid} onChange={v => patch({ avatar_mobility_aid: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_mobility_aid} labelFor={labelFor("mobility_aid")} />
 
                                 <SliderField icon={Sparkles} label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_resilience_level} />

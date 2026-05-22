@@ -49,6 +49,7 @@ export interface BeneficiaryInput {
   avatar_fatigue_level?: number | null;
   avatar_dignity_level?: number | null;
   avatar_mobility_aid?: string | null;
+  avatar_body_type?: string | null;
 }
 
 export interface AvatarTraits {
@@ -84,6 +85,7 @@ export interface AvatarTraits {
   avatar_fatigue_level?: number;
   avatar_dignity_level?: number;
   avatar_mobility_aid?: string;
+  avatar_body_type?: string;
 }
 
 // FNV-1a 32-bit hash — deterministic seed from beneficiary id
@@ -477,5 +479,6 @@ export function inferAvatarTraits(b: BeneficiaryInput): AvatarTraits {
     avatar_fatigue_level: b.avatar_fatigue_level ?? undefined,
     avatar_dignity_level: b.avatar_dignity_level ?? undefined,
     avatar_mobility_aid: b.avatar_mobility_aid ?? undefined,
+    avatar_body_type: b.avatar_body_type ?? undefined,
   };
 }

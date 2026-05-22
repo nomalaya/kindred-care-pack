@@ -1,64 +1,50 @@
-## Objectif
+## Problèmes
 
-Ajouter un critère **Corpulence** (`avatar_body_type`) dans Avatar Studio, avec 5 niveaux, sans alourdir l'interface — il s'insère naturellement dans la section existante « Vêtements & posture » (qui parle déjà du corps).
+1. Le champ **Corpulence** est dans la section « Vêtements & posture » alors qu'il devrait être dans « Visage & regard ».
+2. La valeur sélectionnée pour `avatar_body_type` est bien sauvegardée en base, mais elle n'est **jamais injectée dans le prompt** envoyé au modèle d'image — l'image ignore donc complètement ce critère.
 
-## 1. Base de données
+## Modifications
 
-Migration : ajout d'une colonne nullable `avatar_body_type text` sur `beneficiaries`. Pas de défaut (laissé vide → champ « Pré-remplir » peut le compléter plus tard si on le souhaite ; pour l'instant pas d'inférence automatique).
+### 1. Déplacer Corpulence dans « Visage & regard »
 
-## 2. Vocabulaire technique
+**`src/pages/AvatarStudio.tsx`**
+- Retirer `"avatar_body_type"` de `clothingKeys` (ligne 922).
+- Ajouter `"avatar_body_type"` à `faceKeys` (la liste utilisée par la section « Visage »).
+- Retirer le `<SelectField>` Corpulence du bloc « Posture » (ligne 1046).
+- Ajouter le `<SelectField>` Corpulence dans le bloc « Visage » (après Teint, avant Expression), même props :
+  `icon={FIELD_ICONS.avatar_body_type}`, `accentToken={FIELD_ACCENT.avatar_body_type}`, `labelFor={labelFor("body_type")}`.
 
-Dans `src/lib/avatarTraits.ts`, ajout à `AVATAR_VOCAB` :
+Pas de changement sur les couleurs ni les pictos déjà définis.
 
-```
-body_type: ["very_thin", "thin", "average", "chubby", "heavy"]
-```
+### 2. Faire en sorte que Corpulence influence réellement l'avatar
 
-Clés techniques en anglais (cohérent avec le reste : `gender`, `skin_tone`…). Le moteur d'inférence et les règles ne sont pas modifiés.
+**`supabase/functions/_shared/avatarTraits.ts`**
+- Ajouter `avatar_body_type?: string | null` dans `BeneficiaryInput`.
+- Ajouter `avatar_body_type?: string` dans `AvatarTraits`.
+- Dans `inferAvatarTraits`, ajouter le pass-through : `avatar_body_type: b.avatar_body_type ?? undefined`.
 
-## 3. Traduction française fine
+**`supabase/functions/_shared/avatarArtDirection.ts`**
+- Ajouter une table de descriptions :
+  ```ts
+  const BODY_TYPE_DESC: Record<string, string> = {
+    very_thin:  "very slender, slim build, narrow shoulders and thin face",
+    thin:       "slim build, lean face",
+    average:    "average build",
+    chubby:     "slightly heavier build, rounder face and softer features",
+    heavy:      "noticeably heavier build, fuller face, rounded cheeks and broader shoulders",
+  };
+  ```
+- Dans `buildAvatarPrompt`, après la construction de `subject`, pousser dans `extras` :
+  ```ts
+  if (t.avatar_body_type && BODY_TYPE_DESC[t.avatar_body_type] && t.avatar_body_type !== "average") {
+    extras.push(BODY_TYPE_DESC[t.avatar_body_type]);
+  }
+  ```
+  (On exclut `average` car neutre.) Pour `heavy` / `chubby`, l'instruction sur le visage et les épaules force le modèle à modifier morphologie ET visage, ce qui corrige le cas Nguyen.
 
-Dans `src/lib/avatarVocabLabels.ts`, ajout d'une entrée `body_type` :
+### Hors périmètre
 
-```
-very_thin → Très mince
-thin      → Mince
-average   → Corpulence moyenne
-chubby    → Légèrement enveloppée
-heavy     → Forte corpulence
-```
-
-(formulations neutres et respectueuses, conformes à l'esprit dignité de l'app)
-
-## 4. Habillage visuel
-
-Dans `src/features/avatar-studio/fields.tsx` :
-
-- `FIELD_LABELS.avatar_body_type = "Corpulence"`
-- `FIELD_ICONS.avatar_body_type = Scale` (picto inédit, distinct des autres)
-- `FIELD_ACCENT.avatar_body_type = "--field-build"`
-
-Dans `src/index.css`, nouveau token de couleur bien séparé des autres :
-
-```
---field-build: 110 35% 38%;   /* vert mousse, clair/sombre */
---field-build (dark): 110 40% 62%;
-```
-
-## 5. Intégration dans l'UI
-
-Dans `src/pages/AvatarStudio.tsx` :
-
-- Ajout du champ dans la section **« Vêtements & posture »** (juste après `avatar_posture`, avant `avatar_mobility_aid`), en `<SelectField>` standard avec `accentToken` + `labelFor("body_type")`.
-- Mise à jour du tableau `postureKeys` (ou équivalent utilisé pour le compteur de complétion de la section) afin que la corpulence soit comptée.
-
-## 6. Hors périmètre
-
-- Pas de changement de l'edge function `generate-avatar` (le prompt visuel pourra être enrichi dans un second temps si besoin).
-- Pas d'auto-inférence à partir du récit (la corpulence est rarement décrite explicitement et toute heuristique serait fragile/intrusive).
-- Pas de règle dans `evaluateAvatarRules` pour l'instant.
-
-## Fichiers touchés
-
-- **migration SQL** (nouvelle colonne)
-- **édités** : `src/lib/avatarTraits.ts`, `src/lib/avatarVocabLabels.ts`, `src/features/avatar-studio/fields.tsx`, `src/index.css`, `src/pages/AvatarStudio.tsx`
+- Pas de changement de schéma BDD (`avatar_body_type` existe déjà).
+- Pas de modification du moteur de matching, ni de `composeBasket`, ni d'`evaluateAvatarRules`.
+- Pas d'auto-inférence : la corpulence reste un champ manuel.
+- L'utilisateur devra cliquer sur « Générer » à nouveau pour voir l'effet sur les avatars existants (les anciens PNG ne sont pas régénérés automatiquement).
