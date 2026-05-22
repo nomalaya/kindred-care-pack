@@ -35,7 +35,7 @@ import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
   Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
-  BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown,
+  BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown, ExternalLink,
 } from "lucide-react";
 
 type Beneficiary = any;
