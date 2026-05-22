@@ -85,6 +85,7 @@ export interface AvatarTraits {
   avatar_fatigue_level?: number;
   avatar_dignity_level?: number;
   avatar_mobility_aid?: string;
+  avatar_body_type?: string;
 }
 
 // FNV-1a 32-bit hash — deterministic seed from beneficiary id
