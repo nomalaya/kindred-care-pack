@@ -198,22 +198,8 @@ const AvatarStudio = () => {
     if (mode === "force" && !confirm("Re-déduire et écraser tous les attributs avatar à partir du récit ? Les modifications manuelles seront perdues.")) {
       return;
     }
-    const { values, reasons } = inferStudioDefaultsWithReasons(selected);
-    let toApply: Record<string, any> = values;
-    if (mode === "fill") {
-      toApply = Object.fromEntries(
-        Object.entries(values).filter(([k, v]) => {
-          const cur = (selected as any)[k];
-          if (cur === null || cur === undefined || cur === "" || cur === "none") return true;
-          // Si la valeur courante n'appartient pas au vocabulaire (ex: legacy "20-30"),
-          // on la considère vide pour pouvoir la remplacer.
-          const vocabKey = k.replace(/^avatar_/, "") as keyof typeof AVATAR_VOCAB;
-          const vocab = (AVATAR_VOCAB as any)[vocabKey];
-          if (Array.isArray(vocab) && typeof cur === "string" && !vocab.includes(cur)) return true;
-          return false;
-        }),
-      );
-    }
+    const { reasons } = inferStudioDefaultsWithReasons(selected);
+    const toApply: Record<string, any> = computePrefillPatch(selected, mode);
 
     if (Object.keys(toApply).length === 0) {
       toast.info("Aucun champ vide à pré-remplir. Utilisez « Tout re-déduire » pour écraser.");
