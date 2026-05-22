@@ -297,6 +297,84 @@ const AvatarStudio = () => {
     }
   };
 
+  // ===== Batch : Pré-remplir + Générer =====
+  const [batchProgress, setBatchProgress] = useState<BatchProgress>({ done: 0, total: 0, failed: 0, running: false });
+  const batchAbortRef = useRef(false);
+
+  const runBatchPrefillAndGenerate = async (opts: {
+    scope: BatchScope; mode: "fill" | "force"; chunkSize: number; maxItems: number;
+  }) => {
+    const { eligible } = selectBatchPool(filtered, opts.scope);
+    const targets = eligible.slice(0, opts.maxItems);
+    if (targets.length === 0) {
+      toast.info("Aucun bénéficiaire éligible.");
+      return;
+    }
+    batchAbortRef.current = false;
+    setBatchProgress({ done: 0, total: targets.length, failed: 0, running: true });
+    toast.info(`Lot lancé sur ${targets.length} bénéficiaire(s).`);
+
+    let done = 0;
+    let failed = 0;
+
+    for (const group of chunk(targets, opts.chunkSize)) {
+      if (batchAbortRef.current) break;
+
+      // 1) Pré-remplissage : UPDATE par bénéficiaire (uniquement si patch non vide)
+      const updates = await Promise.all(group.map(async (b) => {
+        try {
+          const patchObj = computePrefillPatch(b, opts.mode);
+          if (Object.keys(patchObj).length > 0) {
+            const { error } = await supabase.from("beneficiaries").update(patchObj as any).eq("id", b.id);
+            if (error) throw error;
+            setBeneficiaries(prev => prev.map(x => x.id === b.id ? { ...x, ...patchObj } : x));
+          }
+          return { id: b.id, ok: true };
+        } catch (e) {
+          return { id: b.id, ok: false };
+        }
+      }));
+
+      const okIds = updates.filter(u => u.ok).map(u => u.id);
+      failed += updates.length - okIds.length;
+
+      // 2) Marquer pending + déclencher la génération HD pour le paquet
+      if (okIds.length > 0) {
+        try {
+          await supabase.from("beneficiaries").update({ avatar_status: "pending" } as any).in("id", okIds);
+          setBeneficiaries(prev => prev.map(b => okIds.includes(b.id) ? { ...b, avatar_status: "pending" } : b));
+          const { error } = await supabase.functions.invoke("generate-avatar-batch", {
+            body: { beneficiary_ids: okIds, mode: "final" },
+          });
+          if (error) {
+            failed += okIds.length;
+          } else {
+            done += okIds.length;
+          }
+        } catch {
+          failed += okIds.length;
+        }
+      }
+
+      setBatchProgress(p => ({ ...p, done: done, failed }));
+      // léger délai pour soulager l'edge function
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    setBatchProgress(p => ({ ...p, running: false }));
+    if (batchAbortRef.current) {
+      toast.warning(`Lot interrompu — ${done}/${targets.length} traité(s), ${failed} échec(s).`);
+    } else {
+      toast.success(`Lot terminé — ${done}/${targets.length} traité(s)${failed > 0 ? `, ${failed} échec(s)` : ""}.`);
+    }
+    refresh();
+  };
+
+  const stopBatch = () => {
+    batchAbortRef.current = true;
+    toast.info("Arrêt demandé — le paquet en cours va se terminer.");
+  };
+
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleImportFile = async (file: File) => {
