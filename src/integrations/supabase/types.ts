@@ -86,6 +86,7 @@ export type Database = {
           avatar_parent_energy: string | null
           avatar_posture: string | null
           avatar_preview_url: string | null
+          avatar_private_notes: string | null
           avatar_prompt: string | null
           avatar_qa_report: Json | null
           avatar_qa_score: number | null
@@ -168,6 +169,7 @@ export type Database = {
           avatar_parent_energy?: string | null
           avatar_posture?: string | null
           avatar_preview_url?: string | null
+          avatar_private_notes?: string | null
           avatar_prompt?: string | null
           avatar_qa_report?: Json | null
           avatar_qa_score?: number | null
@@ -250,6 +252,7 @@ export type Database = {
           avatar_parent_energy?: string | null
           avatar_posture?: string | null
           avatar_preview_url?: string | null
+          avatar_private_notes?: string | null
           avatar_prompt?: string | null
           avatar_qa_report?: Json | null
           avatar_qa_score?: number | null

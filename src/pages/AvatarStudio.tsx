@@ -914,6 +914,7 @@ const AvatarStudio = () => {
                         <ContextPanel
                           shortStory={selected.short_story ?? null}
                           emotionalSentence={selected.emotional_sentence ?? null}
+                          privateNotes={(selected as any).avatar_private_notes ?? null}
                           disabled={isLocked}
                           onSave={async (p) => {
                             const { error } = await supabase.from("beneficiaries").update(p as any).eq("id", selected.id);

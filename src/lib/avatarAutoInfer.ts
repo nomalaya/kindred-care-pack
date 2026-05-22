@@ -18,6 +18,7 @@ export interface InferInput {
   urgency_level?: number | null;
   short_story?: string | null;
   emotional_sentence?: string | null;
+  avatar_private_notes?: string | null;
   culture_tags?: string[] | null;
 }
 
@@ -127,8 +128,9 @@ const max = (a: number | undefined, b: number) => Math.max(a ?? 0, b);
 const min = (a: number | undefined, b: number) => Math.min(a ?? 5, b);
 
 export function inferStudioDefaultsWithReasons(b: InferInput): InferenceResult {
-  const rawText = `${b.short_story ?? ""} ${b.emotional_sentence ?? ""}`;
+  const rawText = `${b.short_story ?? ""} ${b.emotional_sentence ?? ""} ${b.avatar_private_notes ?? ""}`;
   const text = norm(rawText);
+  const privateText = norm(b.avatar_private_notes ?? "");
   const age = b.approx_age ?? 35;
   const children = b.children_count ?? 0;
   const urgency = b.urgency_level ?? 0;
@@ -337,6 +339,89 @@ export function inferStudioDefaultsWithReasons(b: InferInput): InferenceResult {
     values.avatar_moustache = "none";
     values.avatar_bald_level = age >= 60 ? 35 : age >= 45 ? 15 : 0;
     values.avatar_hair_recession = age >= 50 ? "moderate" : age >= 35 ? "light" : "none";
+  }
+
+  // --- Signaux factuels (issus principalement des notes privées admin) ---
+  // Couleur des yeux
+  const eyeMap: Array<[RegExp, string]> = [
+    [/yeux\s+(?:tres\s+)?noirs?/, "dark_brown"],
+    [/yeux\s+marron\s+fonces?|yeux\s+brun\s+fonce/, "dark_brown"],
+    [/yeux\s+marrons?|yeux\s+bruns?/, "brown"],
+    [/yeux\s+noisettes?/, "hazel"],
+    [/yeux\s+verts?/, "green"],
+    [/yeux\s+bleus?/, "blue"],
+    [/yeux\s+gris/, "gray"],
+  ];
+  for (const [re, val] of eyeMap) {
+    const m = text.match(re);
+    if (m) {
+      values.avatar_eye_color = val;
+      reasons.avatar_eye_color = [{ signal: "private_note", signalLabel: "Note privée", keyword: m[0] }];
+      break;
+    }
+  }
+
+  // Couleur de cheveux
+  const hairMap: Array<[RegExp, string]> = [
+    [/cheveux\s+blancs?/, "white"],
+    [/cheveux\s+gris/, "gray"],
+    [/cheveux\s+(?:roux|auburn)/, "red"],
+    [/cheveux\s+blonds?/, "blonde"],
+    [/cheveux\s+chatains?\s+clairs?|cheveux\s+brun\s+clair/, "light_brown"],
+    [/cheveux\s+chatains?|cheveux\s+bruns?/, "dark_brown"],
+    [/cheveux\s+noirs?/, "black"],
+  ];
+  for (const [re, val] of hairMap) {
+    const m = text.match(re);
+    if (m) {
+      values.avatar_hair_color = val;
+      reasons.avatar_hair_color = [{ signal: "private_note", signalLabel: "Note privée", keyword: m[0] }];
+      break;
+    }
+  }
+
+  // Barbe (homme uniquement)
+  if (effectiveGender === "man") {
+    const beardMap: Array<[RegExp, string]> = [
+      [/barbe\s+(?:musulmane|longue|fournie|epaisse|pleine)/, "full"],
+      [/barbe\s+(?:blanche|grise|poivre\s+et\s+sel)/, "grey"],
+      [/barbe\s+(?:de\s+\d+\s+jours?|courte|legere|taillee|naissante)|bouc/, "light"],
+      [/sans\s+barbe|imberbe|rase/, "none"],
+    ];
+    for (const [re, val] of beardMap) {
+      const m = text.match(re);
+      if (m) {
+        values.avatar_beard = val;
+        reasons.avatar_beard = [{ signal: "private_note", signalLabel: "Note privée", keyword: m[0] }];
+        break;
+      }
+    }
+  }
+
+  // Couvre-chef explicite
+  const headMap: Array<[RegExp, string]> = [
+    [/hijab|voile|foulard|khimar|tchador|niqab|kippa|turban|calot/, "required"],
+    [/(?:porte\s+parfois|porte\s+souvent)\s+(?:un\s+)?(?:voile|foulard|hijab)/, "optional"],
+  ];
+  for (const [re, val] of headMap) {
+    const m = text.match(re);
+    if (m) {
+      values.avatar_head_covering = val;
+      reasons.avatar_head_covering = [{ signal: "private_note", signalLabel: "Note privée", keyword: m[0] }];
+      break;
+    }
+  }
+
+  // Indices supplémentaires depuis notes privées : lunettes → trait facial
+  if (/\b(lunettes?|porte\s+des\s+lunettes)\b/.test(privateText)) {
+    const existing = Array.isArray((values as any).avatar_facial_features)
+      ? (values as any).avatar_facial_features as string[]
+      : Array.isArray((b as any).avatar_facial_features)
+        ? [...((b as any).avatar_facial_features as string[])]
+        : [];
+    if (!existing.includes("glasses")) existing.push("glasses");
+    values.avatar_facial_features = existing;
+    reasons.avatar_facial_features = [{ signal: "private_note", signalLabel: "Note privée", keyword: "lunettes" }];
   }
 
   return { values, reasons };
