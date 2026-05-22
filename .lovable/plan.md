@@ -1,50 +1,27 @@
-## Problèmes
+## Objectif
 
-1. Le champ **Corpulence** est dans la section « Vêtements & posture » alors qu'il devrait être dans « Visage & regard ».
-2. La valeur sélectionnée pour `avatar_body_type` est bien sauvegardée en base, mais elle n'est **jamais injectée dans le prompt** envoyé au modèle d'image — l'image ignore donc complètement ce critère.
+Empêcher toute sauvegarde silencieuse de `short_story` / `emotional_sentence` depuis Avatar Studio vers la fiche publique. L'admin doit confirmer explicitement, après avoir vu un comparatif avant/après.
+
+## Comportement
+
+1. Dans le panneau "Contexte psychosocial" d'Avatar Studio, les boutons **Enregistrer** et **Enregistrer + re-déduire** n'écrivent plus directement en base.
+2. Ils ouvrent une boîte de dialogue de confirmation qui :
+   - Rappelle clairement : « Ce texte sera **immédiatement visible** par les donateurs sur la fiche publique. »
+   - Affiche un diff visuel : ancien texte barré (gris) au-dessus du nouveau texte (encadré primaire), pour chacun des deux champs modifiés.
+   - Précise pour le mode re-déduction : les attributs visuels (expression, posture, fatigue…) seront recalculés.
+3. Deux actions : **Annuler** (ne sauvegarde rien) ou **Publier sur la fiche** (déclenche la sauvegarde réelle, identique à l'actuelle).
+4. Si l'utilisateur ferme le dialogue (Échap / clic extérieur) → équivalent à Annuler.
 
 ## Modifications
 
-### 1. Déplacer Corpulence dans « Visage & regard »
+**`src/features/avatar-studio/ContextPanel.tsx`** (seul fichier touché)
+- Ajouter un state `confirmMode: "save" | "reinfer" | null`.
+- Les `onClick` des boutons définissent ce state au lieu d'appeler directement `onSave` / `onReinferAndSave`.
+- Ajouter un `<AlertDialog>` (shadcn, déjà disponible) piloté par `confirmMode`, contenant le diff avant/après et l'avertissement.
+- L'action de confirmation appelle l'ancien handler approprié, puis remet `confirmMode` à `null`.
 
-**`src/pages/AvatarStudio.tsx`**
-- Retirer `"avatar_body_type"` de `clothingKeys` (ligne 922).
-- Ajouter `"avatar_body_type"` à `faceKeys` (la liste utilisée par la section « Visage »).
-- Retirer le `<SelectField>` Corpulence du bloc « Posture » (ligne 1046).
-- Ajouter le `<SelectField>` Corpulence dans le bloc « Visage » (après Teint, avant Expression), même props :
-  `icon={FIELD_ICONS.avatar_body_type}`, `accentToken={FIELD_ACCENT.avatar_body_type}`, `labelFor={labelFor("body_type")}`.
+## Hors périmètre
 
-Pas de changement sur les couleurs ni les pictos déjà définis.
-
-### 2. Faire en sorte que Corpulence influence réellement l'avatar
-
-**`supabase/functions/_shared/avatarTraits.ts`**
-- Ajouter `avatar_body_type?: string | null` dans `BeneficiaryInput`.
-- Ajouter `avatar_body_type?: string` dans `AvatarTraits`.
-- Dans `inferAvatarTraits`, ajouter le pass-through : `avatar_body_type: b.avatar_body_type ?? undefined`.
-
-**`supabase/functions/_shared/avatarArtDirection.ts`**
-- Ajouter une table de descriptions :
-  ```ts
-  const BODY_TYPE_DESC: Record<string, string> = {
-    very_thin:  "very slender, slim build, narrow shoulders and thin face",
-    thin:       "slim build, lean face",
-    average:    "average build",
-    chubby:     "slightly heavier build, rounder face and softer features",
-    heavy:      "noticeably heavier build, fuller face, rounded cheeks and broader shoulders",
-  };
-  ```
-- Dans `buildAvatarPrompt`, après la construction de `subject`, pousser dans `extras` :
-  ```ts
-  if (t.avatar_body_type && BODY_TYPE_DESC[t.avatar_body_type] && t.avatar_body_type !== "average") {
-    extras.push(BODY_TYPE_DESC[t.avatar_body_type]);
-  }
-  ```
-  (On exclut `average` car neutre.) Pour `heavy` / `chubby`, l'instruction sur le visage et les épaules force le modèle à modifier morphologie ET visage, ce qui corrige le cas Nguyen.
-
-### Hors périmètre
-
-- Pas de changement de schéma BDD (`avatar_body_type` existe déjà).
-- Pas de modification du moteur de matching, ni de `composeBasket`, ni d'`evaluateAvatarRules`.
-- Pas d'auto-inférence : la corpulence reste un champ manuel.
-- L'utilisateur devra cliquer sur « Générer » à nouveau pour voir l'effet sur les avatars existants (les anciens PNG ne sont pas régénérés automatiquement).
+- Pas de modification de `AvatarStudio.tsx` : les callbacks `onSave` / `onReinferAndSave` restent identiques.
+- Pas de migration BDD : le couplage récit ↔ fiche publique reste volontaire (1 narration = 1 source de vérité).
+- Pas d'impact sur la sauvegarde des autres attributs visuels (couleur de cheveux, posture…), qui restent en sauvegarde directe.
