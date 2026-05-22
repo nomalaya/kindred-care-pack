@@ -1,88 +1,52 @@
 ## Objectif
 
-Permettre de lancer, depuis Avatar Studio, l'équivalent du bouton « Pré-remplir » suivi de la génération HD, sur plusieurs bénéficiaires d'un coup, par batch.
+Ajouter un champ **« Notes privées de pré-remplissage »** dans le bloc *Contexte psychosocial* d'Avatar Studio. Ce texte :
+- N'est **jamais** exposé publiquement (jamais lu par les pages donateur ni renvoyé par les RPC publiques)
+- Est utilisé **uniquement** par le moteur `inferStudioDefaultsWithReasons` (et donc par « Pré-remplir » + le batch) pour affiner les attributs visuels
+- Permet à l'admin d'écrire des indices factuels libres : « yeux marrons », « barbe musulmane », « porte des lunettes », « gaucher », etc.
 
-## Ce qui existe déjà
+## Changements
 
-- **`autoInfer("fill")`** dans `src/pages/AvatarStudio.tsx` : applique `inferStudioDefaultsWithReasons(beneficiary)` pour ne remplir QUE les champs avatar vides/invalides, puis sauvegarde via `patch(...)` (UPDATE sur `beneficiaries`).
-- **Edge function `generate-avatar-batch`** : déjà utilisée dans `src/pages/Admin.tsx` (`launchBatch`) ; elle prend `{ beneficiary_ids, mode: "final" }` et marque préalablement `avatar_status = "pending"`.
-- La logique d'inférence (`src/lib/avatarAutoInfer.ts`) est pure côté client → réutilisable sans appel serveur.
+### 1. Base de données (migration)
+- Ajouter colonne `avatar_private_notes text` sur `beneficiaries` (nullable, default null).
+- Les RPC publiques existantes (`get_empathy_beneficiaries`, `get_ranked_beneficiaries`) ne renvoient déjà pas cette colonne → rien à modifier côté lecture publique.
+- RLS actuelle : `Public can read safe beneficiary data` autorise `SELECT *` sur les actifs. **C'est un problème** pour un champ privé. Deux options :
+  - **A. Restreindre la policy SELECT publique** à une liste blanche de colonnes via une vue `beneficiaries_public` + révoquer le SELECT direct.
+  - **B. Garder la table telle quelle mais s'assurer que tous les `select(...)` du code public n'incluent jamais `avatar_private_notes`, et ajouter une policy `RESTRICTIVE` qui bloque la lecture de cette colonne aux non-admins.
+  - Recommandation : **option A** (vue `beneficiaries_public` en `security_invoker` exposant uniquement les colonnes safe), conforme à la mémoire `data-isolation`.
 
-## Ce qui manque
+### 2. Moteur d'inférence (`src/lib/avatarAutoInfer.ts`)
+- Étendre `InferInput` avec `avatar_private_notes?: string | null`.
+- Concaténer `avatar_private_notes` à `rawText` (en plus de `short_story` + `emotional_sentence`) pour la détection de mots-clés.
+- Ajouter quelques **signaux factuels** ciblés que les notes privées sont susceptibles d'apporter et qui ne sont pas couverts par les signaux émotionnels actuels :
+  - `eye_color` : « yeux marrons / bleus / verts / noisette / gris » → set `avatar_eye_color`
+  - `beard_style` : « barbe musulmane / barbe longue / barbe taillée / bouc / barbe de 3 jours » → set `avatar_beard`
+  - `glasses`, `head_covering_explicit` (hijab, kippa, turban), `hair_color_explicit`, `skin_tone_explicit`
+- Ajouter les libellés correspondants dans `SIGNAL_LABELS` pour que le panneau de raisons (`InferenceReasonsPanel`) reste lisible.
+- Marquer les `FieldReason` issues des notes privées avec un flag `private: true` (optionnel) pour que l'UI puisse afficher un petit cadenas 🔒 à côté de la raison.
 
-Un orchestrateur côté Avatar Studio qui :
-1. Sélectionne un sous-ensemble de bénéficiaires.
-2. Pour chacun, calcule les valeurs auto-déduites et applique uniquement les champs vides (mode `"fill"`, comme « Pré-remplir »).
-3. Persiste ces attributs en base.
-4. Déclenche la génération HD en batchs.
+### 3. UI Avatar Studio
+- **`ContextPanel.tsx`** : ajouter une 3e zone `Textarea` sous la phrase émotionnelle :
+  - Label : « Notes privées (jamais visibles publiquement) » + icône `Lock`
+  - Helper text discret : « Indices factuels pour le pré-remplissage : couleur d'yeux, style de barbe, lunettes… Non publié sur la fiche donateur. »
+  - Style visuel distinct (bordure pointillée + fond légèrement teinté) pour bien différencier du contenu public.
+  - Inclus dans le patch envoyé à `onSave` / `onReinferAndSave` (clé `avatar_private_notes`).
+- **`AvatarStudio.tsx`** : passer `b.avatar_private_notes` à `<ContextPanel>` et l'inclure dans le payload des handlers de save / reinfer (déjà génériques, à vérifier).
+- **`AlertDialog` de publication** : adapter le wording — pour les notes privées, **ne pas** afficher « Publier sur la fiche » (elles ne sont pas publiées). Soit on les sauvegarde sans confirmation, soit on affiche un libellé spécifique « Enregistrer (non publié) ».
 
-## Plan d'implémentation
+### 4. Batch & pré-remplissage
+- `computePrefillPatch` (déjà en place) appelle `inferStudioDefaultsWithReasons(beneficiary)` : il suffit que `beneficiary` charge la colonne `avatar_private_notes` côté Avatar Studio (admin → policy autorise) pour que le batch en bénéficie automatiquement. Aucune logique batch à modifier.
 
-### 1. Ajouter une barre d'action « Batch » dans `AvatarStudio.tsx`
-
-Dans le header de la colonne liste (au-dessus de `BeneficiaryListPanel`), ajouter un bouton **« Pré-remplir + Générer (lot) »** avec un petit menu :
-
-- **Portée** : `Tous (filtre actif)` / `Sans avatar HD` / `Brouillons (draft)` / `Avatar manquant un attribut`.
-- **Taille de lot** : champ numérique (défaut 10, max 50).
-- **Mode** : 
-  - `fill` (par défaut, équivalent strict du bouton Pré-remplir : n'écrase pas) 
-  - `force` (re-déduit tout, confirmation requise).
-- Bouton **Lancer**.
-
-État local : `batchRunning`, `batchProgress { done, total, failed }`, affichage d'une barre de progression discrète sous la barre d'action et d'un toast récapitulatif à la fin.
-
-### 2. Extraire la logique de pré-remplissage en helper pur
-
-Créer `src/features/avatar-studio/batchPrefill.ts` exportant :
-
-```ts
-computePrefillPatch(b: Beneficiary, mode: "fill" | "force"): Record<string, any>
-```
-
-Elle reprend exactement la même logique que `autoInfer` (lignes 194–231 de `AvatarStudio.tsx`) sans toast ni dépendance React. `autoInfer` sera ensuite réécrit pour l'utiliser → comportement strictement identique au bouton actuel.
-
-### 3. Orchestrateur batch
-
-Nouvelle fonction `runBatchPrefillAndGenerate(beneficiaries, { mode, chunkSize })` dans la page :
-
-```text
-sélectionner ids éligibles selon le filtre
-pour chaque chunk de N bénéficiaires (N = 5 par défaut):
-  a) construire les patches via computePrefillPatch
-  b) appliquer en une seule requête UPDATE par bénéficiaire 
-     (boucle Promise.all sur supabase.from("beneficiaries").update)
-     -- on évite un upsert massif pour ne pas toucher les champs non concernés
-  c) appeler supabase.functions.invoke("generate-avatar-batch", 
-                                      { body: { beneficiary_ids: chunkIds, mode: "final" } })
-  d) mettre à jour batchProgress + setBeneficiaries local (avatar_status="pending")
-  e) attendre un court délai (300 ms) entre chunks pour limiter la charge
-fin
-toast final: "{done}/{total} traités, {failed} échecs"
-```
-
-Le chunking évite les timeouts de l'edge function et permet à la Realtime / au polling existant de rafraîchir progressivement la grille.
-
-### 4. Garde-fous
-
-- **Verrou** : ignorer les bénéficiaires dont `avatar_workflow_status` est `"locked"` ou `"approved"` (même règle que `isLocked` dans la page).
-- **Dignité** : ignorer ceux dont `dignity_score < 3` (déjà géré pour la génération unitaire).
-- **Confirmation** : modal avant lancement résumant « X bénéficiaires concernés, Y verrouillés ignorés, mode `fill|force` ».
-- **Annulation** : un bouton « Arrêter » qui empêche le lancement des chunks suivants (le chunk en cours va au bout).
-
-### 5. Pas de changement backend
-
-- `generate-avatar-batch` est inchangé.
-- Aucune modification des fonctions de matching/panier.
-- Aucune migration SQL.
-
-## Fichiers concernés
-
-- `src/features/avatar-studio/batchPrefill.ts` (nouveau, helper pur)
-- `src/features/avatar-studio/BatchActionsBar.tsx` (nouveau, UI compacte)
-- `src/pages/AvatarStudio.tsx` (intégration de la barre + orchestrateur, refacto léger de `autoInfer` pour utiliser le helper)
+### 5. Types Supabase
+- `src/integrations/supabase/types.ts` sera régénéré automatiquement après la migration.
 
 ## Hors scope
+- Pas de changement sur le parcours donateur, sur les RPC de matching, ni sur les pages publiques.
+- Pas de modification du moteur de panier ni du backend de matching.
+- Pas de gestion de versionning / historique des notes privées.
 
-- Pas de nouvelle edge function.
-- Pas de modification de `Admin.tsx` (le batch existant y reste, ce nouveau bouton est spécifique à Avatar Studio et combine **pré-remplissage + génération**, ce que l'admin ne fait pas).
-- Pas de file d'attente persistée : si la page est fermée pendant le batch, les générations déjà lancées continuent côté serveur, mais la progression UI est perdue.
+## Question
+
+Pour la confidentialité du champ, préférez-vous :
+- **(A)** Créer une vue publique `beneficiaries_public` (plus robuste, recommandé), ou
+- **(B)** Restreindre simplement par convention dans le code (plus rapide, mais le champ reste techniquement lisible via l'API publique pour les bénéficiaires actifs) ?
