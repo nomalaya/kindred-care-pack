@@ -73,6 +73,14 @@ const HAIR_TYPE_DESC: Record<string, string> = {
   straight: "straight", wavy: "wavy", curly: "curly", coily: "coily",
 };
 
+const BODY_TYPE_DESC: Record<string, string> = {
+  very_thin: "very slender, slim build, narrow shoulders and thin face",
+  thin: "slim build, lean face",
+  average: "average build",
+  chubby: "slightly heavier build, rounder face and softer features",
+  heavy: "noticeably heavier build, fuller face, rounded cheeks and broader shoulders",
+};
+
 export const ART_DIRECTION_INVARIANTS = `
 HAND-DRAWN SEMI-REALISTIC CARTOON ILLUSTRATION — editorial storybook portrait, in the visual style of modern picture-book and editorial illustration (think contemporary New Yorker meets warm 2D storybook). Hand-drawn ink linework with fine, soft, organic outlines (NOT thick uniform vector outlines). Realistic human proportions and anatomy, clearly non-photographic, with subtle stylization.
 EXPLICITLY NOT: not a photograph, not photorealistic, not a 3D render, not Pixar/Disney 3D, not flat vector sticker, not Storyset/unDraw style, not anime, not manga, not chibi, not comic book, not oil painting, not heavy acrylic painting, not saturated watercolor, not pencil sketch only.
