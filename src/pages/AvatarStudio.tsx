@@ -618,6 +618,13 @@ const AvatarStudio = () => {
             </div>
 
 
+            <BatchActionsBar
+              pool={filtered}
+              progress={batchProgress}
+              onLaunch={runBatchPrefillAndGenerate}
+              onStop={stopBatch}
+            />
+
             <Button variant="ghost" size="sm" onClick={refresh}><RefreshCw className="h-3.5 w-3.5" /></Button>
 
             <Tooltip>
