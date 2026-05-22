@@ -120,11 +120,11 @@
     /* Avatar Studio — accents de champ (dark) */
     --field-identity: 275 65% 72%;
     --field-time:      40 90% 65%;
-    --field-face:     325 70% 70%;
+    --field-face:      12 70% 70%;
     --field-skin:      18 75% 65%;
     --field-eye:      205 80% 65%;
     --field-hair:      22 55% 60%;
-    --field-pilosity:  90 40% 60%;
+    --field-pilosity:  28 55% 60%;
     --field-culture:  150 55% 60%;
     --field-clothing: 235 70% 72%;
     --field-body:     175 65% 60%;
@@ -132,7 +132,7 @@
     --field-family:   345 75% 72%;
     --field-fatigue:  255 35% 68%;
     --field-dignity:   48 90% 62%;
-    --field-build:    110 40% 62%;
+    --field-build:    215 18% 65%;
 
 
 
