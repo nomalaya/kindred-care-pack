@@ -57,11 +57,11 @@
     /* Avatar Studio — accents de champ (HSL), hues bien séparées */
     --field-identity: 275 55% 50%;  /* violet */
     --field-time:      40 90% 45%;  /* ambre */
-    --field-face:     325 60% 50%;  /* magenta */
+    --field-face:      12 65% 55%;  /* rose chair */
     --field-skin:      18 70% 48%;  /* terracotta */
     --field-eye:      205 80% 42%;  /* bleu cyan */
     --field-hair:      22 55% 30%;  /* brun foncé */
-    --field-pilosity:  90 35% 35%;  /* olive */
+    --field-pilosity:  28 50% 38%;  /* brun chaud */
     --field-culture:  150 55% 35%;  /* émeraude */
     --field-clothing: 235 55% 55%;  /* indigo */
     --field-body:     175 65% 32%;  /* sarcelle */
@@ -69,7 +69,7 @@
     --field-family:   345 65% 58%;  /* rose poudré */
     --field-fatigue:  255 25% 50%;  /* mauve gris */
     --field-dignity:   48 90% 42%;  /* doré */
-    --field-build:    110 35% 38%;  /* vert mousse */
+    --field-build:    215 15% 45%;  /* gris ardoise */
 
 
 
@@ -120,11 +120,11 @@
     /* Avatar Studio — accents de champ (dark) */
     --field-identity: 275 65% 72%;
     --field-time:      40 90% 65%;
-    --field-face:     325 70% 70%;
+    --field-face:      12 70% 70%;
     --field-skin:      18 75% 65%;
     --field-eye:      205 80% 65%;
     --field-hair:      22 55% 60%;
-    --field-pilosity:  90 40% 60%;
+    --field-pilosity:  28 55% 60%;
     --field-culture:  150 55% 60%;
     --field-clothing: 235 70% 72%;
     --field-body:     175 65% 60%;
@@ -132,7 +132,7 @@
     --field-family:   345 75% 72%;
     --field-fatigue:  255 35% 68%;
     --field-dignity:   48 90% 62%;
-    --field-build:    110 40% 62%;
+    --field-build:    215 18% 65%;
 
 
 

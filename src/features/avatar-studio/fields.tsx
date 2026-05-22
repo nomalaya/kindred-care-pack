@@ -79,7 +79,7 @@ export const FIELD_ACCENT: Record<string, string> = {
   avatar_eye_shape: "--field-eye",
   avatar_eye_color: "--field-eye",
   avatar_tired_level: "--field-fatigue",
-  avatar_emotional_brightness: "--field-mood",
+  avatar_emotional_brightness: "--field-dignity",
   avatar_hair_type: "--field-hair",
   avatar_hair_color: "--field-hair",
   avatar_hair_length: "--field-hair",
@@ -145,10 +145,7 @@ export function FieldLabel({
   const color = accentToken ? `hsl(var(${accentToken}))` : undefined;
   return (
     <div className="flex items-center justify-between gap-2">
-      <Label
-        className="text-xs font-medium flex items-center gap-1.5"
-        style={color ? { color } : undefined}
-      >
+      <Label className="text-xs font-medium flex items-center gap-1.5">
         {Icon && <Icon className="h-4 w-4 shrink-0" style={color ? { color } : undefined} />}
         <span>{children}</span>
         <InferredPastille reasons={reasons} />
