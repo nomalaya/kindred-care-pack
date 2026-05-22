@@ -128,8 +128,9 @@ const max = (a: number | undefined, b: number) => Math.max(a ?? 0, b);
 const min = (a: number | undefined, b: number) => Math.min(a ?? 5, b);
 
 export function inferStudioDefaultsWithReasons(b: InferInput): InferenceResult {
-  const rawText = `${b.short_story ?? ""} ${b.emotional_sentence ?? ""}`;
+  const rawText = `${b.short_story ?? ""} ${b.emotional_sentence ?? ""} ${b.avatar_private_notes ?? ""}`;
   const text = norm(rawText);
+  const privateText = norm(b.avatar_private_notes ?? "");
   const age = b.approx_age ?? 35;
   const children = b.children_count ?? 0;
   const urgency = b.urgency_level ?? 0;
