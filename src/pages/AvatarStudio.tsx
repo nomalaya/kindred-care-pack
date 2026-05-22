@@ -632,7 +632,35 @@ const AvatarStudio = () => {
                   <Button onClick={() => generate("final")} size="sm" disabled={!!busy || isLocked || dignityBlocked} title="Nano Banana Pro — qualité finale (G)" aria-label="Générer le portrait HD">
                     <Sparkles className="h-3.5 w-3.5 mr-1" />HD
                   </Button>
-...
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleImportFile(f);
+                      e.currentTarget.value = "";
+                    }}
+                  />
+                  <Button
+                    onClick={() => importInputRef.current?.click()}
+                    variant="outline"
+                    size="sm"
+                    disabled={!!busy || isLocked}
+                    title="Importer une image externe (fal.ai, etc.)"
+                    aria-label="Importer une image externe"
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1" />Importer
+                  </Button>
+                </div>
+
+                {dignityBlocked && (
+                  <div className="text-xs rounded-md border border-[hsl(var(--status-failed-border))] bg-[hsl(var(--status-failed-bg))] text-[hsl(var(--status-failed-fg))] px-2 py-1.5 flex items-start gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <div>Dignité {selected.avatar_dignity_level}/5 — génération bloquée. Augmentez le niveau dans l'onglet Social.</div>
+                  </div>
+                )}
                 {/* Workflow — bouton contextuel unique */}
                 {(() => {
                   const ws = (selected.avatar_workflow_status || "draft") as WorkflowStatus;
