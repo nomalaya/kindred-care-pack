@@ -909,7 +909,7 @@ const AvatarStudio = () => {
 
                     const faceKeys = [
                       "avatar_gender", "avatar_age_range", "avatar_face_shape",
-                      "avatar_skin_tone", "avatar_expression",
+                      "avatar_skin_tone", "avatar_body_type", "avatar_expression",
                       "avatar_eye_shape", "avatar_eye_color",
                     ];
                     const hairKeys = [
@@ -919,7 +919,7 @@ const AvatarStudio = () => {
                     ];
                     const clothingKeys = [
                       "avatar_clothing_style", "avatar_clothing_color_palette",
-                      "avatar_posture", "avatar_body_type", "avatar_mobility_aid",
+                      "avatar_posture", "avatar_mobility_aid",
                     ];
 
                     const culturalKeys = ["avatar_head_covering", "avatar_cultural_style_override"];
