@@ -1,5 +1,6 @@
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { WORKFLOW_COLOR, WORKFLOW_LABEL, WorkflowStatus } from "@/lib/avatarTraits";
+import { ExternalLink } from "lucide-react";
 
 interface Beneficiary {
   id: string;
