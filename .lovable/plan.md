@@ -1,27 +1,48 @@
-## Objectif
+## Problème
 
-Empêcher toute sauvegarde silencieuse de `short_story` / `emotional_sentence` depuis Avatar Studio vers la fiche publique. L'admin doit confirmer explicitement, après avoir vu un comparatif avant/après.
+Les infobulles sur les boutons « Enregistrer » et « Enregistrer + re-déduire » n'apparaissent pas dans le panneau « Contexte psychosocial » d'Avatar Studio. Deux causes probables :
 
-## Comportement
+1. Le panneau est rendu à l'intérieur d'une `Popover` Radix. Un `Tooltip` Radix imbriqué dans une `Popover` est rendu dans un autre portail dont le z-index passe **en-dessous** du contenu Popover ouvert → la bulle existe dans le DOM mais reste invisible.
+2. Même si elles s'affichaient, le survol n'est pas un mode de découverte adapté pour des actions admin à fort impact (publication sur la fiche publique).
 
-1. Dans le panneau "Contexte psychosocial" d'Avatar Studio, les boutons **Enregistrer** et **Enregistrer + re-déduire** n'écrivent plus directement en base.
-2. Ils ouvrent une boîte de dialogue de confirmation qui :
-   - Rappelle clairement : « Ce texte sera **immédiatement visible** par les donateurs sur la fiche publique. »
-   - Affiche un diff visuel : ancien texte barré (gris) au-dessus du nouveau texte (encadré primaire), pour chacun des deux champs modifiés.
-   - Précise pour le mode re-déduction : les attributs visuels (expression, posture, fatigue…) seront recalculés.
-3. Deux actions : **Annuler** (ne sauvegarde rien) ou **Publier sur la fiche** (déclenche la sauvegarde réelle, identique à l'actuelle).
-4. Si l'utilisateur ferme le dialogue (Échap / clic extérieur) → équivalent à Annuler.
+## Solution
+
+Remplacer le pattern « tooltip au survol » par une **aide pédagogique inline toujours visible**, plus un comportement de découverte progressive :
+
+### 1. Bloc d'aide toujours visible
+Sous les deux boutons (uniquement quand `dirty === true`), afficher un petit bloc info compact en deux colonnes :
+
+```
+┌──────────────────────────┬──────────────────────────┐
+│ 💾 Enregistrer            │ ✨ Enregistrer + re-déduire│
+│ Sauvegarde uniquement     │ Sauvegarde + recalcule    │
+│ les textes. Les attributs │ tous les attributs visuels│
+│ visuels restent inchangés.│ (expression, posture…).   │
+└──────────────────────────┴──────────────────────────┘
+```
+
+- Texte 10–11px, `text-muted-foreground`, icônes assorties aux boutons.
+- Sur mobile, passage en stack vertical.
+- Toujours visible dès qu'il y a une modification → impossible à manquer.
+
+### 2. Avertissement régénération
+Sous le bloc info, une ligne unique en jaune ambré :
+
+> ⚠️ L'avatar existant n'est pas régénéré automatiquement — cliquez sur « Générer » après pour produire un nouveau portrait.
+
+### 3. Suppression des tooltips Radix
+Retirer le `TooltipProvider` + `Tooltip` + `TooltipTrigger` + `TooltipContent` du fichier (cause du bug + redondants avec le bloc inline).
 
 ## Modifications
 
 **`src/features/avatar-studio/ContextPanel.tsx`** (seul fichier touché)
-- Ajouter un state `confirmMode: "save" | "reinfer" | null`.
-- Les `onClick` des boutons définissent ce state au lieu d'appeler directement `onSave` / `onReinferAndSave`.
-- Ajouter un `<AlertDialog>` (shadcn, déjà disponible) piloté par `confirmMode`, contenant le diff avant/après et l'avertissement.
-- L'action de confirmation appelle l'ancien handler approprié, puis remet `confirmMode` à `null`.
+- Supprimer l'import et l'usage de `Tooltip*`.
+- Garder les boutons simples (sans `TooltipTrigger asChild`).
+- Ajouter sous les boutons un `<div>` en grille 2 colonnes (`grid grid-cols-1 sm:grid-cols-2 gap-2`) avec le contenu pédagogique.
+- Ajouter en-dessous la ligne d'avertissement régénération.
 
 ## Hors périmètre
 
-- Pas de modification de `AvatarStudio.tsx` : les callbacks `onSave` / `onReinferAndSave` restent identiques.
-- Pas de migration BDD : le couplage récit ↔ fiche publique reste volontaire (1 narration = 1 source de vérité).
-- Pas d'impact sur la sauvegarde des autres attributs visuels (couleur de cheveux, posture…), qui restent en sauvegarde directe.
+- Pas de changement de la `AlertDialog` de confirmation (déjà claire).
+- Pas de changement de `AvatarStudio.tsx`.
+- Pas de changement d'autres composants Avatar Studio.
