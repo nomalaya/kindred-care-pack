@@ -94,69 +94,54 @@ export function ContextPanel({
       </div>
 
       {dirty && (
-        <TooltipProvider delayDuration={200}>
-          <div className="flex items-center gap-1.5 pt-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={!!saving || disabled}
-                  onClick={() => setConfirmMode("save")}
-                >
-                  <Save className="h-3.5 w-3.5 mr-1" />
-                  {saving === "save" ? "Sauvegarde…" : "Enregistrer"}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
-                <p className="font-semibold mb-1">Enregistrer le texte uniquement</p>
-                <p>
-                  Sauvegarde l'histoire et la phrase émotionnelle telles que vous les avez modifiées. Après confirmation, ces textes seront <strong>immédiatement visibles</strong> par les donateurs sur la fiche publique.
-                </p>
-                <p className="mt-1.5 text-muted-foreground">
-                  Les attributs visuels (expression, posture, fatigue, vêtements…) restent <strong>inchangés</strong>.
-                </p>
-                <p className="mt-1.5 text-muted-foreground">
-                  À utiliser pour : corriger une faute de frappe, reformuler sans changer le sens, ajuster le ton.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  disabled={!!saving || disabled}
-                  onClick={() => setConfirmMode("reinfer")}
-                >
-                  <Wand2 className="h-3.5 w-3.5 mr-1" />
-                  {saving === "reinfer" ? "Re-déduction…" : "Enregistrer + re-déduire"}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
-                <p className="font-semibold mb-1">Enregistrer et recalculer les attributs</p>
-                <p>
-                  Sauvegarde le texte, puis relance automatiquement le moteur d'inférence psychosocial sur le nouveau récit. Les attributs visuels du bénéficiaire sont <strong>recalculés</strong> :
-                </p>
-                <ul className="mt-1 ml-3 list-disc text-muted-foreground">
-                  <li>Expression, posture, niveau de fatigue</li>
-                  <li>Aides à la mobilité (canne, fauteuil…)</li>
-                  <li>Style vestimentaire, couvre-chef culturel</li>
-                  <li>Énergie parentale, brillance émotionnelle</li>
-                </ul>
-                <p className="mt-1.5 text-muted-foreground">
-                  À utiliser pour : un changement de situation (nouvelle maladie, deuil, exil, parentalité…) qui doit se refléter sur l'avatar.
-                </p>
-                <p className="mt-1.5 text-amber-600 dark:text-amber-400">
-                  ⚠️ L'image avatar existante n'est pas régénérée automatiquement — cliquez ensuite sur « Générer » pour produire un nouveau portrait cohérent.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!!saving || disabled}
+              onClick={() => setConfirmMode("save")}
+            >
+              <Save className="h-3.5 w-3.5 mr-1" />
+              {saving === "save" ? "Sauvegarde…" : "Enregistrer"}
+            </Button>
+            <Button
+              size="sm"
+              disabled={!!saving || disabled}
+              onClick={() => setConfirmMode("reinfer")}
+            >
+              <Wand2 className="h-3.5 w-3.5 mr-1" />
+              {saving === "reinfer" ? "Re-déduction…" : "Enregistrer + re-déduire"}
+            </Button>
             <span className="text-[10px] text-muted-foreground ml-1">Texte modifié</span>
           </div>
-        </TooltipProvider>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="rounded border bg-background/60 p-2 text-[11px] leading-snug">
+              <div className="flex items-center gap-1 font-semibold mb-1">
+                <Save className="h-3 w-3" /> Enregistrer
+              </div>
+              <p className="text-muted-foreground">
+                Sauvegarde <strong>uniquement les textes</strong>. Les attributs visuels (expression, posture, fatigue, vêtements…) restent inchangés. À utiliser pour une faute de frappe ou une reformulation.
+              </p>
+            </div>
+            <div className="rounded border bg-background/60 p-2 text-[11px] leading-snug">
+              <div className="flex items-center gap-1 font-semibold mb-1">
+                <Wand2 className="h-3 w-3" /> Enregistrer + re-déduire
+              </div>
+              <p className="text-muted-foreground">
+                Sauvegarde les textes <strong>puis recalcule</strong> tous les attributs visuels à partir du nouveau récit (expression, posture, mobilité, vêtements…). À utiliser après un vrai changement de situation.
+              </p>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-amber-700 dark:text-amber-400 flex items-start gap-1">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>L'image avatar n'est pas régénérée automatiquement — cliquez ensuite sur « Générer » pour produire un nouveau portrait cohérent.</span>
+          </p>
+        </div>
       )}
+
 
       <AlertDialog open={confirmMode !== null} onOpenChange={(o) => { if (!o) setConfirmMode(null); }}>
         <AlertDialogContent>
