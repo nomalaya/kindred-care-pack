@@ -35,7 +35,7 @@ import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
   Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
-  BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown,
+  BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown, ExternalLink,
 } from "lucide-react";
 
 type Beneficiary = any;
@@ -610,6 +610,18 @@ const AvatarStudio = () => {
                     <Badge variant="outline">QA {Math.round(selected.avatar_qa_score)}</Badge>
                   )}
                   <Badge variant="outline" className="text-[10px]">cartoon illustré storybook · fond contextuel flou</Badge>
+                  <a
+                    href={`/donate/${selected.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto"
+                    title="Ouvre la fiche telle qu'elle apparaît dans le parcours donateur"
+                  >
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                      <ExternalLink className="h-3 w-3" />
+                      Voir la fiche donateur
+                    </Button>
+                  </a>
                 </div>
 
                 {selected.avatar_status === "failed" && (

@@ -1,51 +1,47 @@
-## Objectif
+## Lien "Voir la fiche donateur" dans Avatar Studio
 
-1. **Retirer la couleur du libellé** des champs (Genre, Tranche d'âge, etc.) — n'appliquer la couleur d'accent **qu'au picto**.
-2. **Réviser les tokens couleur** pour qu'ils soient mnémotechniques (l'utilisateur associe instantanément couleur ↔ attribut).
+### Cible du lien
+`/donate/:beneficiaryId` — c'est la page que voit le donateur (avatar + alias + récit + phrase émotionnelle). Ouverture dans un **nouvel onglet** pour ne pas perdre l'état de l'éditeur.
 
-## Fichiers modifiés
+### Placement stratégique : 2 endroits complémentaires
 
-### `src/features/avatar-studio/fields.tsx`
+**1. Bouton principal — dans le panneau central (preview), juste sous l'image avatar et à côté des badges de workflow** 
 
-**`FieldLabel`** (lignes 136–159) — retirer l'application de `color` sur le `<Label>` :
-- supprimer `style={color ? { color } : undefined}` sur le `<Label>` (ligne 150)
-- conserver `style={color ? { color } : undefined}` sur le `<Icon>` uniquement
-- résultat : libellé toujours en `text-foreground` neutre, picto coloré
+C'est l'endroit où l'utilisateur évalue activement le rendu. Un bouton clair :
 
-### `src/index.css` — palette `--field-*` raffinée
+```
+[ Voir la fiche donateur ↗ ]   (variant outline, ExternalLink icon)
+```
 
-Conserve la logique sémantique (un token par famille) mais resserre l'évocation :
+Placé dans la rangée des badges (ligne 605–613 de `AvatarStudio.tsx`), aligné à droite via `ml-auto`. Visible uniquement quand `selected` existe. Désactivé si l'avatar n'a pas encore d'image (afin d'éviter une fiche vide).
 
-| Token | Avant | Après (light) | Justification |
-|---|---|---|---|
-| `--field-identity` (Genre) | violet 275 55% 50% | inchangé | violet = identité, neutre |
-| `--field-time` (Âge) | ambre 40 90% 45% | inchangé | ambre = horloge / sablier |
-| `--field-face` (Visage) | magenta 325 60% 50% | rose chair 12 65% 55% | évoque le visage humain |
-| `--field-skin` (Teint) | terracotta 18 70% 48% | inchangé | parfait pour la peau |
-| `--field-build` (Corpulence) | vert mousse 110 35% 38% | gris ardoise 215 15% 45% | morphologie = neutre, pas végétal |
-| `--field-mood` (Expression / Luminosité) | corail 5 80% 55% | inchangé | corail = émotion |
-| `--field-eye` (Yeux) | bleu cyan 205 80% 42% | inchangé | bleu = iris classique |
-| `--field-fatigue` | mauve gris 255 25% 50% | inchangé | mauve = cernes |
-| `--field-hair` (Cheveux) | brun 22 55% 30% | inchangé | brun = cheveux |
-| `--field-pilosity` (Barbe/Moustache) | olive 90 35% 35% | brun chaud 28 50% 38% | barbe = même registre que cheveux mais distinct |
-| `--field-culture` (Couvre-chef, style) | émeraude 150 55% 35% | inchangé | symbolique culturelle douce |
-| `--field-clothing` (Vêtements) | indigo 235 55% 55% | inchangé | indigo = textile / denim |
-| `--field-body` (Posture, mobilité) | sarcelle 175 65% 32% | inchangé | sarcelle = corps en mouvement |
-| `--field-family` (Énergie parentale) | rose poudré 345 65% 58% | inchangé | parental / lien |
-| `--field-dignity` (Dignité, résilience) | doré 48 90% 42% | inchangé | doré = valeur, force |
+**2. Icône secondaire — dans la liste des bénéficiaires (gauche)**
 
-Ajustement parallèle du bloc `.dark` (lignes 121–135) avec les versions désaturées correspondantes pour `--field-face`, `--field-build`, `--field-pilosity`.
+Petite icône `ExternalLink` discrète à droite de chaque ligne, qui apparaît au survol. Permet de pré-visualiser n'importe quel bénéficiaire sans avoir à le sélectionner d'abord.
 
-### `src/features/avatar-studio/fields.tsx` — `FIELD_ACCENT` (lignes 74–105)
+### Fichiers modifiés
 
-Réassignations pour mieux refléter l'attribut :
+- **`src/pages/AvatarStudio.tsx`** (zone lignes 605–613) — ajouter le bouton principal :
+  ```tsx
+  <a
+    href={`/donate/${selected.id}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="ml-auto"
+  >
+    <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+      <ExternalLink className="h-3 w-3" />
+      Voir la fiche donateur
+    </Button>
+  </a>
+  ```
 
-- `avatar_emotional_brightness` : `--field-mood` → `--field-dignity` (icône `Sun` → couleur dorée solaire)
-- `avatar_body_type` : `--field-build` (qui devient gris ardoise — neutre morphologie)
-- Autres mappings inchangés (déjà adaptés)
+- **`src/features/avatar-studio/BeneficiaryListPanel.tsx`** — ajouter une icône `ExternalLink` au survol de chaque ligne, avec `e.stopPropagation()` sur le clic pour ne pas changer la sélection.
 
-## Hors scope
+- Importer `ExternalLink` depuis `lucide-react` dans les deux fichiers (déjà importé dans `AvatarStudio` ? à vérifier — sinon ajouter).
 
-- Pas de modification de la logique métier ni des sections.
-- Le picto et l'ordre des champs restent identiques.
-- Les sliders gardent la couleur d'accent uniquement sur l'icône.
+### Hors scope
+
+- Pas de nouvelle route (réutilisation de `/donate/:beneficiaryId` existante).
+- Pas de modification du backend ni du parcours donateur.
+- Pas de mode "preview embarqué" (iframe) — la fiche s'ouvre simplement dans un nouvel onglet, plus rapide et plus fidèle.
