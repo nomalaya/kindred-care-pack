@@ -21,6 +21,8 @@ import { inferStudioDefaultsWithReasons, type FieldReason } from "@/lib/avatarAu
 import { ContextPanel } from "@/features/avatar-studio/ContextPanel";
 import { InferenceReasonsPanel } from "@/features/avatar-studio/InferenceReasonsPanel";
 import { BeneficiaryListPanel } from "@/features/avatar-studio/BeneficiaryListPanel";
+import { BatchActionsBar, type BatchProgress } from "@/features/avatar-studio/BatchActionsBar";
+import { computePrefillPatch, selectBatchPool, chunk, type BatchScope } from "@/features/avatar-studio/batchPrefill";
 import { RuleList } from "@/features/avatar-studio/RuleList";
 import { SectionAccordion, type SectionDef } from "@/features/avatar-studio/SectionAccordion";
 import {
