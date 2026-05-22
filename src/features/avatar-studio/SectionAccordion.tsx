@@ -27,13 +27,11 @@ export function SectionAccordion({ sections, defaultOpen }: Props) {
       className="w-full"
     >
       {sections.map((s) => {
-        const Ic = s.icon;
         const pct = s.total > 0 ? Math.round((s.filled / s.total) * 100) : 0;
         return (
           <AccordionItem key={s.id} value={s.id} className="border-b last:border-b-0">
             <AccordionTrigger className="px-4 py-2.5 hover:no-underline hover:bg-muted/30 [&[data-state=open]]:bg-muted/20">
               <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                <Ic className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-sm font-medium truncate">{s.label}</span>
 
                 <div className="flex items-center gap-1.5 ml-auto mr-2">
