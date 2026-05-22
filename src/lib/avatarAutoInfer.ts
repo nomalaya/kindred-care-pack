@@ -18,6 +18,7 @@ export interface InferInput {
   urgency_level?: number | null;
   short_story?: string | null;
   emotional_sentence?: string | null;
+  avatar_private_notes?: string | null;
   culture_tags?: string[] | null;
 }
 
