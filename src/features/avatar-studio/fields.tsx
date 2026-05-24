@@ -47,6 +47,7 @@ export const FIELD_ICONS: Record<string, LucideIcon> = {
   avatar_gender: Users,
   avatar_age_range: CalendarDays,
   avatar_face_shape: ScanFace,
+  avatar_nose: Triangle,
   avatar_skin_tone: Droplet,
   avatar_eye_shape: Eye,
   avatar_eye_color: Pipette,
