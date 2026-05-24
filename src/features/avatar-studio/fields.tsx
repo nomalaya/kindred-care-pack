@@ -108,7 +108,7 @@ export const FIELD_ACCENT: Record<string, string> = {
 };
 
 export const TAB_FIELDS: Record<string, string[]> = {
-  face: ["avatar_gender", "avatar_age_range", "avatar_face_shape", "avatar_skin_tone", "avatar_expression"],
+  face: ["avatar_gender", "avatar_age_range", "avatar_face_shape", "avatar_nose", "avatar_skin_tone", "avatar_expression"],
   eyes: ["avatar_eye_shape", "avatar_eye_color", "avatar_tired_level", "avatar_emotional_brightness"],
   hair: ["avatar_hair_type", "avatar_hair_color", "avatar_hair_length", "avatar_hair_volume", "avatar_hair_style"],
   male: ["avatar_beard", "avatar_moustache", "avatar_bald_level", "avatar_hair_recession"],
