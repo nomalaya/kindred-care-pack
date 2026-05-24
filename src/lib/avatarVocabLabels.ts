@@ -35,6 +35,7 @@ export const VOCAB_LABELS = {
   hair_color: {
     black: "Noir",
     dark_brown: "Châtain foncé",
+    brown: "Brun",
     light_brown: "Châtain clair",
     blonde: "Blond",
     red: "Roux",

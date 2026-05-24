@@ -8,7 +8,7 @@ export const AVATAR_VOCAB = {
   age_range: ["18-25", "25-35", "35-45", "45-55", "55-65", "65-75", "75-85"],
   skin_tone: ["fair", "light", "medium", "olive", "tan", "medium_dark", "dark", "deep"],
   hair_type: ["straight", "wavy", "curly", "coily"],
-  hair_color: ["black", "dark_brown", "light_brown", "blonde", "red", "auburn", "gray", "white"],
+  hair_color: ["black", "dark_brown", "brown", "light_brown", "blonde", "red", "auburn", "gray", "white"],
   hair_length: ["very_short", "short", "shoulder", "medium", "long"],
   hair_volume: ["fine", "natural", "light", "thick"],
   hair_style: [

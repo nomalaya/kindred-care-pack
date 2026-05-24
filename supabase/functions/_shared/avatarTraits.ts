@@ -218,7 +218,7 @@ const BASE_SKIN: Array<[string, number]> = [
   ["tan", 10], ["medium_dark", 8], ["dark", 7], ["deep", 3],
 ];
 const BASE_HAIR_COLOR: Array<[string, number]> = [
-  ["dark_brown", 30], ["black", 22], ["light_brown", 18],
+  ["dark_brown", 30], ["black", 22], ["brown", 15], ["light_brown", 18],
   ["blonde", 12], ["gray", 8], ["white", 5], ["red", 3], ["auburn", 2],
 ];
 const BASE_HAIR_TYPE: Array<[string, number]> = [
