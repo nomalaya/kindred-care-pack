@@ -4,6 +4,8 @@
 // Les signaux médicaux priment toujours sur les signaux émotionnels positifs.
 import { mapApproxAgeToVocab } from "./avatarAgeRange";
 import { inferGenderFromName } from "./genderFromName";
+import { detectCountryGroup, PHENOTYPE_DEFAULTS } from "./countryPhenotypes";
+
 
 
 export interface InferInput {
