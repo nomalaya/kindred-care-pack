@@ -19,7 +19,9 @@ export interface PhenotypeDefaults {
   avatar_hair_type?: string;
   avatar_hair_color?: string;
   avatar_hair_length?: string;
+  avatar_hair_style?: string;
   avatar_face_shape?: string;
+  avatar_nose?: string;
   avatar_head_covering?: string;
   avatar_beard?: string;
   avatar_moustache?: string;
