@@ -14,6 +14,10 @@ export const AVATAR_VOCAB = {
   hair_style: [
     "clean_cut", "tousled", "side_parted", "loose", "softly_tied",
     "half_up", "natural_waves", "bun", "braided_simple",
+    "cornrows", "box_braids", "braided_updo",
+  ],
+  nose: [
+    "straight", "aquiline", "rounded", "wide", "narrow", "flat_bridge", "upturned",
   ],
   face_shape: ["oval", "round", "square_soft", "heart", "long"],
   eye_shape: ["almond", "round", "soft", "narrow", "hooded", "tired", "deep_set"],

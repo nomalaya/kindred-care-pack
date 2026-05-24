@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   Sparkles, Users, CalendarDays, Smile, Palette, Ruler, Layers, Scissors,
   Waves, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility,
-  Baby, Eye, Pipette, Brush, Slash, Droplet, SwatchBook, ScanFace, Scale, type LucideIcon,
+  Baby, Eye, Pipette, Brush, Slash, Droplet, SwatchBook, ScanFace, Scale, Triangle, type LucideIcon,
 } from "lucide-react";
 
 
@@ -18,6 +18,7 @@ export const FIELD_LABELS: Record<string, string> = {
   avatar_gender: "Genre",
   avatar_age_range: "Tranche d'âge",
   avatar_face_shape: "Forme du visage",
+  avatar_nose: "Nez",
   avatar_skin_tone: "Teint",
   avatar_eye_shape: "Forme des yeux",
   avatar_eye_color: "Couleur des yeux",
@@ -46,6 +47,7 @@ export const FIELD_ICONS: Record<string, LucideIcon> = {
   avatar_gender: Users,
   avatar_age_range: CalendarDays,
   avatar_face_shape: ScanFace,
+  avatar_nose: Triangle,
   avatar_skin_tone: Droplet,
   avatar_eye_shape: Eye,
   avatar_eye_color: Pipette,
@@ -75,6 +77,7 @@ export const FIELD_ACCENT: Record<string, string> = {
   avatar_gender: "--field-identity",
   avatar_age_range: "--field-time",
   avatar_face_shape: "--field-face",
+  avatar_nose: "--field-face",
   avatar_skin_tone: "--field-skin",
   avatar_eye_shape: "--field-eye",
   avatar_eye_color: "--field-eye",
@@ -105,7 +108,7 @@ export const FIELD_ACCENT: Record<string, string> = {
 };
 
 export const TAB_FIELDS: Record<string, string[]> = {
-  face: ["avatar_gender", "avatar_age_range", "avatar_face_shape", "avatar_skin_tone", "avatar_expression"],
+  face: ["avatar_gender", "avatar_age_range", "avatar_face_shape", "avatar_nose", "avatar_skin_tone", "avatar_expression"],
   eyes: ["avatar_eye_shape", "avatar_eye_color", "avatar_tired_level", "avatar_emotional_brightness"],
   hair: ["avatar_hair_type", "avatar_hair_color", "avatar_hair_length", "avatar_hair_volume", "avatar_hair_style"],
   male: ["avatar_beard", "avatar_moustache", "avatar_bald_level", "avatar_hair_recession"],

@@ -83,6 +83,7 @@ export type Database = {
           avatar_mobility_aid: string | null
           avatar_model_used: string | null
           avatar_moustache: string | null
+          avatar_nose: string | null
           avatar_parent_energy: string | null
           avatar_posture: string | null
           avatar_preview_url: string | null
@@ -166,6 +167,7 @@ export type Database = {
           avatar_mobility_aid?: string | null
           avatar_model_used?: string | null
           avatar_moustache?: string | null
+          avatar_nose?: string | null
           avatar_parent_energy?: string | null
           avatar_posture?: string | null
           avatar_preview_url?: string | null
@@ -249,6 +251,7 @@ export type Database = {
           avatar_mobility_aid?: string | null
           avatar_model_used?: string | null
           avatar_moustache?: string | null
+          avatar_nose?: string | null
           avatar_parent_energy?: string | null
           avatar_posture?: string | null
           avatar_preview_url?: string | null
