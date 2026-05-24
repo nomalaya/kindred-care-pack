@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   Sparkles, Users, CalendarDays, Smile, Palette, Ruler, Layers, Scissors,
   Waves, ArrowUp, Crown, Globe, Shirt, PersonStanding, Accessibility,
-  Baby, Eye, Pipette, Brush, Slash, Droplet, SwatchBook, ScanFace, Scale, type LucideIcon,
+  Baby, Eye, Pipette, Brush, Slash, Droplet, SwatchBook, ScanFace, Scale, Triangle, type LucideIcon,
 } from "lucide-react";
 
 
