@@ -140,7 +140,7 @@ export function ContextPanel({
             <Button
               size="sm"
               variant="outline"
-              disabled={!!saving || disabled}
+              disabled={saving !== "none" || disabled}
               onClick={() => triggerSave("save")}
             >
               <Save className="h-3.5 w-3.5 mr-1" />
@@ -148,7 +148,7 @@ export function ContextPanel({
             </Button>
             <Button
               size="sm"
-              disabled={!!saving || disabled}
+              disabled={saving !== "none" || disabled}
               onClick={() => triggerSave("reinfer")}
             >
               <Wand2 className="h-3.5 w-3.5 mr-1" />
