@@ -77,6 +77,7 @@ export const FIELD_ACCENT: Record<string, string> = {
   avatar_gender: "--field-identity",
   avatar_age_range: "--field-time",
   avatar_face_shape: "--field-face",
+  avatar_nose: "--field-face",
   avatar_skin_tone: "--field-skin",
   avatar_eye_shape: "--field-eye",
   avatar_eye_color: "--field-eye",
