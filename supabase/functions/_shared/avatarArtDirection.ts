@@ -103,6 +103,7 @@ export const NEGATIVE_PROMPT = [
   "no pencil-only sketch", "no monochrome",
   "no identifiable likeness of any real person", "no recognizable individual", "no celebrity resemblance", "no public figure resemblance", "no portrait of a real human",
   "no pure white studio background", "no plain background", "no busy background", "no sharp detailed background", "no cluttered scene",
+  "no white border", "no paper border", "no torn paper edge", "no deckled edge", "no vignette", "no frame", "no passe-partout", "no mat around the illustration", "no scrapbook look", "no sticker outline", "no rounded corner card", "no watercolor paper texture", "no visible paper grain", "no margin around the illustration", "background must extend fully to all four edges of the image",
   "no artificial commercial smile", "no dramatic lighting", "no tears", "no despair", "no exaggerated emotion", "no crying",
   "no caricature", "no cultural stereotype", "no traditional ceremonial dress",
   "no multiple faces, single subject only", "no nudity",
