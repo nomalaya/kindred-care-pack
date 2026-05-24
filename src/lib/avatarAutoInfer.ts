@@ -4,6 +4,8 @@
 // Les signaux médicaux priment toujours sur les signaux émotionnels positifs.
 import { mapApproxAgeToVocab } from "./avatarAgeRange";
 import { inferGenderFromName } from "./genderFromName";
+import { detectCountryGroup, PHENOTYPE_DEFAULTS } from "./countryPhenotypes";
+
 
 
 export interface InferInput {
@@ -341,8 +343,50 @@ export function inferStudioDefaultsWithReasons(b: InferInput): InferenceResult {
     values.avatar_hair_recession = age >= 50 ? "moderate" : age >= 35 ? "light" : "none";
   }
 
+  // --- Phénotype par pays / gentilé (weak defaults) ---
+  // Appliqué APRÈS les défauts d'âge (peut les écraser) mais AVANT les overrides
+  // explicites yeux/cheveux/barbe/voile, qui resteront prioritaires.
+  // Ne touche jamais un champ déjà saisi manuellement sur le bénéficiaire.
+  const countryHit = detectCountryGroup(rawText);
+  if (countryHit) {
+    const variantKey: "male" | "female" | null =
+      effectiveGender === "man" ? "male"
+      : effectiveGender === "woman" ? "female"
+      : null;
+    if (variantKey) {
+      const variant = PHENOTYPE_DEFAULTS[countryHit.group][variantKey];
+      const phenotypeReason = {
+        signal: "country_phenotype",
+        signalLabel: "Origine détectée",
+        keyword: countryHit.matchedKeyword,
+      };
+      for (const [field, val] of Object.entries(variant)) {
+        if (field === "culture_tags") continue;
+        if ((b as any)[field] != null && (b as any)[field] !== "") continue;
+        values[field] = val;
+        reasons[field] = reasons[field] || [];
+        if (!reasons[field].some(r => r.signal === "country_phenotype")) {
+          reasons[field].push(phenotypeReason);
+        }
+      }
+      // Fusion culture_tags (sans doublons, ne perd jamais les existants)
+      if (variant.culture_tags?.length) {
+        const existing = Array.isArray(b.culture_tags) ? [...b.culture_tags] : [];
+        for (const tag of variant.culture_tags) {
+          if (!existing.includes(tag)) existing.push(tag);
+        }
+        values.culture_tags = existing;
+        reasons.culture_tags = reasons.culture_tags || [];
+        if (!reasons.culture_tags.some(r => r.signal === "country_phenotype")) {
+          reasons.culture_tags.push(phenotypeReason);
+        }
+      }
+    }
+  }
+
   // --- Signaux factuels (issus principalement des notes privées admin) ---
   // Couleur des yeux
+
   const eyeMap: Array<[RegExp, string]> = [
     [/yeux\s+(?:tres\s+)?noirs?/, "dark_brown"],
     [/yeux\s+marron\s+fonces?|yeux\s+brun\s+fonce/, "dark_brown"],

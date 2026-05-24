@@ -75,4 +75,81 @@ describe("inferStudioDefaultsWithReasons", () => {
     expect(psychosocialReasons).toHaveLength(0);
     expect(r.values.avatar_mobility_aid).toBe("none");
   });
+
+  // --- Phénotype par pays / gentilé ---
+  it("Mehdi marocain — phénotype MENA masculin", () => {
+    const r = inferStudioDefaultsWithReasons({
+      approx_age: 35,
+      avatar_gender: "man",
+      real_first_name: "Mehdi",
+      short_story: "Père de famille.",
+      emotional_sentence: "Il garde espoir.",
+      avatar_private_notes: "marocain",
+    });
+    expect(r.values.avatar_skin_tone).toBe("olive");
+    expect(r.values.avatar_hair_type).toBe("wavy");
+    expect(r.values.avatar_hair_color).toBe("black");
+    expect(r.values.avatar_eye_color).toBe("dark_brown");
+    expect(r.values.avatar_head_covering).toBe("optional");
+    expect(r.values.avatar_beard).toBe("full");
+    expect(r.values.culture_tags).toContain("maghreb");
+    expect(r.reasons.avatar_skin_tone?.[0].signal).toBe("country_phenotype");
+  });
+
+  it("Yumi japonaise — phénotype Est-asiatique féminin", () => {
+    const r = inferStudioDefaultsWithReasons({
+      approx_age: 30,
+      avatar_gender: "woman",
+      real_first_name: "Yumi",
+      short_story: "Vit seule à Lyon.",
+      emotional_sentence: "Elle reste digne.",
+      avatar_private_notes: "asiatique, japonaise, légère corpulence",
+    });
+    expect(r.values.avatar_eye_shape).toBe("narrow");
+    expect(r.values.avatar_hair_type).toBe("straight");
+    expect(r.values.avatar_hair_color).toBe("black");
+    expect(r.values.avatar_head_covering).toBe("none");
+    expect(r.values.culture_tags).toContain("est_asie");
+  });
+
+  it("Aïcha sénégalaise — phénotype subsaharien féminin", () => {
+    const r = inferStudioDefaultsWithReasons({
+      approx_age: 40,
+      avatar_gender: "woman",
+      real_first_name: "Aicha",
+      short_story: "Mère courageuse.",
+      emotional_sentence: "Elle ne lâche rien.",
+      avatar_private_notes: "senegalaise",
+    });
+    expect(r.values.avatar_skin_tone).toBe("deep");
+    expect(r.values.avatar_hair_type).toBe("coily");
+    expect(r.values.culture_tags).toContain("afrique_subsaharienne");
+  });
+
+  it("Override explicite — sénégalais aux yeux verts", () => {
+    const r = inferStudioDefaultsWithReasons({
+      approx_age: 32,
+      avatar_gender: "man",
+      real_first_name: "Amadou",
+      short_story: "Sénégalais aux yeux verts.",
+      emotional_sentence: "Il tient bon.",
+    });
+    expect(r.values.avatar_skin_tone).toBe("deep");
+    expect(r.values.avatar_eye_color).toBe("green");
+    expect(r.reasons.avatar_eye_color?.[0].signal).toBe("private_note");
+  });
+
+  it("Valeur manuelle conservée — bénéficiaire avec skin_tone déjà saisi", () => {
+    const r = inferStudioDefaultsWithReasons({
+      approx_age: 28,
+      avatar_gender: "woman",
+      real_first_name: "Leila",
+      short_story: "Issue d'une famille marocaine.",
+      emotional_sentence: "Elle avance.",
+      avatar_skin_tone: "fair",
+    } as any);
+    expect(r.values.avatar_skin_tone).toBeUndefined();
+    expect(r.values.avatar_hair_color).toBe("black");
+  });
 });
+
