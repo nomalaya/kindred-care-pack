@@ -65,6 +65,18 @@ export const VOCAB_LABELS = {
     natural_waves: "Vagues naturelles",
     bun: "Chignon",
     braided_simple: "Tresse simple",
+    cornrows: "Tresses collées (cornrows)",
+    box_braids: "Tresses longues (box braids)",
+    braided_updo: "Tresses relevées",
+  },
+  nose: {
+    straight: "Droit",
+    aquiline: "Aquilin",
+    rounded: "Arrondi",
+    wide: "Large",
+    narrow: "Fin",
+    flat_bridge: "Arête basse",
+    upturned: "Retroussé",
   },
   face_shape: {
     oval: "Ovale",
