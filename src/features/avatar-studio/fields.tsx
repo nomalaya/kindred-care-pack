@@ -18,6 +18,7 @@ export const FIELD_LABELS: Record<string, string> = {
   avatar_gender: "Genre",
   avatar_age_range: "Tranche d'âge",
   avatar_face_shape: "Forme du visage",
+  avatar_nose: "Nez",
   avatar_skin_tone: "Teint",
   avatar_eye_shape: "Forme des yeux",
   avatar_eye_color: "Couleur des yeux",
