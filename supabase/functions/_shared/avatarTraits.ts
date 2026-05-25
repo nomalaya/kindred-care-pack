@@ -44,6 +44,7 @@ export interface BeneficiaryInput {
   avatar_bald_level?: number | null;
   avatar_hair_recession?: string | null;
   avatar_head_covering?: string | null;
+  avatar_forehead_mark?: string | null;
   avatar_cultural_style_override?: string | null;
   avatar_resilience_level?: number | null;
   avatar_fatigue_level?: number | null;
