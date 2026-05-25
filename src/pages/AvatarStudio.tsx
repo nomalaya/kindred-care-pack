@@ -1000,7 +1000,8 @@ const AvatarStudio = () => {
                       "avatar_posture", "avatar_mobility_aid",
                     ];
 
-                    const culturalKeys = ["avatar_head_covering", "avatar_cultural_style_override"];
+                    const isWoman = selected?.avatar_gender === "woman";
+                    const culturalKeys = ["avatar_head_covering", ...(isWoman ? ["avatar_forehead_mark"] : []), "avatar_cultural_style_override"];
                     const socialKeys = ["avatar_parent_energy"];
 
                     const sections: SectionDef[] = [
@@ -1090,6 +1091,9 @@ const AvatarStudio = () => {
                           <div className="space-y-3">
                             <div className="grid grid-cols-2 gap-3">
                               <SelectField icon={FIELD_ICONS.avatar_head_covering} label={FIELD_LABELS.avatar_head_covering} value={selected.avatar_head_covering ?? "none"} options={AVATAR_VOCAB.head_covering} onChange={v => patch({ avatar_head_covering: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_head_covering} labelFor={labelFor("head_covering")} />
+                              {isWoman && (
+                                <SelectField icon={FIELD_ICONS.avatar_forehead_mark} label={FIELD_LABELS.avatar_forehead_mark} value={(selected as any).avatar_forehead_mark ?? "none"} options={AVATAR_VOCAB.forehead_mark} onChange={v => patch({ avatar_forehead_mark: v } as any)} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_forehead_mark} labelFor={labelFor("forehead_mark")} />
+                              )}
                               <div className="space-y-1.5">
                                 <Label className="text-xs text-muted-foreground">{FIELD_LABELS.avatar_cultural_style_override}</Label>
                                 <Input value={selected.avatar_cultural_style_override ?? ""} onChange={e => patch({ avatar_cultural_style_override: e.target.value })} disabled={isLocked} placeholder="ex. subtle_mediterranean" className="h-9" />

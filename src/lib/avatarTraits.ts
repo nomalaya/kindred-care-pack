@@ -50,10 +50,11 @@ export const AVATAR_VOCAB = {
     "subtle_mediterranean", "subtle_west_african", "subtle_central_african",
   ],
   // New Avatar Studio enums
-  beard: ["none", "light", "full", "grey"],
+  beard: ["none", "light", "full", "grey", "religious_long"],
   moustache: ["none", "light", "full"],
   hair_recession: ["none", "light", "moderate", "strong"],
-  head_covering: ["none", "optional", "required"],
+  head_covering: ["none", "light_scarf", "headscarf", "hijab_full", "taqiyah", "turban", "kippah"],
+  forehead_mark: ["none", "bindi_red", "bindi_black", "bindi_decorative"],
   mobility_aid: [
     "none",
     "wheelchair_manual",

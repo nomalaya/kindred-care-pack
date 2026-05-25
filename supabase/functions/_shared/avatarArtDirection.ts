@@ -135,7 +135,13 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
   if ((t.avatar_emotional_brightness ?? 3) <= 1) extras.push("low emotional brightness, subdued gaze");
   else if ((t.avatar_emotional_brightness ?? 3) >= 4) extras.push("bright, warm gaze");
   if (t.avatar_gender === "man") {
-    if (t.avatar_beard && t.avatar_beard !== "none") extras.push(`${t.avatar_beard} beard`);
+    if (t.avatar_beard && t.avatar_beard !== "none") {
+      if (t.avatar_beard === "religious_long") {
+        extras.push("a long untrimmed beard in a modest religious style, with the moustache kept short or trimmed above the upper lip");
+      } else {
+        extras.push(`${t.avatar_beard} beard`);
+      }
+    }
     if (t.avatar_moustache && t.avatar_moustache !== "none") extras.push(`${t.avatar_moustache} moustache`);
     if ((t.avatar_bald_level ?? 0) >= 70) extras.push("mostly bald");
     else if ((t.avatar_bald_level ?? 0) >= 30) extras.push("partial baldness on top");
@@ -143,8 +149,26 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
       extras.push(`${t.avatar_hair_recession} hair recession at temples`);
     }
   }
-  if (t.avatar_head_covering === "required") extras.push("wearing a soft modest headscarf");
-  else if (t.avatar_head_covering === "optional") extras.push("a light scarf draped on the shoulders");
+  const HEAD_COVERING: Record<string, string> = {
+    light_scarf: "a light scarf draped softly on the shoulders, hair fully visible",
+    headscarf: "wearing a modest headscarf that partially covers the hair, with a few strands visible at the front",
+    hijab_full: "wearing a hijab that fully covers the hair, ears and neck, modest fabric in a muted tone, soft natural folds",
+    taqiyah: "wearing a small white taqiyah (Muslim skull cap) on the crown of the head",
+    turban: "wearing a neatly wrapped turban in a muted tone",
+    kippah: "wearing a small discreet kippah on the crown of the head",
+  };
+  if (t.avatar_head_covering && HEAD_COVERING[t.avatar_head_covering]) {
+    extras.push(HEAD_COVERING[t.avatar_head_covering]);
+  }
+
+  const FOREHEAD_MARK: Record<string, string> = {
+    bindi_red: "a small red bindi centered on the forehead between the eyebrows, discreet and dignified",
+    bindi_black: "a small black bindi centered on the forehead between the eyebrows, discreet and dignified",
+    bindi_decorative: "a small decorative bindi centered on the forehead between the eyebrows, subtle and elegant",
+  };
+  if (t.avatar_forehead_mark && t.avatar_forehead_mark !== "none" && FOREHEAD_MARK[t.avatar_forehead_mark]) {
+    extras.push(FOREHEAD_MARK[t.avatar_forehead_mark]);
+  }
   if ((t.avatar_fatigue_level ?? 0) >= 3) extras.push("visible but dignified fatigue in the face");
   if ((t.avatar_resilience_level ?? 3) >= 4) extras.push("quiet inner strength conveyed in the posture");
 

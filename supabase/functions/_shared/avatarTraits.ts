@@ -44,6 +44,7 @@ export interface BeneficiaryInput {
   avatar_bald_level?: number | null;
   avatar_hair_recession?: string | null;
   avatar_head_covering?: string | null;
+  avatar_forehead_mark?: string | null;
   avatar_cultural_style_override?: string | null;
   avatar_resilience_level?: number | null;
   avatar_fatigue_level?: number | null;
@@ -80,6 +81,7 @@ export interface AvatarTraits {
   avatar_bald_level?: number;
   avatar_hair_recession?: string;
   avatar_head_covering?: string;
+  avatar_forehead_mark?: string;
   avatar_cultural_style_override?: string;
   avatar_resilience_level?: number;
   avatar_fatigue_level?: number;
@@ -474,6 +476,7 @@ export function inferAvatarTraits(b: BeneficiaryInput): AvatarTraits {
     avatar_bald_level: b.avatar_bald_level ?? undefined,
     avatar_hair_recession: b.avatar_hair_recession ?? undefined,
     avatar_head_covering: b.avatar_head_covering ?? undefined,
+    avatar_forehead_mark: b.avatar_forehead_mark ?? undefined,
     avatar_cultural_style_override: b.avatar_cultural_style_override ?? undefined,
     avatar_resilience_level: b.avatar_resilience_level ?? undefined,
     avatar_fatigue_level: b.avatar_fatigue_level ?? undefined,

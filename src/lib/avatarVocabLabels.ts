@@ -162,6 +162,7 @@ export const VOCAB_LABELS = {
     light: "Légère",
     full: "Fournie",
     grey: "Grisonnante",
+    religious_long: "Religieuse (longue)",
   },
   moustache: {
     none: "Aucune",
@@ -176,8 +177,18 @@ export const VOCAB_LABELS = {
   },
   head_covering: {
     none: "Aucun",
-    optional: "Optionnel",
-    required: "Requis",
+    light_scarf: "Foulard léger (épaules)",
+    headscarf: "Foulard (cheveux partiellement couverts)",
+    hijab_full: "Hijab (cheveux et cou entièrement couverts)",
+    taqiyah: "Taqiyah (calotte)",
+    turban: "Turban",
+    kippah: "Kippa",
+  },
+  forehead_mark: {
+    none: "Aucun",
+    bindi_red: "Bindi rouge",
+    bindi_black: "Bindi noir",
+    bindi_decorative: "Bindi décoratif",
   },
   mobility_aid: {
     none: "Aucune",
