@@ -61,6 +61,7 @@ export const FIELD_ICONS: Record<string, LucideIcon> = {
   avatar_moustache: Slash,
   avatar_hair_recession: ArrowUp,
   avatar_head_covering: Crown,
+  avatar_forehead_mark: Sparkles,
   avatar_cultural_style_override: Globe,
   avatar_clothing_style: Shirt,
   avatar_clothing_color_palette: SwatchBook,
