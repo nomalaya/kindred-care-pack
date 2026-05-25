@@ -476,6 +476,7 @@ export function inferAvatarTraits(b: BeneficiaryInput): AvatarTraits {
     avatar_bald_level: b.avatar_bald_level ?? undefined,
     avatar_hair_recession: b.avatar_hair_recession ?? undefined,
     avatar_head_covering: b.avatar_head_covering ?? undefined,
+    avatar_forehead_mark: b.avatar_forehead_mark ?? undefined,
     avatar_cultural_style_override: b.avatar_cultural_style_override ?? undefined,
     avatar_resilience_level: b.avatar_resilience_level ?? undefined,
     avatar_fatigue_level: b.avatar_fatigue_level ?? undefined,
