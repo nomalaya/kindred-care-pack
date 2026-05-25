@@ -1000,7 +1000,8 @@ const AvatarStudio = () => {
                       "avatar_posture", "avatar_mobility_aid",
                     ];
 
-                    const culturalKeys = ["avatar_head_covering", "avatar_cultural_style_override"];
+                    const isWoman = selected?.avatar_gender === "woman";
+                    const culturalKeys = ["avatar_head_covering", ...(isWoman ? ["avatar_forehead_mark"] : []), "avatar_cultural_style_override"];
                     const socialKeys = ["avatar_parent_energy"];
 
                     const sections: SectionDef[] = [
