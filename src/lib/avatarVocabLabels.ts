@@ -162,6 +162,7 @@ export const VOCAB_LABELS = {
     light: "Légère",
     full: "Fournie",
     grey: "Grisonnante",
+    religious_long: "Religieuse (longue)",
   },
   moustache: {
     none: "Aucune",
