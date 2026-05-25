@@ -143,8 +143,26 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
       extras.push(`${t.avatar_hair_recession} hair recession at temples`);
     }
   }
-  if (t.avatar_head_covering === "required") extras.push("wearing a soft modest headscarf");
-  else if (t.avatar_head_covering === "optional") extras.push("a light scarf draped on the shoulders");
+  const HEAD_COVERING: Record<string, string> = {
+    light_scarf: "a light scarf draped softly on the shoulders, hair fully visible",
+    headscarf: "wearing a modest headscarf that partially covers the hair, with a few strands visible at the front",
+    hijab_full: "wearing a hijab that fully covers the hair, ears and neck, modest fabric in a muted tone, soft natural folds",
+    taqiyah: "wearing a small white taqiyah (Muslim skull cap) on the crown of the head",
+    turban: "wearing a neatly wrapped turban in a muted tone",
+    kippah: "wearing a small discreet kippah on the crown of the head",
+  };
+  if (t.avatar_head_covering && HEAD_COVERING[t.avatar_head_covering]) {
+    extras.push(HEAD_COVERING[t.avatar_head_covering]);
+  }
+
+  const FOREHEAD_MARK: Record<string, string> = {
+    bindi_red: "a small red bindi centered on the forehead between the eyebrows, discreet and dignified",
+    bindi_black: "a small black bindi centered on the forehead between the eyebrows, discreet and dignified",
+    bindi_decorative: "a small decorative bindi centered on the forehead between the eyebrows, subtle and elegant",
+  };
+  if (t.avatar_forehead_mark && t.avatar_forehead_mark !== "none" && FOREHEAD_MARK[t.avatar_forehead_mark]) {
+    extras.push(FOREHEAD_MARK[t.avatar_forehead_mark]);
+  }
   if ((t.avatar_fatigue_level ?? 0) >= 3) extras.push("visible but dignified fatigue in the face");
   if ((t.avatar_resilience_level ?? 3) >= 4) extras.push("quiet inner strength conveyed in the posture");
 
