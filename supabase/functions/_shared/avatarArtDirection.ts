@@ -135,7 +135,13 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
   if ((t.avatar_emotional_brightness ?? 3) <= 1) extras.push("low emotional brightness, subdued gaze");
   else if ((t.avatar_emotional_brightness ?? 3) >= 4) extras.push("bright, warm gaze");
   if (t.avatar_gender === "man") {
-    if (t.avatar_beard && t.avatar_beard !== "none") extras.push(`${t.avatar_beard} beard`);
+    if (t.avatar_beard && t.avatar_beard !== "none") {
+      if (t.avatar_beard === "religious_long") {
+        extras.push("a long untrimmed beard in a modest religious style, with the moustache kept short or trimmed above the upper lip");
+      } else {
+        extras.push(`${t.avatar_beard} beard`);
+      }
+    }
     if (t.avatar_moustache && t.avatar_moustache !== "none") extras.push(`${t.avatar_moustache} moustache`);
     if ((t.avatar_bald_level ?? 0) >= 70) extras.push("mostly bald");
     else if ((t.avatar_bald_level ?? 0) >= 30) extras.push("partial baldness on top");
