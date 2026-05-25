@@ -81,6 +81,7 @@ export interface AvatarTraits {
   avatar_bald_level?: number;
   avatar_hair_recession?: string;
   avatar_head_covering?: string;
+  avatar_forehead_mark?: string;
   avatar_cultural_style_override?: string;
   avatar_resilience_level?: number;
   avatar_fatigue_level?: number;
