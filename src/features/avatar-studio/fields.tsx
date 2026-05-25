@@ -95,6 +95,7 @@ export const FIELD_ACCENT: Record<string, string> = {
   avatar_bald_level: "--field-pilosity",
   avatar_hair_recession: "--field-pilosity",
   avatar_head_covering: "--field-culture",
+  avatar_forehead_mark: "--field-culture",
   avatar_cultural_style_override: "--field-culture",
   avatar_clothing_style: "--field-clothing",
   avatar_clothing_color_palette: "--field-clothing",
