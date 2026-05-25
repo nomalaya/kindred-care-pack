@@ -22,6 +22,7 @@ export interface BeneficiaryInput {
   culture_tags?: string[] | null;
   urgency_level?: number | null;
   avatar_face_shape?: string | null;
+  avatar_nose?: string | null;
   avatar_eye_shape?: string | null;
   avatar_eye_color?: string | null;
   avatar_facial_features?: string[] | null;
@@ -59,6 +60,7 @@ export interface AvatarTraits {
   avatar_skin_tone: string;
   avatar_hair_type: string;
   avatar_face_shape: string;
+  avatar_nose?: string;
   avatar_eye_shape: string;
   avatar_eye_color: string;
   avatar_facial_features: string[];
@@ -483,5 +485,6 @@ export function inferAvatarTraits(b: BeneficiaryInput): AvatarTraits {
     avatar_dignity_level: b.avatar_dignity_level ?? undefined,
     avatar_mobility_aid: b.avatar_mobility_aid ?? undefined,
     avatar_body_type: b.avatar_body_type ?? undefined,
+    avatar_nose: b.avatar_nose ?? undefined,
   };
 }

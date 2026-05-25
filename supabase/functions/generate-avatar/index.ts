@@ -134,7 +134,11 @@ serve(async (req) => {
     const work = (async () => {
       try {
         const traits = inferAvatarTraits(b);
-        const prompt = buildAvatarPrompt(traits);
+        const basePrompt = buildAvatarPrompt(traits);
+        // Anti-cache nonce: ensures each generation is unique even with identical attributes,
+        // and that attribute changes never collide with a Gemini internal cache.
+        const nonce = `${traits.avatar_seed}-${Date.now()}`;
+        const prompt = `${basePrompt}\n[render-token: ${nonce}]`;
 
         // Persist inferred traits + prompt + seed
         const traitsUpdate: Record<string, any> = {

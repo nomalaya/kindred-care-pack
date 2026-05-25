@@ -64,13 +64,23 @@ const SKIN_DESC: Record<string, string> = {
 };
 
 const HAIR_COLOR_DESC: Record<string, string> = {
-  black: "black hair", dark_brown: "dark brown hair", light_brown: "light brown hair",
-  blonde: "blonde hair", red: "red hair", auburn: "auburn hair",
-  gray: "gray hair", white: "white hair",
+  black: "black", dark_brown: "dark brown", brown: "brown", light_brown: "light brown",
+  blonde: "blonde", red: "red", auburn: "auburn",
+  gray: "gray", white: "white",
 };
 
 const HAIR_TYPE_DESC: Record<string, string> = {
   straight: "straight", wavy: "wavy", curly: "curly", coily: "coily",
+};
+
+const NOSE_DESC: Record<string, string> = {
+  straight: "a straight, balanced nose",
+  aquiline: "an aquiline nose with a softly curved bridge",
+  rounded: "a softly rounded nose with a gentle tip",
+  wide: "a wide nose with broad nostrils",
+  narrow: "a narrow, slim nose",
+  flat_bridge: "a nose with a low, flat bridge",
+  upturned: "a slightly upturned nose",
 };
 
 const BODY_TYPE_DESC: Record<string, string> = {
@@ -81,33 +91,30 @@ const BODY_TYPE_DESC: Record<string, string> = {
   heavy: "noticeably heavier build, fuller face, rounded cheeks and broader shoulders",
 };
 
+// Compact, focused art direction. Style + dignity + anonymity only.
+// Framing is enforced separately right after the subject for maximum weight.
 export const ART_DIRECTION_INVARIANTS = `
-HAND-DRAWN SEMI-REALISTIC CARTOON ILLUSTRATION — editorial storybook portrait, in the visual style of modern picture-book and editorial illustration (think contemporary New Yorker meets warm 2D storybook). Hand-drawn ink linework with fine, soft, organic outlines (NOT thick uniform vector outlines). Realistic human proportions and anatomy, clearly non-photographic, with subtle stylization.
-EXPLICITLY NOT: not a photograph, not photorealistic, not a 3D render, not Pixar/Disney 3D, not flat vector sticker, not Storyset/unDraw style, not anime, not manga, not chibi, not comic book, not oil painting, not heavy acrylic painting, not saturated watercolor, not pencil sketch only.
-LINEWORK: fine, slightly varying hand-drawn ink lines around face, hair, clothes. Visible but subtle. Natural imperfection — not vector-perfect.
-SHADING: soft hand-applied shading reminiscent of colored pencil with a light digital wash. Gentle volume on the face (cheeks, nose, jaw) without realistic skin pores or photographic detail. Warm soft natural lighting. NO visible paper grain, NO watercolor paper texture.
-COLOR PALETTE: warm, slightly desaturated, harmonious. Muted earth and warm pastel tones. No neon, no oversaturation, no high-contrast pop.
-ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure, celebrity or identifiable individual. No specific likeness, no recognizable features that could identify a real human. The character is a respectful fictional stand-in.
-FRAMING (CRITICAL — STRICT): chest-up bust, subject centered, square 1:1 composition, character occupies ~65-75% of the frame, looking softly toward the camera. Full-bleed image: the illustrated background MUST extend all the way to the four edges of the image with NO border, NO white margin, NO frame, NO passe-partout / mat, NO torn or deckled paper edge, NO vignette, NO rounded-corner card, NO scrapbook or sticker outline. The image must look like a single continuous illustration filling the entire 1:1 canvas, not an illustration sitting on a sheet of paper.
-BACKGROUND: soft, gently BLURRED contextual background coherent with the situation (warm domestic interior, kitchen, living room, simple street, workshop, outdoor garden, etc.) — illustrated in the same hand-drawn style, kept low-contrast and out of focus so the subject remains the clear focal point, and extending edge-to-edge across all four sides of the frame. NEVER a pure white studio background. NEVER a busy or sharp background. NEVER a background that stops short of the image edges.
-DIGNITY: respectful, warm, kind, gentle expression. Quiet humanity. No caricature, no exaggeration, no stereotype, no pathos, no misery, no sadness.
+STYLE: hand-drawn semi-realistic editorial storybook illustration. Fine soft ink linework with subtle organic outlines. Soft colored-pencil shading with a light digital wash. Realistic human proportions, clearly non-photographic, gently stylized.
+COLOR: warm, slightly desaturated, harmonious. Muted earth and warm pastel tones. No neon, no oversaturation.
+ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure or celebrity. Fictional respectful stand-in only.
+DIGNITY: warm, kind, gentle. Quiet humanity. No caricature, no stereotype, no pathos, no misery.
+BACKGROUND: soft, gently blurred contextual scene (warm domestic interior, kitchen, living room, simple street, workshop, garden) in the same illustration style, low-contrast, out of focus, supporting the subject.
 `.trim();
 
+// Strict framing block. Short, repeated, capitalized — image models obey these much better than long paragraphs.
+export const FRAMING_BLOCK = `
+IMAGE FORMAT — STRICT: square 1:1 canvas. Full-bleed illustration. The illustrated background MUST extend all the way to the four edges of the image.
+ABSOLUTELY FORBIDDEN: paper sheet, torn paper edge, deckled edge, white margin, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette.
+Composition: chest-up bust, subject centered, character occupies ~65-75% of the frame, looking softly toward the camera.
+`.trim();
+
+// Short, focused negative prompt. Long lists dilute and are ignored by Gemini image models.
 export const NEGATIVE_PROMPT = [
-  "no text", "no watermark", "no logo", "no caption", "no signature",
-  "no photograph", "no photorealism", "no realistic skin texture", "no skin pores", "no DSLR look", "no stock photo", "no passport photo", "no LinkedIn portrait",
-  "no 3D render", "no CGI", "no octane render", "no Pixar 3D", "no Disney 3D render", "no Blender render",
-  "no flat vector sticker style", "no Storyset style", "no unDraw style", "no Notion avatar style", "no bold uniform vector outlines",
-  "no anime", "no manga", "no chibi", "no comic book style", "no superhero style",
-  "no oil painting", "no heavy acrylic painting", "no impasto", "no thick brush strokes", "no saturated watercolor", "no abstract painting",
-  "no pencil-only sketch", "no monochrome",
-  "no identifiable likeness of any real person", "no recognizable individual", "no celebrity resemblance", "no public figure resemblance", "no portrait of a real human",
-  "no pure white studio background", "no plain background", "no busy background", "no sharp detailed background", "no cluttered scene",
-  "no white border", "no paper border", "no torn paper edge", "no deckled edge", "no vignette", "no frame", "no passe-partout", "no mat around the illustration", "no scrapbook look", "no sticker outline", "no rounded corner card", "no watercolor paper texture", "no visible paper grain", "no margin around the illustration", "background must extend fully to all four edges of the image",
-  "no artificial commercial smile", "no dramatic lighting", "no tears", "no despair", "no exaggerated emotion", "no crying",
-  "no caricature", "no cultural stereotype", "no traditional ceremonial dress",
-  "no multiple faces, single subject only", "no nudity",
-  "no harsh shadows", "no neon", "no oversaturation", "no glossy plastic skin",
+  "no photograph", "no photorealism", "no 3D render", "no CGI", "no Pixar style",
+  "no flat vector sticker", "no anime", "no manga", "no oil painting", "no saturated watercolor",
+  "no white border", "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture", "no vignette", "no plain white studio background",
+  "no identifiable real person", "no celebrity likeness",
+  "no multiple faces", "no text", "no watermark", "no logo",
 ].join(", ");
 
 export function buildAvatarPrompt(t: AvatarTraits): string {
@@ -116,14 +123,24 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
     .filter(Boolean)
     .join(", ");
 
-  const subject = [
+  // Lead with the high-signal phenotypic attributes first (gender, age, hair),
+  // then face/skin/eyes. Image models weight early tokens the most.
+  const hairColor = HAIR_COLOR_DESC[t.avatar_hair_color] ?? t.avatar_hair_color;
+  const hairType = HAIR_TYPE_DESC[t.avatar_hair_type] ?? t.avatar_hair_type;
+  const hairLength = (t.avatar_hair_length ?? "").replace(/_/g, " ");
+  const hairStyle = (t.avatar_hair_style ?? "").replace(/_/g, " ");
+  const hairVolume = t.avatar_hair_volume ?? "";
+
+  const subjectParts = [
     `a ${t.avatar_age_range} year old ${t.avatar_gender}`,
+    `with ${hairLength} ${hairType} ${hairColor} hair (${hairStyle} style, ${hairVolume} volume)`,
     SKIN_DESC[t.avatar_skin_tone] ?? `${t.avatar_skin_tone} skin`,
-    `${t.avatar_face_shape.replace("_", " ")} face shape`,
+    `${t.avatar_face_shape.replace(/_/g, " ")} face shape`,
+    t.avatar_nose ? NOSE_DESC[t.avatar_nose] : "",
     `${t.avatar_eye_shape} ${t.avatar_eye_color} eyes`,
-    features ? features : "",
-    `${HAIR_TYPE_DESC[t.avatar_hair_type] ?? t.avatar_hair_type} ${t.avatar_hair_length} ${HAIR_COLOR_DESC[t.avatar_hair_color] ?? t.avatar_hair_color}, ${t.avatar_hair_style.replace("_", " ")} style, ${t.avatar_hair_volume} volume`,
-  ].filter(Boolean).join(", ");
+    features,
+  ].filter(Boolean);
+  const subject = subjectParts.join(", ");
 
   // Studio extensions — appended only when set
   const extras: string[] = [];
@@ -202,14 +219,18 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
     ? `with ${t.avatar_cultural_style_override.replace(/_/g, " ")} styling cues (kept understated)`
     : (CULTURAL_STYLE_DESC[t.avatar_cultural_style] ?? "");
 
+  // SUBJECT FIRST, then framing, then art direction.
   return [
-    ART_DIRECTION_INVARIANTS,
-    "",
-    `SUBJECT: ${subject}.`,
+    `PRIMARY SUBJECT — STRICTLY FOLLOW ALL ATTRIBUTES BELOW, do not substitute or omit any of them:`,
+    subject + ".",
     extras.length ? `DETAILS: ${extras.join(", ")}.` : "",
     `EXPRESSION: ${expression}.`,
     `POSTURE: ${posture}.`,
     `CLOTHING: ${clothing} ${culturalCue}`.trim() + ".",
+    "",
+    FRAMING_BLOCK,
+    "",
+    ART_DIRECTION_INVARIANTS,
     "",
     `AVOID: ${NEGATIVE_PROMPT}.`,
   ].filter(Boolean).join("\n");
