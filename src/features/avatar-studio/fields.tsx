@@ -31,6 +31,7 @@ export const FIELD_LABELS: Record<string, string> = {
   avatar_moustache: "Moustache",
   avatar_hair_recession: "Recul des cheveux",
   avatar_head_covering: "Couvre-chef",
+  avatar_forehead_mark: "Marque frontale",
   avatar_cultural_style_override: "Style culturel (override)",
   avatar_clothing_style: "Style vêtements",
   avatar_clothing_color_palette: "Palette vêtements",
