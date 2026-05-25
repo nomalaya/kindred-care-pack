@@ -115,7 +115,7 @@ export const TAB_FIELDS: Record<string, string[]> = {
   eyes: ["avatar_eye_shape", "avatar_eye_color", "avatar_tired_level", "avatar_emotional_brightness"],
   hair: ["avatar_hair_type", "avatar_hair_color", "avatar_hair_length", "avatar_hair_volume", "avatar_hair_style"],
   male: ["avatar_beard", "avatar_moustache", "avatar_bald_level", "avatar_hair_recession"],
-  cultural: ["avatar_head_covering", "avatar_cultural_style_override"],
+  cultural: ["avatar_head_covering", "avatar_forehead_mark", "avatar_cultural_style_override"],
   clothing: ["avatar_clothing_style", "avatar_clothing_color_palette"],
   posture: ["avatar_posture", "avatar_mobility_aid", "avatar_resilience_level"],
   social: ["avatar_parent_energy", "avatar_fatigue_level", "avatar_dignity_level"],
