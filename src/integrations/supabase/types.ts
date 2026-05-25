@@ -71,6 +71,7 @@ export type Database = {
           avatar_face_shape: string | null
           avatar_facial_features: string[] | null
           avatar_fatigue_level: number | null
+          avatar_forehead_mark: string | null
           avatar_gender: string | null
           avatar_generated_at: string | null
           avatar_hair_color: string | null
@@ -155,6 +156,7 @@ export type Database = {
           avatar_face_shape?: string | null
           avatar_facial_features?: string[] | null
           avatar_fatigue_level?: number | null
+          avatar_forehead_mark?: string | null
           avatar_gender?: string | null
           avatar_generated_at?: string | null
           avatar_hair_color?: string | null
@@ -239,6 +241,7 @@ export type Database = {
           avatar_face_shape?: string | null
           avatar_facial_features?: string[] | null
           avatar_fatigue_level?: number | null
+          avatar_forehead_mark?: string | null
           avatar_gender?: string | null
           avatar_generated_at?: string | null
           avatar_hair_color?: string | null
