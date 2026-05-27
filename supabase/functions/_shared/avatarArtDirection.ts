@@ -262,7 +262,7 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
     ? `with ${t.avatar_cultural_style_override.replace(/_/g, " ")} styling cues (kept understated)`
     : (CULTURAL_STYLE_DESC[t.avatar_cultural_style] ?? "");
 
-  // SUBJECT FIRST, then framing, then art direction.
+  // SUBJECT FIRST, then framing, then background directive (overrides), then art direction.
   return [
     `PRIMARY SUBJECT — STRICTLY FOLLOW ALL ATTRIBUTES BELOW, do not substitute or omit any of them:`,
     subject + ".",
@@ -273,11 +273,14 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
     "",
     FRAMING_BLOCK,
     "",
+    pickBackgroundDirective(t.avatar_seed),
+    "",
     ART_DIRECTION_INVARIANTS,
     "",
     `AVOID: ${NEGATIVE_PROMPT}.`,
   ].filter(Boolean).join("\n");
 }
+
 
 // Same model for preview and final to guarantee a single consistent cartoon style across the catalog.
 export const MODEL_PREVIEW = "google/gemini-3.1-flash-image-preview";
