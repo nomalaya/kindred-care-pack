@@ -98,7 +98,7 @@ STYLE: hand-drawn semi-realistic editorial storybook illustration. Fine soft ink
 COLOR: warm, slightly desaturated, harmonious. Muted earth and warm pastel tones. No neon, no oversaturation.
 ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure or celebrity. Fictional respectful stand-in only.
 DIGNITY: warm, kind, gentle. Quiet humanity. No caricature, no stereotype, no pathos, no misery.
-BACKGROUND (STRICT): purely abstract, socially neutral. A large off-white / warm cream canvas dominates the frame (at least 60% of the surface). Behind the subject, ONE single soft organic blob shape in ONE single muted tint, low opacity, gently blurred, no hard edges. No second color, no second shape, no pattern, no texture beyond a faint paper grain. Absolutely no objects, no furniture, no window, no plants, no room, no street, no workshop, no landscape, no decorative motif — nothing that suggests wealth, poverty, location or activity.
+BACKGROUND (STRICT): purely abstract, socially neutral. A large off-white / warm cream canvas dominates the frame (at least 55% of the surface). Behind the subject, exactly THREE soft organic blob shapes in THREE different muted tints, low opacity (~25-40%), gently blurred, no hard edges, scattered behind the head and shoulders. No fourth color, no pattern, no texture beyond a faint paper grain. Absolutely no objects, no furniture, no window, no plants, no room, no street, no workshop, no landscape, no decorative motif — nothing that suggests wealth, poverty, location or activity.
 `.trim();
 
 // Strict framing block. Short, repeated, capitalized — image models obey these much better than long paragraphs.
@@ -108,14 +108,57 @@ ABSOLUTELY FORBIDDEN: paper sheet, torn paper edge, deckled edge, white margin, 
 Composition: chest-up bust, subject centered, character occupies ~65-75% of the frame, looking softly toward the camera.
 `.trim();
 
+// Curated palette of soft, socially-neutral tints. Ordered so that (i, i+2, i+4) always yields a harmonious triplet.
+const BLOB_TINTS = [
+  "dusty terracotta",
+  "soft sage",
+  "warm ochre",
+  "misty blue",
+  "faded plum",
+  "clay rose",
+  "sand beige",
+];
+
+const BLOB_LAYOUTS = [
+  { main: "in the upper-left area behind the head", b: "in the lower-right area behind the shoulder", c: "in the mid-left edge" },
+  { main: "in the upper-right area behind the head", b: "in the lower-left area behind the shoulder", c: "in the mid-right edge" },
+  { main: "centered behind the head, slightly offset to the left", b: "in the lower-right area", c: "in the upper-right corner" },
+  { main: "centered behind the head, slightly offset to the right", b: "in the lower-left area", c: "in the upper-left corner" },
+];
+
+const BLOB_MAIN_SIZES = ["medium", "large", "extra large"];
+
+export function pickBackgroundDirective(seed: number): string {
+  const s = (seed >>> 0) || 1;
+  const tintStart = s % BLOB_TINTS.length;
+  const tintA = BLOB_TINTS[tintStart];
+  const tintB = BLOB_TINTS[(tintStart + 2) % BLOB_TINTS.length];
+  const tintC = BLOB_TINTS[(tintStart + 4) % BLOB_TINTS.length];
+  const layout = BLOB_LAYOUTS[Math.floor(s / 7) % BLOB_LAYOUTS.length];
+  const mainSize = BLOB_MAIN_SIZES[Math.floor(s / 28) % BLOB_MAIN_SIZES.length];
+
+  return [
+    "BACKGROUND COMPOSITION — STRICT, OVERRIDES ANY OTHER BACKGROUND DESCRIPTION:",
+    "A large off-white warm cream canvas covers most of the frame (at least 55% of the visible surface).",
+    `Behind the subject, paint exactly THREE soft organic blob shapes, gently blurred, low opacity (~25-40%), no hard edges, no outlines:`,
+    `- one ${mainSize} ${tintA} blob ${layout.main} (dominant blob, behind the head),`,
+    `- one smaller ${tintB} blob ${layout.b},`,
+    `- one smaller ${tintC} blob ${layout.c}.`,
+    "The three blobs never touch the subject's face. No fourth color anywhere in the background. No objects, no furniture, no window, no plant, no landscape, no scene, no pattern, no geometric shape.",
+  ].join("\n");
+}
+
 // Short, focused negative prompt. Long lists dilute and are ignored by Gemini image models.
 export const NEGATIVE_PROMPT = [
   "no photograph", "no photorealism", "no 3D render", "no CGI", "no Pixar style",
   "no flat vector sticker", "no anime", "no manga", "no oil painting", "no saturated watercolor",
   "no white border", "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture", "no vignette", "no plain white studio background",
+  "no domestic scene", "no interior", "no furniture", "no window", "no plants", "no landscape", "no street", "no workshop", "no decorative pattern",
+  "no more than three background colors", "no geometric shapes in background", "no hard-edged background shapes",
   "no identifiable real person", "no celebrity likeness",
   "no multiple faces", "no text", "no watermark", "no logo",
 ].join(", ");
+
 
 export function buildAvatarPrompt(t: AvatarTraits): string {
   const features = t.avatar_facial_features
@@ -219,7 +262,7 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
     ? `with ${t.avatar_cultural_style_override.replace(/_/g, " ")} styling cues (kept understated)`
     : (CULTURAL_STYLE_DESC[t.avatar_cultural_style] ?? "");
 
-  // SUBJECT FIRST, then framing, then art direction.
+  // SUBJECT FIRST, then framing, then background directive (overrides), then art direction.
   return [
     `PRIMARY SUBJECT — STRICTLY FOLLOW ALL ATTRIBUTES BELOW, do not substitute or omit any of them:`,
     subject + ".",
@@ -230,11 +273,14 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
     "",
     FRAMING_BLOCK,
     "",
+    pickBackgroundDirective(t.avatar_seed),
+    "",
     ART_DIRECTION_INVARIANTS,
     "",
     `AVOID: ${NEGATIVE_PROMPT}.`,
   ].filter(Boolean).join("\n");
 }
+
 
 // Same model for preview and final to guarantee a single consistent cartoon style across the catalog.
 export const MODEL_PREVIEW = "google/gemini-3.1-flash-image-preview";
