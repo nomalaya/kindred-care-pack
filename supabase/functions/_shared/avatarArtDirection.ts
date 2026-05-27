@@ -98,7 +98,7 @@ STYLE: hand-drawn semi-realistic editorial storybook illustration. Fine soft ink
 COLOR: warm, slightly desaturated, harmonious. Muted earth and warm pastel tones. No neon, no oversaturation.
 ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure or celebrity. Fictional respectful stand-in only.
 DIGNITY: warm, kind, gentle. Quiet humanity. No caricature, no stereotype, no pathos, no misery.
-BACKGROUND: soft, gently blurred contextual scene (warm domestic interior, kitchen, living room, simple street, workshop, garden) in the same illustration style, low-contrast, out of focus, supporting the subject.
+BACKGROUND (STRICT): purely abstract, socially neutral. A large off-white / warm cream canvas dominates the frame (at least 60% of the surface). Behind the subject, ONE single soft organic blob shape in ONE single muted tint, low opacity, gently blurred, no hard edges. No second color, no second shape, no pattern, no texture beyond a faint paper grain. Absolutely no objects, no furniture, no window, no plants, no room, no street, no workshop, no landscape, no decorative motif — nothing that suggests wealth, poverty, location or activity.
 `.trim();
 
 // Strict framing block. Short, repeated, capitalized — image models obey these much better than long paragraphs.
