@@ -287,7 +287,7 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
     ? `with ${t.avatar_cultural_style_override.replace(/_/g, " ")} styling cues (kept understated)`
     : (CULTURAL_STYLE_DESC[t.avatar_cultural_style] ?? "");
 
-  // SUBJECT FIRST, then framing, then art direction.
+  // SUBJECT FIRST, then framing, then art direction, then per-seed background override.
   return [
     `PRIMARY SUBJECT — STRICTLY FOLLOW ALL ATTRIBUTES BELOW, do not substitute or omit any of them:`,
     subject + ".",
@@ -299,6 +299,8 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
     FRAMING_BLOCK,
     "",
     ART_DIRECTION_INVARIANTS,
+    "",
+    pickBackgroundDirective(t.avatar_seed ?? 1),
     "",
     `AVOID: ${NEGATIVE_PROMPT}.`,
   ].filter(Boolean).join("\n");
