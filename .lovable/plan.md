@@ -1,47 +1,64 @@
 ## Objectif
 
-Remplacer le fond actuel des avatars générés (scène domestique contextuelle) par un **fond abstrait minimaliste type « blob organique »** : une grande zone blanche/crème dominante + **une seule teinte douce** posée en forme organique floue derrière le sujet. Aucune lecture sociale, variation déterministe par bénéficiaire.
+Aligner le fond des avatars sur l'image de référence : **blanc pur dominant au centre (autour du visage)**, **3 blobs de couleur douce mais saturée**, très flous, déposés sur les bords et **dépassant en fond perdu** sur les 4 côtés. Aucune lecture sociale, variation déterministe par bénéficiaire.
 
-## Direction visuelle
+## Lecture de la référence
 
-- **Base** : aplat blanc cassé / crème très clair (proche du fond app `Soleil Émeraude`).
-- **Une seule forme blob** floue, désaxée derrière la tête/épaule, occupant ~30-45 % du cadre.
-- **Une seule teinte** par avatar, désaturée, basse opacité (~25-40 %), parmi une palette restreinte de 6-7 tons (terracotta poudré, sauge, ocre doux, bleu brume, prune fanée, rose argile, sable).
-- Pas de deuxième blob, pas de halo radial superposé, pas de motif, pas de texture marquée — juste le blob + un très léger grain pour rester dans le registre illustré.
-- Bords toujours full-bleed jusqu'aux 4 côtés (la contrainte anti « bord papier / cadre » reste active).
+- Centre du cadre = blanc pur (#FFFFFF), zone de respiration autour de la tête et des épaules → le contour du visage ne touche jamais une couleur.
+- 3 halos colorés disposés sur les bords (ex : vert haut-gauche, orange droite, rose-rouge bas-gauche), chacun coupé par le bord du cadre (fond perdu).
+- Flou gaussien très marqué → pas de contour net, transition douce vers le blanc.
+- Couleurs douces mais **pas fades** : pastels saturés, pas de gris poudré.
 
-## Variation par seed
+## Direction visuelle cible
 
-Sélection déterministe à partir du `seed` du bénéficiaire (déjà utilisé pour les traits) :
-- `seed → index teinte` (parmi ~7) — garantit que deux bénéficiaires voisins n'ont pas la même couleur.
-- `seed → position blob` (4 positions : haut-gauche, haut-droite, derrière épaule gauche, derrière épaule droite).
-- `seed → taille blob` (3 tailles : medium / large / xl).
-→ Variété visible dans une grille, mais cohérence totale de style.
+- **Base** : aplat blanc pur `#FFFFFF`. Pas de crème, pas d'ivoire, pas de off-white.
+- **3 blobs flous** par avatar, disposés sur 3 zones distinctes du bord (ex : top-left + right + bottom-left), chacun en fond perdu (le centre du blob est hors cadre ou collé au bord).
+- **Zone de sécurité centrale** : un disque blanc d'environ 55-65 % de la largeur, centré sur le visage, où aucune couleur ne pénètre. Le contour du visage et des cheveux ressort sur du blanc.
+- **Palette de teintes** (douces mais vives, jamais ternes) : vert printemps, corail, rose tendre, ocre solaire, bleu ciel, lavande, menthe, pêche. ~8 teintes.
+- Flou très prononcé, pas de bord net, pas de second motif, pas de texture papier.
+
+## Variation par seed (déterministe)
+
+- `seed → triplet de 3 teintes` choisi parmi un set de combinaisons harmonieuses pré-validées (évite les associations criardes type rouge+vert pur).
+- `seed → triplet de positions` parmi 6 configurations (TL+R+BL, TR+L+BR, T+BL+BR, …).
+- `seed → variation de taille / intensité` (3 niveaux).
+→ Plusieurs centaines de combinaisons, mais cohérence visuelle totale.
 
 ## Changements de code
 
-Un seul fichier touché : `supabase/functions/_shared/avatarArtDirection.ts`.
+Un seul fichier modifié : `supabase/functions/_shared/avatarArtDirection.ts`.
 
 1. **Réécrire le bloc `BACKGROUND`** dans `ART_DIRECTION_INVARIANTS` :
-   - Décrire le fond comme « grande zone blanc cassé dominante + une unique forme organique floue d'une seule teinte douce derrière le sujet », socialement neutre.
-   - Interdire explicitement : objets domestiques, meubles, fenêtres, plantes, paysage, intérieur, rue, atelier, motifs décoratifs, deuxième couleur de fond.
+   - Décrire le fond comme « pure white background (#FFFFFF) dominant the frame, with three very soft, heavily blurred organic color blobs placed at the edges, bleeding off the canvas ».
+   - Préciser **safe zone centrale blanche** autour du visage → le visage ne touche aucune couleur.
+   - Interdire explicitement : crème, beige, off-white, ivoire, deuxième forme nette, motif, texture papier, objets, intérieur, paysage.
 
-2. **Ajouter une petite fonction `pickBackgroundDirective(seed)`** (déterministe) qui retourne une phrase du type :
-   _« Background: off-white cream canvas filling most of the frame, with a single soft <teinte> organic blob shape placed <position>, low opacity, gently blurred, no other elements. »_
-   - Palette : 7 teintes nommées en anglais simple (`dusty terracotta`, `soft sage`, `warm ochre`, `misty blue`, `faded plum`, `clay rose`, `sand beige`).
-   - 4 positions × 3 tailles → 84 combinaisons possibles via seed.
+2. **Remplacer la fonction `pickBackgroundDirective(seed)`** (créée à l'étape précédente) :
+   - Retourne une phrase décrivant **les 3 teintes nommées + leurs 3 positions au bord** + intensité du flou.
+   - Exemple : _« Background: pure white (#FFFFFF) canvas, with three heavily blurred soft organic color blobs bleeding off the edges — a <teinte1> blob in the <position1> corner, a <teinte2> blob on the <position2> edge, a <teinte3> blob in the <position3> corner. The center of the frame around the subject's face stays fully white, no color touches the face or hair. Soft pastel tones, gentle but not dull, very strong gaussian blur, no hard edges. »_
+   - Palette codée : 8 teintes pastel saturées (spring green, coral, soft pink, sunny ochre, sky blue, lavender, mint, peach).
+   - Set de ~10 trios harmonieux pré-validés (analogues ou complémentaires doux) sélectionnés par seed.
+   - 6 configurations de positions (toujours 3 bords différents pour préserver la safe zone).
 
-3. **Brancher `pickBackgroundDirective(t.seed)`** dans `buildAvatarPrompt`, injecté juste après `FRAMING_BLOCK` (avant les invariants), pour qu'il prenne le pas sur la description générique de fond.
+3. **Brancher** dans `buildAvatarPrompt` juste après `FRAMING_BLOCK` (déjà fait, à conserver).
 
-4. **Mettre à jour `NEGATIVE_PROMPT`** : ajouter `no domestic scene`, `no interior`, `no furniture`, `no window`, `no plants`, `no landscape`, `no second background color`, `no decorative pattern`.
+4. **Mettre à jour `NEGATIVE_PROMPT`** :
+   - Ajouter : `no cream background`, `no beige background`, `no off-white background`, `no ivory background`, `no color touching the face`, `no color halo around the head`, `no hard edged blob`, `no gradient covering the whole frame`.
+   - Conserver les interdictions existantes (scène domestique, paysage, motif, etc.).
 
-5. **Aucune migration BDD**, aucun changement UI Avatar Studio, aucun changement de modèle Gemini.
+5. **Aucune migration BDD**, aucun changement UI, aucun changement de modèle Gemini.
 
 ## Hors scope
 
-- Pas de re-génération automatique des avatars existants — l'utilisateur relancera depuis le studio les bénéficiaires qu'il veut rafraîchir.
-- Pas de touche admin pour éditer la palette (palette figée dans le code, fidèle au design system).
+- Pas de re-génération automatique des avatars existants (relance manuelle depuis `/avatar-studio`).
+- Pas d'édition admin de la palette (figée dans le code).
 
 ## Validation
 
-Après déploiement automatique de l'edge function, régénérer 3-4 avatars test (genre/âge/cause variés) depuis `/avatar-studio` et vérifier : fond blanc dominant, une seule teinte douce, blob bien flou, aucun objet narratif, variation visible entre bénéficiaires.
+Après déploiement automatique de l'edge function, régénérer 3-4 avatars test depuis `/avatar-studio` et vérifier :
+- fond blanc pur au centre (pas de crème),
+- visage entouré uniquement de blanc,
+- 3 blobs distincts visibles sur les bords, en fond perdu,
+- flou très doux, aucun bord net,
+- couleurs vives mais pas criardes,
+- variation visible entre bénéficiaires.
