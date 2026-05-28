@@ -98,7 +98,7 @@ STYLE: hand-drawn semi-realistic editorial storybook illustration. Fine soft ink
 COLOR: warm, slightly desaturated, harmonious. Muted earth and warm pastel tones. No neon, no oversaturation.
 ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure or celebrity. Fictional respectful stand-in only.
 DIGNITY: warm, kind, gentle. Quiet humanity. No caricature, no stereotype, no pathos, no misery.
-BACKGROUND (STRICT): purely abstract, socially neutral. A large off-white / warm cream canvas dominates the frame (at least 60% of the surface). Behind the subject, ONE single soft organic blob shape in ONE single muted tint, low opacity, gently blurred, no hard edges. No second color, no second shape, no pattern, no texture beyond a faint paper grain. Absolutely no objects, no furniture, no window, no plants, no room, no street, no workshop, no landscape, no decorative motif — nothing that suggests wealth, poverty, location or activity.
+BACKGROUND (STRICT): purely abstract, socially neutral. The base of the canvas is PURE WHITE (#FFFFFF) — not cream, not beige, not ivory, not off-white. The center of the frame around the subject's face, hair and shoulders MUST remain fully pure white so the character clearly stands out on white — no color is allowed to touch or halo the face or hair. Three soft organic color blobs are placed at three different edges of the canvas, bleeding off the frame (their centers sit on or beyond the edge, only a partial fringe enters the image). Each blob is heavily gaussian-blurred with no hard edge, fading smoothly into the pure white. Colors are soft pastels but vivid and joyful (never dull, gray or muddy). No second pattern, no texture, no paper grain, no gradient covering the whole frame. Absolutely no objects, no furniture, no window, no plants, no room, no street, no workshop, no landscape, no decorative motif — nothing that suggests wealth, poverty, location or activity.
 `.trim();
 
 // Strict framing block. Short, repeated, capitalized — image models obey these much better than long paragraphs.
@@ -113,9 +113,77 @@ export const NEGATIVE_PROMPT = [
   "no photograph", "no photorealism", "no 3D render", "no CGI", "no Pixar style",
   "no flat vector sticker", "no anime", "no manga", "no oil painting", "no saturated watercolor",
   "no white border", "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture", "no vignette", "no plain white studio background",
+  "no cream background", "no beige background", "no off-white background", "no ivory background",
+  "no color touching the face", "no color touching the hair", "no color halo around the head",
+  "no hard edged blob", "no sharp blob edge", "no gradient covering the whole frame",
+  "no domestic scene", "no interior", "no furniture", "no window", "no plants", "no landscape", "no decorative pattern",
   "no identifiable real person", "no celebrity likeness",
   "no multiple faces", "no text", "no watermark", "no logo",
 ].join(", ");
+
+// ----- Deterministic abstract background ("3 blobs on white") -----
+
+const BLOB_TINTS: Record<string, string> = {
+  spring_green: "soft spring green",
+  coral: "warm coral",
+  soft_pink: "tender soft pink",
+  sunny_ochre: "sunny ochre yellow",
+  sky_blue: "light sky blue",
+  lavender: "gentle lavender",
+  mint: "fresh mint green",
+  peach: "soft peach",
+};
+
+// Pre-validated harmonious trios (no clashing pairs).
+const BLOB_TRIOS: Array<[string, string, string]> = [
+  ["spring_green", "coral", "soft_pink"],
+  ["sky_blue", "peach", "lavender"],
+  ["mint", "sunny_ochre", "soft_pink"],
+  ["lavender", "sunny_ochre", "spring_green"],
+  ["coral", "sky_blue", "sunny_ochre"],
+  ["peach", "mint", "lavender"],
+  ["soft_pink", "spring_green", "sky_blue"],
+  ["sunny_ochre", "coral", "mint"],
+  ["sky_blue", "soft_pink", "spring_green"],
+  ["lavender", "peach", "mint"],
+];
+
+// Position trios — always 3 distinct edges, never crowding the face.
+const BLOB_POSITIONS: Array<[string, string, string]> = [
+  ["top-left corner", "right edge", "bottom-left corner"],
+  ["top-right corner", "left edge", "bottom-right corner"],
+  ["top edge", "bottom-left corner", "bottom-right corner"],
+  ["top-left corner", "bottom edge", "right edge"],
+  ["top-right corner", "left edge", "bottom edge"],
+  ["top edge", "bottom-right corner", "left edge"],
+];
+
+const BLOB_INTENSITY: string[] = [
+  "medium-sized and very heavily blurred",
+  "large and very heavily blurred",
+  "medium-sized and softly blurred with feathered edges",
+];
+
+export function pickBackgroundDirective(seed: number): string {
+  const s = (seed >>> 0) || 1;
+  const trio = BLOB_TRIOS[s % BLOB_TRIOS.length];
+  const pos = BLOB_POSITIONS[Math.floor(s / 7) % BLOB_POSITIONS.length];
+  const intensity = BLOB_INTENSITY[Math.floor(s / 31) % BLOB_INTENSITY.length];
+  const t1 = BLOB_TINTS[trio[0]];
+  const t2 = BLOB_TINTS[trio[1]];
+  const t3 = BLOB_TINTS[trio[2]];
+  return [
+    `BACKGROUND (OVERRIDES ANY OTHER BACKGROUND INSTRUCTION):`,
+    `Pure white canvas (#FFFFFF, true white — NOT cream, NOT beige, NOT ivory, NOT off-white).`,
+    `Place exactly three ${intensity} organic color blobs, bleeding off the canvas at three different edges:`,
+    `- a ${t1} blob at the ${pos[0]},`,
+    `- a ${t2} blob at the ${pos[1]},`,
+    `- a ${t3} blob at the ${pos[2]}.`,
+    `Each blob's center sits on or beyond the edge so only a partial halo enters the frame; edges fade smoothly into pure white with very strong gaussian blur — no hard contour.`,
+    `Central safe zone: the area around the subject's face, hair and shoulders (roughly the central 60% of the frame) MUST stay pure white — no color may touch the face, the hair, or form a halo behind the head.`,
+    `Soft pastel tones, gentle but vivid and joyful (never dull, gray, muddy or muted). No second pattern, no texture, no paper grain, no all-over gradient.`,
+  ].join(" ");
+}
 
 export function buildAvatarPrompt(t: AvatarTraits): string {
   const features = t.avatar_facial_features
