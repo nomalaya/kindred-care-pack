@@ -172,7 +172,10 @@ Composition target: ~70% white/light center, ~30% blurred color on the edges. Me
 export const NEGATIVE_PROMPT = [
   "no photograph", "no photorealism", "no 3D render", "no CGI", "no Pixar style",
   "no flat vector sticker", "no anime", "no manga", "no oil painting", "no saturated watercolor",
-  "no white border", "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture", "no vignette", "no plain white studio background",
+  "no white border", "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture", "no vignette",
+  "no dark background", "no high contrast background", "no textured background", "no neon colors", "no gradient bands", "no patterns", "no geometric shapes in background",
+  "no contextual scene", "no interior", "no furniture", "no window", "no objects behind the subject",
+  "no centered color blob covering the face",
   "no identifiable real person", "no celebrity likeness",
   "no multiple faces", "no text", "no watermark", "no logo",
 ].join(", ");
