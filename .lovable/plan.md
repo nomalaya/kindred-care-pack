@@ -1,64 +1,71 @@
-## Objectif
+## Constats
 
-Aligner le fond des avatars sur l'image de référence : **blanc pur dominant au centre (autour du visage)**, **3 blobs de couleur douce mais saturée**, très flous, déposés sur les bords et **dépassant en fond perdu** sur les 4 côtés. Aucune lecture sociale, variation déterministe par bénéficiaire.
+Deux problèmes distincts dans l'Avatar Studio :
 
-## Lecture de la référence
+### A. Attributs sélectionnés non reflétés dans l'image
 
-- Centre du cadre = blanc pur (#FFFFFF), zone de respiration autour de la tête et des épaules → le contour du visage ne touche jamais une couleur.
-- 3 halos colorés disposés sur les bords (ex : vert haut-gauche, orange droite, rose-rouge bas-gauche), chacun coupé par le bord du cadre (fond perdu).
-- Flou gaussien très marqué → pas de contour net, transition douce vers le blanc.
-- Couleurs douces mais **pas fades** : pastels saturés, pas de gris poudré.
+Après audit du pipeline (UI → `beneficiaries` → `inferAvatarTraits` → `buildAvatarPrompt` → Gemini), un attribut est **complètement ignoré par le prompt** malgré sa présence en BDD et dans l'UI :
 
-## Direction visuelle cible
+- **`avatar_nose`** : présent dans `fields.tsx` (onglet « Visage »), dans la BDD, dans `types.ts`, mais **absent** de `BeneficiaryInput`, `AvatarTraits` et `buildAvatarPrompt`. La valeur est sauvegardée mais jamais envoyée à Gemini.
 
-- **Base** : aplat blanc pur `#FFFFFF`. Pas de crème, pas d'ivoire, pas de off-white.
-- **3 blobs flous** par avatar, disposés sur 3 zones distinctes du bord (ex : top-left + right + bottom-left), chacun en fond perdu (le centre du blob est hors cadre ou collé au bord).
-- **Zone de sécurité centrale** : un disque blanc d'environ 55-65 % de la largeur, centré sur le visage, où aucune couleur ne pénètre. Le contour du visage et des cheveux ressort sur du blanc.
-- **Palette de teintes** (douces mais vives, jamais ternes) : vert printemps, corail, rose tendre, ocre solaire, bleu ciel, lavande, menthe, pêche. ~8 teintes.
-- Flou très prononcé, pas de bord net, pas de second motif, pas de texture papier.
+Tous les autres attributs (genre, âge, teint, forme du visage, yeux, type/couleur/longueur/volume/coiffure des cheveux, barbe/moustache/recul/calvitie, couvre-chef, marque frontale, corpulence, posture, expression, vêtements, aide à la mobilité, énergie parentale, niveaux fatigue/résilience/dignité) sont correctement transmis.
 
-## Variation par seed (déterministe)
+Cas Irina (curly / gray / long) : le prompt est bien généré avec ces valeurs, mais le modèle `gemini-3.1-flash-image-preview` a du mal à suivre des instructions de phénotype quand elles sont noyées dans un bloc d'« art direction » de ~25 lignes placé **avant** le sujet. Le modèle accorde plus de poids aux premiers tokens.
 
-- `seed → triplet de 3 teintes` choisi parmi un set de combinaisons harmonieuses pré-validées (évite les associations criardes type rouge+vert pur).
-- `seed → triplet de positions` parmi 6 configurations (TL+R+BL, TR+L+BR, T+BL+BR, …).
-- `seed → variation de taille / intensité` (3 niveaux).
-→ Plusieurs centaines de combinaisons, mais cohérence visuelle totale.
+### B. Bordure "aquarelle / papier" persistante
 
-## Changements de code
+Le bloc `ART_DIRECTION_INVARIANTS` interdit déjà bord déchiré / passe-partout / grain de papier, mais ces interdictions sont diluées dans un long paragraphe. Le négatif `NEGATIVE_PROMPT` est très long (~50 items) et perd en efficacité. Le modèle ramène régulièrement un cadre type aquarelle.
 
-Un seul fichier modifié : `supabase/functions/_shared/avatarArtDirection.ts`.
+---
 
-1. **Réécrire le bloc `BACKGROUND`** dans `ART_DIRECTION_INVARIANTS` :
-   - Décrire le fond comme « pure white background (#FFFFFF) dominant the frame, with three very soft, heavily blurred organic color blobs placed at the edges, bleeding off the canvas ».
-   - Préciser **safe zone centrale blanche** autour du visage → le visage ne touche aucune couleur.
-   - Interdire explicitement : crème, beige, off-white, ivoire, deuxième forme nette, motif, texture papier, objets, intérieur, paysage.
+## Plan
 
-2. **Remplacer la fonction `pickBackgroundDirective(seed)`** (créée à l'étape précédente) :
-   - Retourne une phrase décrivant **les 3 teintes nommées + leurs 3 positions au bord** + intensité du flou.
-   - Exemple : _« Background: pure white (#FFFFFF) canvas, with three heavily blurred soft organic color blobs bleeding off the edges — a <teinte1> blob in the <position1> corner, a <teinte2> blob on the <position2> edge, a <teinte3> blob in the <position3> corner. The center of the frame around the subject's face stays fully white, no color touches the face or hair. Soft pastel tones, gentle but not dull, very strong gaussian blur, no hard edges. »_
-   - Palette codée : 8 teintes pastel saturées (spring green, coral, soft pink, sunny ochre, sky blue, lavender, mint, peach).
-   - Set de ~10 trios harmonieux pré-validés (analogues ou complémentaires doux) sélectionnés par seed.
-   - 6 configurations de positions (toujours 3 bords différents pour préserver la safe zone).
+### 1. Câbler `avatar_nose` de bout en bout
 
-3. **Brancher** dans `buildAvatarPrompt` juste après `FRAMING_BLOCK` (déjà fait, à conserver).
+Fichier `supabase/functions/_shared/avatarTraits.ts` :
+- Ajouter `avatar_nose?: string | null` dans `BeneficiaryInput`.
+- Ajouter `avatar_nose?: string` dans `AvatarTraits`.
+- Ajouter `avatar_nose: b.avatar_nose ?? undefined` dans le pass-through final.
 
-4. **Mettre à jour `NEGATIVE_PROMPT`** :
-   - Ajouter : `no cream background`, `no beige background`, `no off-white background`, `no ivory background`, `no color touching the face`, `no color halo around the head`, `no hard edged blob`, `no gradient covering the whole frame`.
-   - Conserver les interdictions existantes (scène domestique, paysage, motif, etc.).
+Fichier `supabase/functions/_shared/avatarArtDirection.ts` :
+- Ajouter un dictionnaire `NOSE_DESC` mappant chaque valeur (`straight`, `aquiline`, `rounded`, `wide`, `narrow`, `flat_bridge`, `upturned`) vers une description anglaise courte.
+- Injecter `${NOSE_DESC[t.avatar_nose]} nose` dans la string `subject` quand la valeur est définie.
 
-5. **Aucune migration BDD**, aucun changement UI, aucun changement de modèle Gemini.
+### 2. Restructurer le prompt pour que les attributs soient suivis
 
-## Hors scope
+Dans `buildAvatarPrompt` (`avatarArtDirection.ts`) :
+- **Placer la section SUBJECT/DETAILS AVANT** le bloc d'art direction, pas après. Les modèles image pondèrent fortement les premiers tokens.
+- Préfixer la description du sujet par `PRIMARY SUBJECT — STRICTLY FOLLOW ALL ATTRIBUTES BELOW:` pour forcer l'adhérence.
+- Réordonner pour mettre genre + âge + cheveux (type, longueur, couleur) en **premier** dans `subject`, puis teint / visage / yeux / features.
+- Compresser le bloc `ART_DIRECTION_INVARIANTS` : conserver style/dignité/anonymat, retirer les répétitions et les "EXPLICITLY NOT" qui font doublon avec le negative prompt.
 
-- Pas de re-génération automatique des avatars existants (relance manuelle depuis `/avatar-studio`).
-- Pas d'édition admin de la palette (figée dans le code).
+### 3. Durcir la règle "full-bleed" pour supprimer le bord aquarelle
 
-## Validation
+- Extraire la consigne de cadrage dans une ligne **dédiée et isolée** placée juste après le SUBJECT, en majuscules et concise : `IMAGE FORMAT: square 1:1, full-bleed illustration, the illustrated background MUST touch the four edges of the canvas. ABSOLUTELY NO paper sheet, NO torn edge, NO deckled edge, NO white margin, NO mat, NO frame, NO watercolor paper texture.`
+- Élaguer `NEGATIVE_PROMPT` à ~15 items concentrés sur les défauts les plus fréquents (photo, 3D, anime, bord papier, fond blanc, multiple visages). Les listes longues sont moins respectées.
 
-Après déploiement automatique de l'edge function, régénérer 3-4 avatars test depuis `/avatar-studio` et vérifier :
-- fond blanc pur au centre (pas de crème),
-- visage entouré uniquement de blanc,
-- 3 blobs distincts visibles sur les bords, en fond perdu,
-- flou très doux, aucun bord net,
-- couleurs vives mais pas criardes,
-- variation visible entre bénéficiaires.
+### 4. Garantir une vraie variation entre générations
+
+Aujourd'hui, deux appels avec attributs différents peuvent retomber sur la même image si Gemini met en cache la requête (mêmes premiers tokens d'art direction). Dans `supabase/functions/generate-avatar/index.ts` :
+- Passer un nonce déterministe basé sur `seed + Date.now()` en fin de prompt (`[render-token: <nonce>]`) pour casser tout cache implicite.
+- Conserver le `seed` métier pour la reproductibilité côté inference traits.
+
+### 5. Tableau de validation manuelle (post-fix)
+
+Une fois les changements appliqués, je vérifierai sur Irina :
+- type cheveux `curly` + couleur `gray` + longueur `long` → image montre cheveux longs gris bouclés
+- nez `aquiline` → reflété
+- absence de bord aquarelle / passe-partout
+
+Si le modèle `flash-image-preview` reste rétif après ces changements, étape optionnelle : basculer `MODEL_FINAL` vers `google/gemini-3-pro-image-preview` (meilleure adhérence aux instructions, plus cher). À discuter avec toi avant.
+
+---
+
+## Fichiers touchés
+
+- `supabase/functions/_shared/avatarTraits.ts` (interface + passthrough nez)
+- `supabase/functions/_shared/avatarArtDirection.ts` (mapping nez, réorganisation prompt, consigne cadrage, négatif élagué)
+- `supabase/functions/generate-avatar/index.ts` (nonce anti-cache)
+
+Aucune migration BDD nécessaire — `avatar_nose` existe déjà.
+Aucun changement UI.
