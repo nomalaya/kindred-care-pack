@@ -46,6 +46,7 @@ export function BeneficiaryListPanel({
                   name={b.alias_first_name}
                   avatarUrl={b.avatar_url}
                   previewUrl={b.avatar_preview_url}
+                  backgroundSeed={b.id}
                   size="sm"
                 />
                 <div className="flex-1 min-w-0">

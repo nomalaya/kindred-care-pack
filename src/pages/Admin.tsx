@@ -204,7 +204,7 @@ const Admin = () => {
                   return (
                     <div key={b.id} className="bg-card rounded-xl border">
                       <div className="p-4 flex items-center gap-4">
-                        <BeneficiaryAvatar name={b.alias_first_name} avatarUrl={b.avatar_url} previewUrl={b.avatar_preview_url} size="sm" />
+                        <BeneficiaryAvatar name={b.alias_first_name} avatarUrl={b.avatar_url} previewUrl={b.avatar_preview_url} backgroundSeed={b.id} size="sm" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-medium text-foreground truncate">{b.alias_first_name} ({b.real_first_name} {b.real_last_name})</p>
@@ -321,7 +321,7 @@ const Admin = () => {
                   .slice(0, 40)
                   .map(b => (
                     <div key={b.id} className="p-3 flex items-center gap-3 text-sm">
-                      <BeneficiaryAvatar name={b.alias_first_name} avatarUrl={b.avatar_url} previewUrl={b.avatar_preview_url} size="sm" />
+                      <BeneficiaryAvatar name={b.alias_first_name} avatarUrl={b.avatar_url} previewUrl={b.avatar_preview_url} backgroundSeed={b.id} size="sm" />
                       <div className="flex-1">
                         <p className="font-medium">{b.alias_first_name}</p>
                         <p className="text-xs text-muted-foreground">

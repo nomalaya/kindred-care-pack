@@ -62,6 +62,7 @@ const DonationCard = ({
           hairType={b.avatar_hair_type}
           skinTone={b.avatar_skin_tone}
           avatarUrl={b.avatar_url}
+          backgroundSeed={b.id}
           size="sm"
         />
         <div className="flex-1">
