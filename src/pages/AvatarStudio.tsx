@@ -68,6 +68,8 @@ const AvatarStudio = () => {
   const [modelChoice, setModelChoice] = useState<"preview" | "final">("final");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(new Set());
+
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
   const saveTimer = useRef<any>(null);
   const pendingPatch = useRef<Record<string, any>>({});
