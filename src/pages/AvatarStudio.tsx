@@ -990,18 +990,38 @@ const AvatarStudio = () => {
 
                     {/* Versions carousel */}
                     <div className="mt-2">
-                      <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center justify-between mb-1.5 gap-2">
                         <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
                           <History className="h-3 w-3" />Versions ({versions.length})
                         </h3>
-                        {versions.length >= 2 && (
-                          <Button
-                            size="sm" variant="ghost" className="h-6 text-xs"
-                            onClick={() => { setCompareIds([versions[0].id, versions[1].id]); setCompareOpen(true); }}
-                          >
-                            Comparer 2 dernières
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {selectedVersionIds.size > 0 ? (
+                            <>
+                              <span className="text-xs text-muted-foreground">{selectedVersionIds.size} sélectionnée{selectedVersionIds.size > 1 ? "s" : ""}</span>
+                              <Button
+                                size="sm" variant="ghost" className="h-6 text-xs"
+                                onClick={() => setSelectedVersionIds(new Set())}
+                              >
+                                <X className="h-3 w-3 mr-1" />Annuler
+                              </Button>
+                              <Button
+                                size="sm" variant="destructive" className="h-6 text-xs"
+                                onClick={() => deleteVersions(Array.from(selectedVersionIds))}
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />Supprimer
+                              </Button>
+                            </>
+                          ) : (
+                            versions.length >= 2 && (
+                              <Button
+                                size="sm" variant="ghost" className="h-6 text-xs"
+                                onClick={() => { setCompareIds([versions[0].id, versions[1].id]); setCompareOpen(true); }}
+                              >
+                                Comparer 2 dernières
+                              </Button>
+                            )
+                          )}
+                        </div>
                       </div>
                       {versions.length === 0 ? (
                         <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
@@ -1010,16 +1030,26 @@ const AvatarStudio = () => {
                           {versions.map(v => {
                             const isActive = selected.avatar_url === v.image_url;
                             const isHD = !!v.qa_score || (v.image_url && !v.image_url.includes("/preview/"));
+                            const isChecked = selectedVersionIds.has(v.id);
+                            const selectionMode = selectedVersionIds.size > 0;
                             return (
                               <div
                                 key={v.id}
                                 className={`relative w-24 aspect-square shrink-0 snap-start rounded overflow-hidden bg-muted group ${
+                                  isChecked ? "ring-2 ring-destructive" :
                                   isActive ? "ring-2 ring-primary" : isHD ? "hover:ring-2 hover:ring-primary/50" : "hover:ring-2 hover:ring-amber-400/50"
                                 }`}
                                 title={`${isHD ? "HD" : "Aperçu"} · ${v.model_used?.split("/")[1] || ""} · QA ${v.qa_score ? Math.round(v.qa_score) : "—"}`}
                               >
                                 <button
-                                  onClick={() => setLightboxUrl(v.image_url)}
+                                  onClick={(e) => {
+                                    if (selectionMode || e.shiftKey) {
+                                      e.preventDefault();
+                                      toggleVersionSelect(v.id);
+                                    } else {
+                                      setLightboxUrl(v.image_url);
+                                    }
+                                  }}
                                   className="block w-full h-full"
                                 >
                                   <img src={v.image_url} alt="" className="w-full h-full object-cover" />
@@ -1034,7 +1064,31 @@ const AvatarStudio = () => {
                                     QA {Math.round(v.qa_score)}
                                   </span>
                                 )}
-                                {!isActive && (
+                                {/* Select checkbox — always visible when in selection mode, else on hover */}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleVersionSelect(v.id); }}
+                                  className={`absolute top-1 left-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-opacity ${
+                                    isChecked
+                                      ? "bg-destructive border-destructive text-destructive-foreground opacity-100"
+                                      : "bg-background/80 border-background/80 text-foreground opacity-0 group-hover:opacity-100"
+                                  }`}
+                                  title={isChecked ? "Désélectionner" : "Sélectionner pour suppression"}
+                                  aria-label={isChecked ? "Désélectionner" : "Sélectionner"}
+                                >
+                                  {isChecked && <Check className="h-3 w-3" />}
+                                </button>
+                                {/* Quick-delete (single version) on hover, only when not in multi-select */}
+                                {!selectionMode && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); deleteVersions([v.id]); }}
+                                    className="absolute top-1 right-7 w-5 h-5 rounded bg-background/80 hover:bg-destructive hover:text-destructive-foreground text-muted-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Supprimer cette version"
+                                    aria-label="Supprimer cette version"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                                {!isActive && !selectionMode && (
                                   <button
                                     onClick={(e) => { e.stopPropagation(); restoreVersion(v); }}
                                     disabled={isLocked}
@@ -1055,6 +1109,7 @@ const AvatarStudio = () => {
                         </div>
                       )}
                     </div>
+
                   </div>
 
                   {/* Sticky workflow footer */}
