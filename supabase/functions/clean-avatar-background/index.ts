@@ -1,9 +1,10 @@
-// Clean an existing avatar's background — produces a PNG with a fully
-// TRANSPARENT background (alpha channel) so the imported background asset
-// from the `avatar-backgrounds` bucket shows through behind the silhouette
-// in the donor-facing UI. Idempotent: re-running overwrites cleaned/{id}.png.
+// Clean an existing avatar's background — Gemini produces a PNG with a clean
+// pure-white background, then we chroma-key the white pixels to alpha=0 so the
+// imported background asset (avatar-backgrounds bucket) shows through behind
+// the silhouette in the donor-facing UI. Idempotent — overwrites cleaned/{id}.png.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,7 +15,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
-const CLEAN_PROMPT = `Remove the entire background behind the person. Output a PNG with a FULLY TRANSPARENT background (alpha channel = 0 on every non-subject pixel, edge-to-edge to all four corners). Do NOT modify the person in any way — keep face, hair, skin, clothing, pose, expression, framing strictly identical. Crisp anti-aliased edges around hair and shoulders. No white halo, no color fringing, no shadow, no gradient, no vignette, no checkerboard. The only visible pixels must be the subject; everything else must be transparent.`;
+const CLEAN_PROMPT = `Replace the entire background behind the person with pure solid white #FFFFFF, edge-to-edge to all four corners. Do NOT modify the person in any way — keep face, hair, skin, clothing, pose, expression, framing strictly identical. Crisp opaque edges around hair and shoulders. No gradient, no shadow, no halo, no texture, no vignette. Output a clean cutout on perfectly uniform pure white background.`;
 
 async function fetchImageAsBase64(url: string): Promise<{ b64: string; mime: string }> {
   const resp = await fetch(url);
@@ -29,7 +30,7 @@ async function fetchImageAsBase64(url: string): Promise<{ b64: string; mime: str
   return { b64: btoa(bin), mime };
 }
 
-async function editImageBackground(sourceUrl: string): Promise<Uint8Array> {
+async function geminiWhiteBackground(sourceUrl: string): Promise<Uint8Array> {
   const { b64, mime } = await fetchImageAsBase64(sourceUrl);
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -64,6 +65,46 @@ async function editImageBackground(sourceUrl: string): Promise<Uint8Array> {
   return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 }
 
+/**
+ * Chroma-key: convert near-white pixels to alpha=0, fade mid-white for
+ * anti-aliased edges around hair/shoulders, keep subject opaque.
+ * Returns the transparent PNG bytes plus the transparent pixel ratio.
+ */
+async function whiteToAlpha(pngBytes: Uint8Array): Promise<{ bytes: Uint8Array; transparentRatio: number }> {
+  const img = await Image.decode(pngBytes);
+  const { width, height } = img;
+  let transparent = 0;
+  const total = width * height;
+
+  // imagescript stores pixels as 0xRRGGBBAA uint32
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const px = img.getPixelAt(x + 1, y + 1); // imagescript is 1-indexed
+      const r = (px >>> 24) & 0xff;
+      const g = (px >>> 16) & 0xff;
+      const b = (px >>> 8) & 0xff;
+      const minC = Math.min(r, g, b);
+      const maxC = Math.max(r, g, b);
+      const chroma = maxC - minC;
+
+      let alpha = 255;
+      if (minC >= 248 && chroma <= 6) {
+        alpha = 0;
+        transparent++;
+      } else if (minC >= 225 && chroma <= 14) {
+        // soft anti-alias ramp 225..248 → 255..0
+        const t = (minC - 225) / (248 - 225);
+        alpha = Math.round(255 * (1 - t));
+      }
+
+      img.setPixelAt(x + 1, y + 1, ((r & 0xff) << 24) | ((g & 0xff) << 16) | ((b & 0xff) << 8) | (alpha & 0xff));
+    }
+  }
+
+  const encoded = await img.encode(); // PNG with alpha
+  return { bytes: encoded, transparentRatio: transparent / total };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -81,17 +122,29 @@ serve(async (req) => {
     if (bErr || !b) throw new Error("Beneficiary not found");
     if (!b.avatar_url) throw new Error("Beneficiary has no avatar to clean");
 
-    // Strip any cache-busting query string before fetch
+    // Strip cache-busting query string before fetch
     const sourceUrl = b.avatar_url.split("?")[0];
 
-    const cleanedBytes = await editImageBackground(sourceUrl);
+    // 1) Ask Gemini for a clean pure-white background
+    const whitePng = await geminiWhiteBackground(sourceUrl);
 
-    // Idempotent path — overwrite on re-run
+    // 2) Server-side chroma-key: white → transparent
+    const { bytes: transparentPng, transparentRatio } = await whiteToAlpha(whitePng);
+
+    console.log(`[clean-avatar-background] ${beneficiary_id} transparent_ratio=${transparentRatio.toFixed(3)}`);
+
+    if (transparentRatio < 0.05) {
+      throw new Error(
+        `Détourage raté (seulement ${(transparentRatio * 100).toFixed(1)}% transparent). Réessayez — Gemini n'a pas produit un fond blanc propre.`,
+      );
+    }
+
+    // 3) Upload (idempotent overwrite)
     const ts = Date.now();
     const fileName = `cleaned/${beneficiary_id}.png`;
     const { error: upErr } = await supabase.storage
       .from("avatars")
-      .upload(fileName, cleanedBytes, { contentType: "image/png", upsert: true });
+      .upload(fileName, transparentPng, { contentType: "image/png", upsert: true });
     if (upErr) throw upErr;
 
     const { data: u } = supabase.storage.from("avatars").getPublicUrl(fileName);
@@ -102,15 +155,14 @@ serve(async (req) => {
       .update({ avatar_url: newUrl })
       .eq("id", beneficiary_id);
 
-    // Archive previous version was already in avatar_versions; insert new cleaned snapshot
     await supabase.from("avatar_versions").insert({
       beneficiary_id,
       image_url: u.publicUrl,
-      model_used: "clean-bg/google/gemini-3.1-flash-image-preview",
+      model_used: "clean-bg/google/gemini-3.1-flash-image-preview+chroma-key",
       prompt: CLEAN_PROMPT,
     });
 
-    return new Response(JSON.stringify({ success: true, newUrl }), {
+    return new Response(JSON.stringify({ success: true, newUrl, transparentRatio }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
