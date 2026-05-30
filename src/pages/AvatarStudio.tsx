@@ -825,9 +825,9 @@ const AvatarStudio = () => {
 
                 {/* ===== TAB VISUEL ===== */}
                 <TabsContent value="visual" className="flex-1 overflow-y-auto m-0 data-[state=inactive]:hidden flex flex-col">
-                  <div className="p-4 space-y-3 flex-1">
-                    {/* Image with overlays */}
-                    <div className="aspect-square bg-muted rounded-lg overflow-hidden relative group max-w-md mx-auto w-full">
+                  <div className="p-3 space-y-2 flex-1">
+                    {/* Image with overlays — vignette compacte alignée à gauche */}
+                    <div className="h-[200px] w-[200px] bg-muted rounded-lg overflow-hidden relative group">
                       {selected.avatar_url || selected.avatar_preview_url ? (
                         <img
                           src={selected.avatar_url || selected.avatar_preview_url}
