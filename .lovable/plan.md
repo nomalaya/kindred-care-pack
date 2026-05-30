@@ -1,62 +1,39 @@
-# Refonte Avatar Studio
+# Recadrage avatars : couper au niveau des clavicules
 
-Objectif : simplifier et fluidifier l'Avatar Studio sans toucher à la logique métier (génération, sauvegarde, RLS, edge functions). Toutes les modifications restent dans `src/pages/AvatarStudio.tsx` et composants UI associés.
+## Problème
 
-## 1. Layout 2 colonnes (au lieu de 3)
+Les portraits actuels descendent jusqu'à la poitrine (« chest bleeding into bottom edge » dans le prompt). On devine la poitrine sous les vêtements (cas d'Irina), ce qui peut influencer émotionnellement la perception du donateur.
 
-- Colonne gauche fixe : liste des bénéficiaires (largeur ~320px).
-- Colonne droite : panneau principal avec onglets **Visuel** / **Attributs** (au lieu d'afficher les deux côte à côte).
-- En dessous de 1280px : la liste devient un Sheet (drawer) ouvert par un bouton dans le header.
+## Cadrage cible (validé)
 
-## 2. Bouton "Générer" unifié
+Référence : exemple femme déjà généré — tête + cou + clavicules + tout début des épaules. Le bord inférieur de l'image coupe juste au niveau des clavicules, le haut du vêtement est à peine visible, la poitrine n'est jamais montrée.
 
-- Split-button unique : action principale = dernier mode utilisé (Aperçu par défaut), caret ouvre menu (Aperçu / HD / Importer une image).
-- "Nettoyer le fond" devient un bouton-overlay sur l'image (comme le bouton Zoom actuel).
-- "Approuver" et "Verrouiller" déplacés dans un footer sticky du panneau Visuel.
+## Modifications (backend prompt uniquement)
 
-## 3. Trois onglets de workflow
+### 1. `supabase/functions/_shared/avatarArtDirection.ts`
 
-Remplacer les 6 pills de filtre par 3 onglets clairs :
-- **À faire** (draft + failed)
-- **À valider** (generated)
-- **Validés** (approved + locked)
+Réécrire `FRAMING_BLOCK` :
+- Remplacer « head + neck + shoulders + chest » par « head + neck + collarbone + very top of shoulders ».
+- Supprimer « chest bleeding into bottom edge » et « character occupies ~80-90% of the frame vertically ».
+- Imposer en majuscules : « the bottom edge of the canvas crops the body at the collarbone line, ABOVE the chest. The chest, bust, breasts and torso MUST NOT be visible. Only a thin sliver of the garment neckline may appear at the bottom edge. »
+- Conserver le format carré 1:1, plein cadre, et le « no empty white below the subject » (le bord inférieur est rempli par les clavicules / haut du col).
 
-Sous-filtre discret "uniquement échecs" dans À faire.
+Mettre à jour `NEGATIVE_PROMPT` :
+- Retirer `"no cropped torso"` (devient l'effet voulu).
+- Ajouter : `"no visible chest"`, `"no visible bust"`, `"no breasts visible"`, `"no cleavage"`, `"no torso shown"`, `"do not show below the collarbone"`.
 
-## 4. Auto-save silencieux + raccourcis visibles
+### 2. `supabase/functions/qa-avatar/index.ts` (ligne 62)
 
-- Supprimer les badges "Sauvegarde…" clignotants ; n'afficher qu'en cas d'erreur (toast).
-- Afficher les raccourcis (P, G, A, L) en hint sous chaque bouton.
-- Corriger les flèches ↑/↓ pour sélectionner + scroller la liste vers l'élément actif.
-
-## 5. Éditeur d'attributs amélioré
-
-- Badge "modifié" par section (Identité, Apparence, etc.).
-- Bouton "Réinitialiser cette section" à partir des valeurs inférées.
-- Popover "Pourquoi cette valeur ?" par champ inféré.
-
-## 6. Carrousel de versions
-
-- Remplacer la grille 8 miniatures par un carrousel horizontal scrollable (jusqu'à 20 versions).
-- Version active mise en avant à gauche.
-- Comparaison via Shift+clic sur 2 miniatures (overlay split-view).
-
-## 7. Quick wins
-
-- Titre "Avatar Studio" + compteur "200 bénéficiaires" fusionnés dans la toolbar.
-- Badge debug déplacé en tooltip sur l'image.
-- Header sticky en haut du panneau de droite.
-
-## Détails techniques
-
-- Fichier principal : `src/pages/AvatarStudio.tsx` (refactor en sous-composants `<BeneficiaryList />`, `<StudioToolbar />`, `<VisualPanel />`, `<AttributesPanel />`, `<VersionsCarousel />` dans `src/components/avatar-studio/`).
-- Composants shadcn utilisés : `Tabs`, `DropdownMenu` (split button), `Sheet` (drawer mobile), `Popover`, `Tooltip`, `ScrollArea`.
-- Aucun changement aux edge functions, à la DB, ni aux hooks de génération/sauvegarde — uniquement réorganisation de l'UI et bindings d'événements existants.
-- Raccourcis clavier conservés (P, G, A, L) + nouvelles flèches ↑/↓ via `useEffect` keydown.
-- Tokens design system existants conservés (Soleil Émeraude, Inter, fond off-white).
+Mettre à jour la règle de QA textuelle envoyée au modèle :
+- Avant : « framing: chest-up bust, centered, ~70% frame coverage »
+- Après : « framing: head + collarbone only, cropped just above the chest; no chest, bust or torso visible »
 
 ## Hors scope
 
-- Pas de modification de la logique de génération Nano Banana / Pro.
-- Pas de modification de la table `beneficiary_avatars` ni des RLS.
-- Pas de changement des prompts ou du système d'inférence.
+- Pas de modification de la logique matching / basket / DB / RLS.
+- Pas de garde QA programmatique supplémentaire (option 2 écartée) — on accepte le ~85 % de réussite du modèle ; les rares cas hors-cible se régénèrent depuis l'Avatar Studio.
+- Les avatars existants gardent leur ancien cadrage tant qu'ils ne sont pas régénérés (action manuelle depuis l'Avatar Studio après déploiement).
+
+## Détails techniques
+
+Les deux flux de génération (`generate-avatar` Aperçu + `generate-avatar-batch` HD) utilisent `buildAvatarPrompt` depuis `_shared/avatarArtDirection.ts` — un seul fichier prompt à modifier couvre les deux. Le déploiement des edge functions est automatique.

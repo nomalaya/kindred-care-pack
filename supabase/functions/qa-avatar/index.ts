@@ -59,7 +59,7 @@ Return concise notes explaining any score below 80.`;
 
 Dimensions (0=terrible, 100=excellent):
 - single_face: exactly ONE character face fully visible? (0 = multiple faces or no face)
-- framing: chest-up bust, centered, ~70% frame coverage, proper margins?
+- framing: head + collarbone only, cropped just above the chest at the collarbone line; centered; NO chest, bust, breasts or torso visible (score 0 if chest/bust visible)?
 - no_watermark: free of any text, watermark, logo, signature?
 - artifact_freedom: free of AI artifacts (warped features, melted shapes, extra fingers)?
 - style_match: STRICTLY a hand-drawn semi-realistic cartoon illustration in editorial storybook style (fine soft ink outlines, colored-pencil + light watercolor shading, warm desaturated palette, realistic human proportions, clearly non-photographic). Score 0 if: photograph, photorealistic, 3D/Pixar/Disney render, flat vector sticker (Storyset/unDraw/Notion style), anime, manga, chibi, comic book, oil painting, heavy saturated watercolor.
