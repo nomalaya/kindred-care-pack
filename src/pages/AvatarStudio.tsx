@@ -147,13 +147,31 @@ const AvatarStudio = () => {
         (b.region || "").toLowerCase().includes(q),
       );
     }
-    if (filter === "failed") {
-      pool = pool.filter(b => b.avatar_status === "failed");
-    } else if (filter !== "all") {
-      pool = pool.filter(b => (b.avatar_workflow_status || "draft") === filter);
+  const filtered = useMemo(() => {
+    let pool = beneficiaries;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      pool = pool.filter(b =>
+        (b.alias_first_name || "").toLowerCase().includes(q) ||
+        (b.region || "").toLowerCase().includes(q),
+      );
+    }
+    if (filter === "todo") {
+      pool = pool.filter(b => {
+        const ws = b.avatar_workflow_status || "draft";
+        return ws === "draft" || b.avatar_status === "failed";
+      });
+      if (showFailedOnly) pool = pool.filter(b => b.avatar_status === "failed");
+    } else if (filter === "review") {
+      pool = pool.filter(b => (b.avatar_workflow_status || "draft") === "generated");
+    } else if (filter === "done") {
+      pool = pool.filter(b => {
+        const ws = b.avatar_workflow_status || "draft";
+        return ws === "approved" || ws === "locked";
+      });
     }
     return pool;
-  }, [beneficiaries, search, filter]);
+  }, [beneficiaries, search, filter, showFailedOnly]);
 
   const stats = useMemo(() => {
     const s = { draft: 0, generated: 0, approved: 0, locked: 0, failed: 0 };
@@ -162,7 +180,12 @@ const AvatarStudio = () => {
       s[ws] = (s[ws] ?? 0) + 1;
       if (b.avatar_status === "failed") s.failed += 1;
     }
-    return s;
+    return {
+      ...s,
+      todo: s.draft + s.failed,
+      review: s.generated,
+      done: s.approved + s.locked,
+    };
   }, [beneficiaries]);
 
   const warnings: RuleWarning[] = selected ? evaluateAvatarRules(selected) : [];
