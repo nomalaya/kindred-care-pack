@@ -337,6 +337,10 @@ const Admin = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="backgrounds">
+            <AvatarBackgroundsPanel />
+          </TabsContent>
+
           <TabsContent value="products">
             {loading ? (
               <div className="animate-pulse bg-card rounded-2xl h-48" />
