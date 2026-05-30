@@ -4,6 +4,7 @@ import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Beneficiary {
+  id?: string;
   alias_first_name: string;
   approx_age: number;
   region: string;
