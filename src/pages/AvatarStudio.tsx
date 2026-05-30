@@ -584,6 +584,15 @@ const AvatarStudio = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtered, selectedId, selected]);
 
+  // Scroll active beneficiary row into view (keyboard nav or external selection)
+  useEffect(() => {
+    if (!selectedId) return;
+    const el = document.querySelector(`[data-beneficiary-row="${selectedId}"]`);
+    if (el && "scrollIntoView" in el) {
+      (el as HTMLElement).scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [selectedId]);
+
   if (authLoading) return null;
   if (!user) return <Navigate to="/auth" replace />;
   if (!isAdmin) {
