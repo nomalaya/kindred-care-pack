@@ -1,7 +1,7 @@
-// Clean an existing avatar's background — replaces whatever is behind the
-// subject with pure white (#FFFFFF) so the imported background asset can show
-// through in the UI. Idempotent: re-running on a beneficiary simply re-runs the
-// detour and overwrites cleaned/{beneficiaryId}.png.
+// Clean an existing avatar's background — produces a PNG with a fully
+// TRANSPARENT background (alpha channel) so the imported background asset
+// from the `avatar-backgrounds` bucket shows through behind the silhouette
+// in the donor-facing UI. Idempotent: re-running overwrites cleaned/{id}.png.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -14,7 +14,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
-const CLEAN_PROMPT = `Replace the entire background behind the person with pure solid white (#FFFFFF), edge-to-edge to all four corners. Do NOT modify the person in any way — keep face, hair, skin, clothing, pose, expression, framing strictly identical. Crisp opaque edges around hair and shoulders. No gradient, no shadow, no halo, no texture, no vignette. Output a clean cutout on pure white.`;
+const CLEAN_PROMPT = `Remove the entire background behind the person. Output a PNG with a FULLY TRANSPARENT background (alpha channel = 0 on every non-subject pixel, edge-to-edge to all four corners). Do NOT modify the person in any way — keep face, hair, skin, clothing, pose, expression, framing strictly identical. Crisp anti-aliased edges around hair and shoulders. No white halo, no color fringing, no shadow, no gradient, no vignette, no checkerboard. The only visible pixels must be the subject; everything else must be transparent.`;
 
 async function fetchImageAsBase64(url: string): Promise<{ b64: string; mime: string }> {
   const resp = await fetch(url);
