@@ -764,6 +764,23 @@ const AvatarStudio = () => {
                   </Button>
                 </div>
 
+                <Button
+                  onClick={() => cleanBackground()}
+                  variant="outline"
+                  size="sm"
+                  disabled={!!busy || isLocked || !selected.avatar_url}
+                  title="Détoure l'avatar et remplace l'arrière-plan par du blanc pur — votre fond importé apparaîtra alors derrière."
+                  aria-label="Nettoyer le fond de l'avatar"
+                  className="w-full"
+                >
+                  {busy === "clean" ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                  ) : (
+                    <Scissors className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Nettoyer le fond
+                </Button>
+
                 {dignityBlocked && (
                   <div className="text-xs rounded-md border border-[hsl(var(--status-failed-border))] bg-[hsl(var(--status-failed-bg))] text-[hsl(var(--status-failed-fg))] px-2 py-1.5 flex items-start gap-1.5">
                     <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
