@@ -1,35 +1,38 @@
 ## Diagnostic
 
-Non, les fonds importés **ne s'affichent pas** sur les avatars nettoyés, et c'est un bug logique :
+Vérification du PNG livré par l'edge function `clean-avatar-background` :
+- Mode : `RGB` (pas de canal alpha)
+- Pixels transparents : `0 / 1 048 576` → 100 % opaque
 
-1. L'edge function `clean-avatar-background` demande à Gemini de remplir l'arrière-plan en **blanc opaque #FFFFFF**.
-2. Le composant `BeneficiaryAvatar` place le portrait nettoyé en `<img absolute inset-0 object-cover>` par-dessus la div qui porte le fond importé en `background-image`.
-3. Comme le PNG est **opaque** (blanc plein), il masque intégralement le fond → on ne voit jamais aucun des 200 fonds du bucket `avatar-backgrounds`.
+Gemini `gemini-3.1-flash-image-preview` **ne sait pas produire de PNG transparent** — il a remplacé le fond par du blanc plein malgré le prompt. Donc dans `BeneficiaryAvatar`, l'`<img>` couvre intégralement la div qui porte le `background-image` du bucket → aucun fond importé visible sur `/donate/:id`.
 
-Pour qu'un fond importé apparaisse derrière la silhouette, le PNG du portrait doit avoir un **fond transparent** (alpha = 0 partout sauf sur la personne).
+## Solution : chroma-key serveur (post-traitement)
 
-## Solution (frontend + edge function, aucune modif business logic)
+Garder Gemini pour produire un PNG **fond blanc propre** (ça il le fait très bien), puis transformer ce blanc en transparence dans l'edge function avant upload, en utilisant `imagescript` (lib Deno-native, pure TS).
 
-### 1. `supabase/functions/clean-avatar-background/index.ts`
-- Renommer `CLEAN_PROMPT` → demander un détourage **transparent** PNG (alpha channel), pas blanc. Prompt strict : "transparent background, alpha channel, edge-to-edge transparency, keep subject pixel-perfect, crisp anti-aliased edges around hair and shoulders, no white halo, no fringing, no shadow".
-- Conserver upload PNG (PNG supporte l'alpha nativement, contentType inchangé).
-- Conserver le chemin idempotent `cleaned/{beneficiaryId}.png`.
+### `supabase/functions/clean-avatar-background/index.ts`
+- **Prompt** : revenir à « replace background with pure solid white #FFFFFF, crisp edges » (efficace, déjà éprouvé).
+- **Nouveau post-traitement** après réception du PNG Gemini :
+  - `import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts"`
+  - Décoder le PNG, parcourir chaque pixel :
+    - Calcul `whiteness = min(R,G,B)` et `chroma = max(R,G,B) - min(R,G,B)`
+    - Si `whiteness >= 248 && chroma <= 6` → `alpha = 0` (fond plein)
+    - Si `whiteness >= 230 && chroma <= 12` → alpha proportionnel (rampe linéaire de 0 à 255) pour anti-aliasing doux sur les contours cheveux/épaules
+    - Sinon → `alpha = 255` (sujet)
+  - Ré-encoder en PNG avec canal alpha → upload sur `avatars/cleaned/{id}.png`.
+- Conserver tout le reste : auth, idempotence, archivage `avatar_versions`, gestion 402/429.
 
-### 2. `src/components/BeneficiaryAvatar.tsx`
-- Aucun changement de logique : la div porte déjà `background-image` du fond importé, l'img par-dessus laissera transparaître le fond là où l'alpha est 0.
-- Garder `object-position: center top` et `object-cover` pour cadrer le buste en bas du cercle.
-
-### 3. (Optionnel mais utile) Bouton de re-nettoyage
-Une fois la nouvelle prompt déployée, les avatars déjà nettoyés en blanc resteront opaques. Re-cliquer sur **« Nettoyer le fond »** dans Avatar Studio régénère un PNG transparent par-dessus (idempotent, écrase `cleaned/{id}.png`). Aucun script de migration nécessaire — je laisse l'utilisateur re-nettoyer les portraits concernés au cas par cas.
+### Vérification automatique
+Après upload, log côté serveur le pourcentage de pixels transparents (`transparent_ratio`). Si < 5 %, retourner une erreur explicite « Détourage raté — réessayez » pour éviter d'écraser silencieusement avec un mauvais résultat.
 
 ## Fichiers touchés
-- `supabase/functions/clean-avatar-background/index.ts` — prompt + commentaire d'en-tête
+- `supabase/functions/clean-avatar-background/index.ts` — prompt + post-traitement chroma-key + check qualité
 
 ## Hors scope
-- Pas de changement à `BeneficiaryAvatar.tsx`, ni au hook `useAvatarBackground`, ni aux pages donateur
+- Aucune modification frontend (le pipeline `<img>` + `background-image` du fond importé fonctionne déjà dès que le PNG a un canal alpha)
 - Pas de migration DB, pas de modif matching/panier/checkout
-- Pas de batch automatique de re-nettoyage (déclenchement manuel par l'admin)
 
-## Vérification
-1. Sur Irina (75 ans, Grand Est), cliquer à nouveau **« Nettoyer le fond »** dans Avatar Studio.
-2. Ouvrir **« Voir la fiche donateur »** → un des 200 fonds doit apparaître derrière la silhouette (sélection déterministe par `beneficiary.id`).
+## Test
+1. Avatar Studio → Irina → **Nettoyer le fond** (5-10 s)
+2. **Voir la fiche donateur** → un des 200 fonds doit apparaître derrière la silhouette
+3. Cas limite : zoom sur les bords des cheveux → pas de halo blanc visible
