@@ -522,6 +522,14 @@ const AvatarStudio = () => {
       avatar_seed: v.seed ?? null,
       avatar_prompt: v.prompt ?? null,
       avatar_generated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from("beneficiaries").update(updates).eq("id", selected.id);
+    if (error) {
+      toast.error("Échec : " + error.message);
+      return;
+    }
+    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...updates } : b));
+    toast.success("Version restaurée comme avatar actif");
   };
 
   const toggleVersionSelect = (id: string) => {
@@ -550,14 +558,6 @@ const AvatarStudio = () => {
     toast.success(ids.length === 1 ? "Version supprimée" : `${ids.length} versions supprimées`);
   };
 
-    const { error } = await supabase.from("beneficiaries").update(updates).eq("id", selected.id);
-    if (error) {
-      toast.error("Échec : " + error.message);
-      return;
-    }
-    setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...updates } : b));
-    toast.success("Version restaurée comme avatar actif");
-  };
 
   const workflowHint = (action: "approve" | "lock" | "unlock", status: WorkflowStatus, hasImage: boolean): string | null => {
     if (action === "approve") {
