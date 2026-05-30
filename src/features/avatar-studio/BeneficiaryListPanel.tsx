@@ -36,6 +36,7 @@ export function BeneficiaryListPanel({
           return (
             <div key={b.id} className="relative group">
               <button
+                data-beneficiary-row={b.id}
                 onClick={() => onSelect(b.id)}
                 aria-label={`Sélectionner ${b.alias_first_name}`}
                 className={`w-full text-left p-1.5 rounded-md flex items-center gap-2 transition-colors ${
