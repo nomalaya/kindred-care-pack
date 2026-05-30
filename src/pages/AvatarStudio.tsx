@@ -55,7 +55,7 @@ const AvatarStudio = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "todo" | "review" | "done">("all");
   const [showFailedOnly, setShowFailedOnly] = useState(false);
-  const [panelTab, setPanelTab] = useState<"visual" | "attrs">("visual");
+  // panelTab removed — 3-column layout shows Visuel + Attributs side-by-side
   const [listSheetOpen, setListSheetOpen] = useState(false);
   const [defaultGenMode, setDefaultGenMode] = useState<"preview" | "final">(
     () => (typeof window !== "undefined" && (localStorage.getItem("avatar-studio-default-mode") as any)) || "final",
