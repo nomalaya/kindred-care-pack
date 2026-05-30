@@ -147,15 +147,6 @@ const AvatarStudio = () => {
         (b.region || "").toLowerCase().includes(q),
       );
     }
-  const filtered = useMemo(() => {
-    let pool = beneficiaries;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      pool = pool.filter(b =>
-        (b.alias_first_name || "").toLowerCase().includes(q) ||
-        (b.region || "").toLowerCase().includes(q),
-      );
-    }
     if (filter === "todo") {
       pool = pool.filter(b => {
         const ws = b.avatar_workflow_status || "draft";
