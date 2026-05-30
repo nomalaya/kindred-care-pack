@@ -825,9 +825,9 @@ const AvatarStudio = () => {
 
                 {/* ===== TAB VISUEL ===== */}
                 <TabsContent value="visual" className="flex-1 overflow-y-auto m-0 data-[state=inactive]:hidden flex flex-col">
-                  <div className="p-4 space-y-3 flex-1">
-                    {/* Image with overlays */}
-                    <div className="aspect-square bg-muted rounded-lg overflow-hidden relative group max-w-md mx-auto w-full">
+                  <div className="p-3 space-y-2 flex-1">
+                    {/* Image with overlays — vignette compacte alignée à gauche */}
+                    <div className="h-[200px] w-[200px] bg-muted rounded-lg overflow-hidden relative group">
                       {selected.avatar_url || selected.avatar_preview_url ? (
                         <img
                           src={selected.avatar_url || selected.avatar_preview_url}
@@ -887,7 +887,7 @@ const AvatarStudio = () => {
 
                     {/* Failed banner */}
                     {selected.avatar_status === "failed" && (
-                      <div className="text-xs rounded-md border border-destructive/40 bg-destructive/10 text-destructive px-2 py-1.5 flex items-start gap-1.5 max-w-md mx-auto">
+                      <div className="text-xs rounded-md border border-destructive/40 bg-destructive/10 text-destructive px-2 py-1.5 flex items-start gap-1.5 w-[200px]">
                         <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                         <div>
                           {(selected as any).avatar_qa_report?.code === "no_credits"
