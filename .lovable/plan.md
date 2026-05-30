@@ -1,60 +1,35 @@
-# Plan final — avatars plein cadre + bouton « Nettoyer le fond »
+## Diagnostic
 
-## Partie 1 — Cadrage plein cadre (option A)
+Non, les fonds importés **ne s'affichent pas** sur les avatars nettoyés, et c'est un bug logique :
 
-### `supabase/functions/_shared/avatarArtDirection.ts`
-- Renforcer le bloc framing : sujet cadré **du sommet du crâne jusqu'au bord inférieur de l'image**, buste/torse touchant le bord bas (bleed).
-- Fond blanc pur strict (déjà en place), aucun vignettage, aucun fondu, aucune ombre portée diffuse.
-- Enrichir `NEGATIVE_PROMPT` : `vignette, faded edges, watercolor edges, soft fade at bottom, cropped torso, head-only portrait, floating bust, drop shadow under chin, ghosted edges, soft halo around hair`.
+1. L'edge function `clean-avatar-background` demande à Gemini de remplir l'arrière-plan en **blanc opaque #FFFFFF**.
+2. Le composant `BeneficiaryAvatar` place le portrait nettoyé en `<img absolute inset-0 object-cover>` par-dessus la div qui porte le fond importé en `background-image`.
+3. Comme le PNG est **opaque** (blanc plein), il masque intégralement le fond → on ne voit jamais aucun des 200 fonds du bucket `avatar-backgrounds`.
 
-### `src/components/BeneficiaryAvatar.tsx`
-- **Retirer** `mix-blend-mode: multiply` sur l'`<img>` (source de l'effet aquarelle).
-- Passer `object-position: center top` pour garantir que la tête reste visible et que le bas du corps remplit le cercle jusqu'en bas.
-- Le fond importé reste en `background-image: cover` → visible uniquement autour de la silhouette (cheveux, épaules, coins), jamais à travers le corps.
+Pour qu'un fond importé apparaisse derrière la silhouette, le PNG du portrait doit avoir un **fond transparent** (alpha = 0 partout sauf sur la personne).
 
-## Partie 2 — Edge function `clean-avatar-background` (idempotente)
+## Solution (frontend + edge function, aucune modif business logic)
 
-Nouveau fichier `supabase/functions/clean-avatar-background/index.ts` :
+### 1. `supabase/functions/clean-avatar-background/index.ts`
+- Renommer `CLEAN_PROMPT` → demander un détourage **transparent** PNG (alpha channel), pas blanc. Prompt strict : "transparent background, alpha channel, edge-to-edge transparency, keep subject pixel-perfect, crisp anti-aliased edges around hair and shoulders, no white halo, no fringing, no shadow".
+- Conserver upload PNG (PNG supporte l'alpha nativement, contentType inchangé).
+- Conserver le chemin idempotent `cleaned/{beneficiaryId}.png`.
 
-- Auth : exige un JWT valide + rôle `admin` (via `has_role`).
-- Input : `{ beneficiaryId: string }`.
-- Étapes :
-  1. SELECT l'`avatar_url` du bénéficiaire.
-  2. Télécharge l'image existante.
-  3. Appelle l'AI Gateway `https://ai.gateway.lovable.dev/v1/images/generations` avec **`google/gemini-3.1-flash-image-preview`** en mode édition (`messages` + image input + `modalities: ["image","text"]`), prompt :
-     > *« Replace the entire background behind the person with pure solid white (#FFFFFF). Do NOT modify the person in any way — keep face, hair, skin, clothing, pose, expression, framing strictly identical. Crisp edges around hair and shoulders. No gradient, no shadow, no halo, no texture. Output a clean cutout on pure white. »*
-  4. Décode le PNG retourné.
-  5. Upload dans le bucket `avatars` sous `cleaned/{beneficiaryId}.png` (chemin fixe → ré-exécuter écrase, **idempotent**, pas de traçage).
-  6. UPDATE `beneficiaries.avatar_url` avec la nouvelle URL publique + insert dans `avatar_versions` (table existante) pour rollback éventuel.
-  7. Renvoie `{ success: true, newUrl }`.
-- Gère 402/429 du gateway → renvoie l'erreur claire au client.
+### 2. `src/components/BeneficiaryAvatar.tsx`
+- Aucun changement de logique : la div porte déjà `background-image` du fond importé, l'img par-dessus laissera transparaître le fond là où l'alpha est 0.
+- Garder `object-position: center top` et `object-cover` pour cadrer le buste en bas du cercle.
 
-Pas de migration nécessaire. Pas de nouveau secret (`LOVABLE_API_KEY` déjà configuré). `verify_jwt` reste par défaut (validation faite en code).
-
-## Partie 3 — UI dans Avatar Studio
-
-### `src/features/avatar-studio/BeneficiaryListPanel.tsx`
-- À côté de chaque bénéficiaire ayant un `avatar_url`, ajouter un bouton icône **« Nettoyer le fond »** (icône `Eraser` ou `Wand2`).
-- Au clic : confirmation légère → `supabase.functions.invoke("clean-avatar-background", { body: { beneficiaryId } })`.
-- Pendant l'appel : spinner sur la ligne (~5-10 s).
-- Au retour : refetch le bénéficiaire → l'avatar se redessine avec son fond importé visible autour de la silhouette.
-- Toast succès ou erreur (avec message explicite si 402/429).
-
-### `src/features/avatar-studio/BatchActionsBar.tsx`
-- Bouton **« Nettoyer le fond des avatars sélectionnés »**.
-- Boucle séquentielle par lots de 3 (anti rate-limit), barre de progression `n/total`.
-- Idempotent : relancer sur un avatar déjà nettoyé refait simplement le détourage.
+### 3. (Optionnel mais utile) Bouton de re-nettoyage
+Une fois la nouvelle prompt déployée, les avatars déjà nettoyés en blanc resteront opaques. Re-cliquer sur **« Nettoyer le fond »** dans Avatar Studio régénère un PNG transparent par-dessus (idempotent, écrase `cleaned/{id}.png`). Aucun script de migration nécessaire — je laisse l'utilisateur re-nettoyer les portraits concernés au cas par cas.
 
 ## Fichiers touchés
+- `supabase/functions/clean-avatar-background/index.ts` — prompt + commentaire d'en-tête
 
-- `supabase/functions/_shared/avatarArtDirection.ts` *(modif)*
-- `src/components/BeneficiaryAvatar.tsx` *(modif)*
-- `supabase/functions/clean-avatar-background/index.ts` *(nouveau)*
-- `src/features/avatar-studio/BeneficiaryListPanel.tsx` *(modif — bouton ligne)*
-- `src/features/avatar-studio/BatchActionsBar.tsx` *(modif — action batch)*
+## Hors scope
+- Pas de changement à `BeneficiaryAvatar.tsx`, ni au hook `useAvatarBackground`, ni aux pages donateur
+- Pas de migration DB, pas de modif matching/panier/checkout
+- Pas de batch automatique de re-nettoyage (déclenchement manuel par l'admin)
 
-## Hors scope (volontairement)
-
-- Aucune migration DB, aucune nouvelle colonne, aucun badge « nettoyé » — nettoyage 100 % idempotent et silencieux.
-- Aucun changement de logique de matching, basket, ou checkout.
-- Les fonds importés et le mécanisme de sélection déterministe par seed restent inchangés.
+## Vérification
+1. Sur Irina (75 ans, Grand Est), cliquer à nouveau **« Nettoyer le fond »** dans Avatar Studio.
+2. Ouvrir **« Voir la fiche donateur »** → un des 200 fonds doit apparaître derrière la silhouette (sélection déterministe par `beneficiary.id`).
