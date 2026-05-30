@@ -283,6 +283,30 @@ const AvatarStudio = () => {
     }
   };
 
+  // Idempotent : remplace l'arrière-plan de l'avatar existant par du blanc pur
+  // pour que les fonds importés (bucket avatar-backgrounds) puissent passer
+  // derrière la silhouette en CSS.
+  const cleanBackground = async (id?: string) => {
+    const targetId = id || selected?.id;
+    if (!targetId) return;
+    setBusy("clean");
+    try {
+      const { data, error } = await supabase.functions.invoke("clean-avatar-background", {
+        body: { beneficiary_id: targetId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Fond nettoyé — votre fond importé est désormais visible.");
+      await refresh();
+    } catch (e: any) {
+      toast.error("Nettoyage impossible : " + (e?.message || "erreur inconnue"));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+
+
   // ===== Batch : Pré-remplir + Générer =====
   const [batchProgress, setBatchProgress] = useState<BatchProgress>({ done: 0, total: 0, failed: 0, running: false });
   const batchAbortRef = useRef(false);
