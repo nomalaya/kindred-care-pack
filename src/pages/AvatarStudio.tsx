@@ -1029,7 +1029,9 @@ const AvatarStudio = () => {
                         <div className="flex gap-1.5 overflow-x-auto pb-2 snap-x scroll-pl-1 -mx-1 px-1">
                           {versions.map(v => {
                             const isActive = selected.avatar_url === v.image_url;
-                            const isHD = !!v.qa_score || (v.image_url && !v.image_url.includes("/preview/"));
+                            const url = v.image_url || "";
+                            const isPreview = url.includes("/preview-") || url.includes("/preview/");
+                            const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
                             const isChecked = selectedVersionIds.has(v.id);
                             const selectionMode = selectedVersionIds.size > 0;
                             return (
