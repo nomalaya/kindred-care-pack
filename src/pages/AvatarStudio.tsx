@@ -123,8 +123,9 @@ const AvatarStudio = () => {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!selectedId) { setVersions([]); setInferenceReasons({}); return; }
+    if (!selectedId) { setVersions([]); setInferenceReasons({}); setSelectedVersionIds(new Set()); return; }
     setInferenceReasons({}); // reset à chaque changement de bénéficiaire
+    setSelectedVersionIds(new Set());
     (async () => {
       const { data } = await supabase
         .from("avatar_versions" as any)
@@ -135,6 +136,7 @@ const AvatarStudio = () => {
       setVersions((data as any[]) || []);
     })();
   }, [selectedId]);
+
 
   const selected = useMemo(
     () => beneficiaries.find(b => b.id === selectedId) || null,
