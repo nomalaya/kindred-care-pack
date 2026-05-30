@@ -522,7 +522,34 @@ const AvatarStudio = () => {
       avatar_seed: v.seed ?? null,
       avatar_prompt: v.prompt ?? null,
       avatar_generated_at: new Date().toISOString(),
-    };
+  };
+
+  const toggleVersionSelect = (id: string) => {
+    setSelectedVersionIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const deleteVersions = async (ids: string[]) => {
+    if (!ids.length) return;
+    const activeUrl = selected?.avatar_url;
+    const targetsActive = versions.some(v => ids.includes(v.id) && v.image_url === activeUrl);
+    const msg = ids.length === 1
+      ? `Supprimer définitivement cette version ?${targetsActive ? "\n\n⚠ C'est la version actuellement active de l'avatar. L'image affichée restera inchangée mais ne sera plus archivée." : ""}`
+      : `Supprimer définitivement ${ids.length} versions ?${targetsActive ? "\n\n⚠ La version actuellement active fait partie de la sélection." : ""}`;
+    if (!confirm(msg)) return;
+    const { error } = await supabase.from("avatar_versions" as any).delete().in("id", ids);
+    if (error) {
+      toast.error("Échec de la suppression : " + error.message);
+      return;
+    }
+    setVersions(prev => prev.filter(v => !ids.includes(v.id)));
+    setSelectedVersionIds(new Set());
+    toast.success(ids.length === 1 ? "Version supprimée" : `${ids.length} versions supprimées`);
+  };
+
     const { error } = await supabase.from("beneficiaries").update(updates).eq("id", selected.id);
     if (error) {
       toast.error("Échec : " + error.message);
