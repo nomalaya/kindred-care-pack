@@ -1424,6 +1424,9 @@ const AvatarStudio = () => {
             </>
           )}
         </div>
+      </div>
+
+
 
 
       <Dialog open={compareOpen} onOpenChange={setCompareOpen}>
