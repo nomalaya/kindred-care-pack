@@ -134,6 +134,7 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
               hairType={beneficiary.avatar_hair_type}
               skinTone={beneficiary.avatar_skin_tone}
               avatarUrl={beneficiary.avatar_url}
+              backgroundSeed={beneficiary.id}
               size="md"
             />
             <div>

@@ -217,6 +217,7 @@ const BeneficiarySelection = () => {
                       name={b.alias_first_name}
                       avatarUrl={b.avatar_url}
                       previewUrl={(b as any).avatar_preview_url}
+                      backgroundSeed={b.id}
                       size="lg"
                     />
                   </div>

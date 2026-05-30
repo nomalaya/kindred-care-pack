@@ -107,75 +107,30 @@ ABSOLUTELY FORBIDDEN: paper sheet, torn paper edge, deckled edge, white margin, 
 Composition: chest-up bust, subject centered, character occupies ~65-75% of the frame, looking softly toward the camera.
 `.trim();
 
-// ---- Atmospheric blurred-halo background system ------------------------------
-// Reusable across all avatars: same composition template, different palette each time.
-// Three soft Gaussian-blurred color halos around the edges, large bright white
-// center preserved behind the face. Socially neutral — gives no clue about
-// wealth or poverty.
-type BgColor = { name: string; hex: string };
-const BG_PALETTE: BgColor[] = [
-  { name: "soft peach", hex: "#FBD3B8" },
-  { name: "warm apricot", hex: "#F7C49A" },
-  { name: "pale coral", hex: "#F6B8A8" },
-  { name: "dusty rose", hex: "#EBB7C0" },
-  { name: "blush pink", hex: "#F4C9D4" },
-  { name: "mauve lilac", hex: "#D6BFE0" },
-  { name: "soft lavender", hex: "#C9C4E8" },
-  { name: "powder blue", hex: "#BFD4EC" },
-  { name: "sky aqua", hex: "#BBE0E4" },
-  { name: "pale mint", hex: "#C5E2CB" },
-  { name: "sage green", hex: "#C9D9B8" },
-  { name: "soft butter yellow", hex: "#F6E2A8" },
-  { name: "warm sand", hex: "#E9D6B4" },
-  { name: "pale terracotta", hex: "#E5B79E" },
-  { name: "muted teal", hex: "#A8CBC9" },
-  { name: "soft cream", hex: "#F2E3CC" },
-];
-
-// Stable hash → deterministic pick from seed, so the same beneficiary always
-// gets the same background but two neighbouring beneficiaries differ.
-function hashSeed(seed: string): number {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
-  return h >>> 0;
-}
-
-function pickThreeColors(seed: string): [BgColor, BgColor, BgColor] {
-  const h = hashSeed(seed || "default");
-  const n = BG_PALETTE.length;
-  const a = h % n;
-  // Use coprime offsets with n=16 → 5 and 7 are coprime with 16, ensures distinct picks.
-  const b = (a + 5 + ((h >>> 8) % 6)) % n;
-  let c = (a + 11 + ((h >>> 16) % 4)) % n;
-  if (c === a || c === b) c = (c + 1) % n;
-  return [BG_PALETTE[a], BG_PALETTE[b], BG_PALETTE[c]];
-}
-
-export function buildBackgroundBlock(seed: string): string {
-  const [c1, c2, c3] = pickThreeColors(seed);
+// ---- Background system --------------------------------------------------------
+// The colored mesh-gradient background is composed in the UI (CSS layer) using
+// curated imported assets. The image model must therefore generate the subject
+// on a perfectly plain white background, edge-to-edge, with no halo, no glow,
+// no gradient and no decoration — so the front-end can layer the portrait
+// cleanly over any background via mix-blend-mode: multiply.
+export function buildBackgroundBlock(_seed: string): string {
   return `
-BACKGROUND — REUSABLE HALO SYSTEM (STRICT):
-Three soft Gaussian-blurred color halos placed around the outer edges of a bright, almost-white canvas.
-- Halo 1 (top-left corner): ${c1.name} (${c1.hex}).
-- Halo 2 (right side, mid-height): ${c2.name} (${c2.hex}).
-- Halo 3 (bottom-left or bottom-right corner): ${c3.name} (${c3.hex}).
-Use a very strong Gaussian blur (equivalent to 80-120px), mesh-gradient feel, atmospheric glow, no hard edges, no geometric shapes, no patterns, no bands.
-The center of the image — behind the head and shoulders — MUST remain a large bright white / very pale glow so the face stays perfectly readable. Colors live on the outer edges and corners; they may bleed softly toward the center but must NEVER cover or darken the area behind the face.
-Composition target: ~70% white/light center, ~30% blurred color on the edges. Medium-low saturation, high overall brightness, no dark background, no contextual scene, no objects, no furniture, no window, no interior, no exterior — pure abstract atmospheric backdrop.
+BACKGROUND — STRICT PLAIN WHITE (NON-NEGOTIABLE):
+Pure plain white background (#FFFFFF), perfectly uniform, edge-to-edge, full-bleed to all four corners of the square canvas.
+ABSOLUTELY NO: halo, glow, gradient, mesh gradient, color tint, shadow behind the subject, vignette, texture, paper grain, framing, border, dot, pattern, scenery, object, furniture, window, wall, sky.
+The subject must be cleanly isolated on this flat white, ready for layered composition. Any background color or decoration is a critical failure.
 `.trim();
 }
 
 // Short, focused negative prompt. Long lists dilute and are ignored by Gemini image models.
+// IMPORTANT: do NOT add "no white background" — the new system requires plain white.
 export const NEGATIVE_PROMPT = [
   "no photograph", "no photorealism", "no 3D render", "no CGI", "no Pixar style",
   "no flat vector sticker", "no anime", "no manga", "no oil painting", "no saturated watercolor",
-  "no white border", "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture", "no vignette",
-  "no dark background", "no high contrast background", "no textured background", "no neon colors", "no gradient bands", "no patterns", "no geometric shapes in background",
+  "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture", "no vignette",
+  "no colored background", "no gradient background", "no halo behind the subject", "no glow behind the subject", "no shadow behind the subject",
+  "no textured background", "no patterns", "no geometric shapes in background",
   "no contextual scene", "no interior", "no furniture", "no window", "no objects behind the subject",
-  "no centered color blob covering the face",
   "no identifiable real person", "no celebrity likeness",
   "no multiple faces", "no text", "no watermark", "no logo",
 ].join(", ");

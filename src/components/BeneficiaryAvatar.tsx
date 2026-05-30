@@ -1,3 +1,5 @@
+import { useAvatarBackground } from "@/lib/avatarBackground";
+
 interface AvatarProps {
   gender?: string;
   ageRange?: string;
@@ -7,6 +9,11 @@ interface AvatarProps {
   name: string;
   avatarUrl?: string | null;
   previewUrl?: string | null;
+  /**
+   * Deterministic seed used to pick a personalised background from the
+   * `avatar-backgrounds` bucket. Pass the beneficiary id or avatar_seed.
+   */
+  backgroundSeed?: string | number | null;
 }
 
 // Premium fallback — warm gradient circle with initial.
@@ -16,23 +23,36 @@ const BeneficiaryAvatar = ({
   name,
   avatarUrl,
   previewUrl,
+  backgroundSeed,
 }: AvatarProps) => {
   const dimensions = { sm: 48, md: 80, lg: 120 };
   const dim = dimensions[size];
 
   const resolved = avatarUrl || previewUrl;
   const isPreview = !avatarUrl && !!previewUrl;
+  const bgUrl = useAvatarBackground(backgroundSeed ?? null);
 
   if (resolved) {
     return (
-      <div className="relative" style={{ width: dim, height: dim }}>
+      <div
+        className="relative rounded-full overflow-hidden ring-1 ring-black/5"
+        style={{
+          width: dim,
+          height: dim,
+          backgroundImage: bgUrl ? `url(${bgUrl})` : undefined,
+          backgroundColor: bgUrl ? undefined : "#ffffff",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
         <img
           src={resolved}
           alt={`Portrait de ${name}`}
           width={dim}
           height={dim}
-          className="rounded-full object-cover ring-1 ring-black/5"
-          style={{ width: dim, height: dim }}
+          loading="lazy"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ mixBlendMode: "multiply" }}
         />
         {isPreview && (
           <span

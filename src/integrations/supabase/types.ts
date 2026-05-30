@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      avatar_backgrounds: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       avatar_versions: {
         Row: {
           beneficiary_id: string
