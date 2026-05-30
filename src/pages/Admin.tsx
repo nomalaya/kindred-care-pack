@@ -165,8 +165,10 @@ const Admin = () => {
             <TabsTrigger value="donations">Dons ({donations.length})</TabsTrigger>
             <TabsTrigger value="beneficiaries">Bénéficiaires ({beneficiaries.length})</TabsTrigger>
             <TabsTrigger value="portraits">Portraits v2</TabsTrigger>
+            <TabsTrigger value="backgrounds">Fonds</TabsTrigger>
             <TabsTrigger value="products">Produits ({products.length})</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="donations">
             {loading ? (
