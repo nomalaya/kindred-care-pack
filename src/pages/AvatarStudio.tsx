@@ -640,23 +640,38 @@ const AvatarStudio = () => {
               />
             </div>
 
-            <div className="flex gap-0.5 border rounded-md p-0.5" role="group" aria-label="Filtrer par statut">
-              {(["all", "draft", "generated", "approved", "locked", "failed"] as const).map(f => {
-                const count = f === "all" ? beneficiaries.length : (stats as any)[f] ?? 0;
-                const label = f === "all" ? "Tous" : f === "failed" ? "Échec" : WORKFLOW_LABEL[f];
-                return (
+            <div className="flex items-center gap-1.5">
+              <div className="flex gap-0.5 border rounded-md p-0.5" role="group" aria-label="Filtrer par étape">
+                {([
+                  { key: "all", label: "Tous", count: beneficiaries.length },
+                  { key: "todo", label: "À faire", count: stats.todo },
+                  { key: "review", label: "À valider", count: stats.review },
+                  { key: "done", label: "Validés", count: stats.done },
+                ] as const).map(f => (
                   <button
-                    key={f}
-                    onClick={() => setFilter(f)}
-                    aria-pressed={filter === f}
-                    className={`text-xs px-2 py-1 rounded transition-colors ${
-                      filter === f ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                    key={f.key}
+                    onClick={() => setFilter(f.key)}
+                    aria-pressed={filter === f.key}
+                    className={`text-xs px-2.5 py-1 rounded transition-colors ${
+                      filter === f.key ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                     }`}
                   >
-                    {label} <span className="opacity-70 ml-0.5">{count}</span>
+                    {f.label} <span className="opacity-70 ml-0.5">{f.count}</span>
                   </button>
-                );
-              })}
+                ))}
+              </div>
+              {filter === "todo" && stats.failed > 0 && (
+                <button
+                  onClick={() => setShowFailedOnly(v => !v)}
+                  aria-pressed={showFailedOnly}
+                  className={`text-[11px] px-2 py-1 rounded border transition-colors ${
+                    showFailedOnly ? "bg-destructive/10 border-destructive/40 text-destructive" : "hover:bg-muted border-transparent"
+                  }`}
+                  title="Filtrer uniquement les échecs de génération"
+                >
+                  <AlertTriangle className="inline h-3 w-3 mr-0.5" />Échecs ({stats.failed})
+                </button>
+              )}
             </div>
 
 
