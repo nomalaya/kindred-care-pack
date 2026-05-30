@@ -1,117 +1,60 @@
-# Système de fonds personnalisés pour les avatars
+# Plan final — avatars plein cadre + bouton « Nettoyer le fond »
 
-## Objectif
+## Partie 1 — Cadrage plein cadre (option A)
 
-Vous fournirez vos propres fonds (mesh gradients). L'IA génère uniquement le personnage sur fond transparent. La composition se fait **en CSS dans l'UI**, ce qui garantit cohérence, contrôle, performance et variations infinies.
+### `supabase/functions/_shared/avatarArtDirection.ts`
+- Renforcer le bloc framing : sujet cadré **du sommet du crâne jusqu'au bord inférieur de l'image**, buste/torse touchant le bord bas (bleed).
+- Fond blanc pur strict (déjà en place), aucun vignettage, aucun fondu, aucune ombre portée diffuse.
+- Enrichir `NEGATIVE_PROMPT` : `vignette, faded edges, watercolor edges, soft fade at bottom, cropped torso, head-only portrait, floating bust, drop shadow under chin, ghosted edges, soft halo around hair`.
 
----
+### `src/components/BeneficiaryAvatar.tsx`
+- **Retirer** `mix-blend-mode: multiply` sur l'`<img>` (source de l'effet aquarelle).
+- Passer `object-position: center top` pour garantir que la tête reste visible et que le bas du corps remplit le cercle jusqu'en bas.
+- Le fond importé reste en `background-image: cover` → visible uniquement autour de la silhouette (cheveux, épaules, coins), jamais à travers le corps.
 
-## 1. Spécifications des fonds que vous importerez
+## Partie 2 — Edge function `clean-avatar-background` (idempotente)
 
-À respecter pour chaque image :
+Nouveau fichier `supabase/functions/clean-avatar-background/index.ts` :
 
-- **Format** : PNG ou **WebP** (WebP recommandé, ~3× plus léger)
-- **Dimensions** : carré **1024 × 1024 px** minimum (idéal 1536 × 1536)
-- **Ratio** : strictement 1:1, **fond perdu edge-to-edge** (pas de marge blanche, pas de cadre)
-- **Poids cible** : < 300 Ko (WebP qualité 80)
-- **Espace colorimétrique** : sRGB
-- **Composition** :
-  - Centre clair / quasi-blanc (~60-70% de la surface) pour préserver la lisibilité du visage
-  - Maximum **3 halos colorés** sur les bords, style mesh gradient moderne
-  - Couleurs pastel / modérées, luminosité haute, saturation moyenne-basse
-  - **Aucune** texture, **aucun** objet, **aucun** décor réaliste, **aucun** texte/logo
-  - Pas de fond sombre, pas de contraste fort
-- **Nommage des fichiers** : `bg-001.webp`, `bg-002.webp`, … `bg-200.webp` (numérotation à 3 chiffres pour tri stable)
+- Auth : exige un JWT valide + rôle `admin` (via `has_role`).
+- Input : `{ beneficiaryId: string }`.
+- Étapes :
+  1. SELECT l'`avatar_url` du bénéficiaire.
+  2. Télécharge l'image existante.
+  3. Appelle l'AI Gateway `https://ai.gateway.lovable.dev/v1/images/generations` avec **`google/gemini-3.1-flash-image-preview`** en mode édition (`messages` + image input + `modalities: ["image","text"]`), prompt :
+     > *« Replace the entire background behind the person with pure solid white (#FFFFFF). Do NOT modify the person in any way — keep face, hair, skin, clothing, pose, expression, framing strictly identical. Crisp edges around hair and shoulders. No gradient, no shadow, no halo, no texture. Output a clean cutout on pure white. »*
+  4. Décode le PNG retourné.
+  5. Upload dans le bucket `avatars` sous `cleaned/{beneficiaryId}.png` (chemin fixe → ré-exécuter écrase, **idempotent**, pas de traçage).
+  6. UPDATE `beneficiaries.avatar_url` avec la nouvelle URL publique + insert dans `avatar_versions` (table existante) pour rollback éventuel.
+  7. Renvoie `{ success: true, newUrl }`.
+- Gère 402/429 du gateway → renvoie l'erreur claire au client.
 
----
+Pas de migration nécessaire. Pas de nouveau secret (`LOVABLE_API_KEY` déjà configuré). `verify_jwt` reste par défaut (validation faite en code).
 
-## 2. Stockage : bucket Cloud public
+## Partie 3 — UI dans Avatar Studio
 
-- Nouveau bucket public `avatar-backgrounds` (séparé du bucket `avatars` existant)
-- RLS : lecture publique, écriture admin uniquement
-- URL prédictibles : `https://…/storage/v1/object/public/avatar-backgrounds/bg-001.webp`
-- Vous pourrez ajouter/retirer des fonds à tout moment depuis l'admin, sans redéploiement
+### `src/features/avatar-studio/BeneficiaryListPanel.tsx`
+- À côté de chaque bénéficiaire ayant un `avatar_url`, ajouter un bouton icône **« Nettoyer le fond »** (icône `Eraser` ou `Wand2`).
+- Au clic : confirmation légère → `supabase.functions.invoke("clean-avatar-background", { body: { beneficiaryId } })`.
+- Pendant l'appel : spinner sur la ligne (~5-10 s).
+- Au retour : refetch le bénéficiaire → l'avatar se redessine avec son fond importé visible autour de la silhouette.
+- Toast succès ou erreur (avec message explicite si 402/429).
 
----
+### `src/features/avatar-studio/BatchActionsBar.tsx`
+- Bouton **« Nettoyer le fond des avatars sélectionnés »**.
+- Boucle séquentielle par lots de 3 (anti rate-limit), barre de progression `n/total`.
+- Idempotent : relancer sur un avatar déjà nettoyé refait simplement le détourage.
 
-## 3. Génération IA : avatars sur fond transparent
+## Fichiers touchés
 
-Modification de `supabase/functions/_shared/avatarArtDirection.ts` :
+- `supabase/functions/_shared/avatarArtDirection.ts` *(modif)*
+- `src/components/BeneficiaryAvatar.tsx` *(modif)*
+- `supabase/functions/clean-avatar-background/index.ts` *(nouveau)*
+- `src/features/avatar-studio/BeneficiaryListPanel.tsx` *(modif — bouton ligne)*
+- `src/features/avatar-studio/BatchActionsBar.tsx` *(modif — action batch)*
 
-- Suppression du `buildBackgroundBlock` (système des 3 halos) — devenu inutile
-- Remplacement par un bloc strict :
-  > « BACKGROUND : pure plain white background, no halo, no gradient, no shadow, no decoration. Subject must be cleanly isolated, ready for background removal. »
-- Ajout d'une étape post-traitement légère côté edge function `generate-avatar` :
-  - Soit on garde le fond blanc (composition CSS suffisante avec `mix-blend-mode: multiply` derrière)
-  - Soit on appelle une passe de détourage automatique (à confirmer — voir question ci-dessous)
+## Hors scope (volontairement)
 
-Recommandation : **commencer sans détourage**, juste fond blanc strict. C'est plus rapide, plus fiable, et le rendu visuel est déjà excellent en CSS via superposition.
-
----
-
-## 4. Composition CSS dans l'UI
-
-Modification de `src/components/BeneficiaryAvatar.tsx` (et là où l'avatar est affiché en grand) :
-
-```text
-┌─────────────────────────┐
-│  <div backgroundImage>  │  ← fond importé, cover, center
-│   ┌───────────────┐     │
-│   │   <img>       │     │  ← avatar IA, fond blanc/transparent
-│   │   avatar      │     │
-│   └───────────────┘     │
-└─────────────────────────┘
-```
-
-- `background-size: cover`, `background-position: center`
-- Avatar centré, `object-fit: cover`, `border-radius: 50%` (cercle) ou carré arrondi selon le contexte
-- Responsive : le fond suit la taille du container (sm / md / lg déjà gérés)
-- Conservation du fallback gradient + initiale quand pas d'avatar généré
-
----
-
-## 5. Sélection déterministe par seed
-
-Nouveau helper `src/lib/avatarBackground.ts` :
-
-- Hash FNV-1a sur `beneficiary.avatar_seed` (déjà existant)
-- `index = hash % nombreDeFonds`
-- Retourne l'URL publique `bg-XXX.webp`
-- Le nombre de fonds disponibles est lu depuis une **table légère** `avatar_backgrounds` (id, filename, is_active) — permet d'ajouter/désactiver des fonds sans toucher au code
-
-Résultat : même bénéficiaire = toujours le même fond, mais 200 fonds répartis équitablement sur l'ensemble du catalogue.
-
----
-
-## Détails techniques
-
-**Migration DB**
-- Bucket Storage `avatar-backgrounds` (public)
-- Table `public.avatar_backgrounds` : `id`, `filename`, `is_active`, `created_at`
-- RLS : SELECT public, INSERT/UPDATE/DELETE admin uniquement
-- Index actif pour lecture rapide
-
-**Upload de vos 200 fonds**
-- Soit via l'admin Lovable Cloud (drag & drop dans le bucket)
-- Soit via un petit écran admin que je peux ajouter dans `/admin` (upload multiple + insertion auto dans la table)
-
-**Fichiers impactés**
-- `supabase/migrations/…` — bucket + table
-- `supabase/functions/_shared/avatarArtDirection.ts` — fond blanc strict
-- `src/lib/avatarBackground.ts` — nouveau helper de sélection
-- `src/components/BeneficiaryAvatar.tsx` — composition CSS
-- `src/pages/BeneficiarySelection.tsx`, `Dashboard.tsx`, `OrderConfirmation.tsx`, `CartSummary.tsx`, `DonationFlow.tsx` — passent le seed à l'avatar (déjà disponible via le bénéficiaire)
-- `src/pages/AvatarStudio.tsx` — preview avec le bon fond
-
-**Régénération**
-- Pas besoin de régénérer les 200+ avatars existants pour appliquer les fonds : la composition est CSS
-- En revanche, pour avoir des sujets **vraiment sur fond blanc strict**, il faudra régénérer (bouton batch déjà présent dans l'Avatar Studio)
-
----
-
-## 2 décisions à prendre avant que je code
-
-1. **Upload des fonds** : je vous ajoute un petit écran admin de drag & drop multiple (recommandé pour 200 fichiers), ou vous préférez uploader manuellement dans le bucket ?
-2. **Détourage automatique** : on reste sur fond blanc strict (simple, rapide, rendu déjà très propre sur halo clair) ou on ajoute une passe de suppression de fond (plus lourd, plus coûteux, mais avatar parfaitement intégré au fond) ?
-
-Une fois ces deux points tranchés, je lance l'implémentation.
+- Aucune migration DB, aucune nouvelle colonne, aucun badge « nettoyé » — nettoyage 100 % idempotent et silencieux.
+- Aucun changement de logique de matching, basket, ou checkout.
+- Les fonds importés et le mécanisme de sélection déterministe par seed restent inchangés.

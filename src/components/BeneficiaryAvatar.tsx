@@ -52,7 +52,7 @@ const BeneficiaryAvatar = ({
           height={dim}
           loading="lazy"
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ mixBlendMode: "multiply" }}
+          style={{ objectPosition: "center top" }}
         />
         {isPreview && (
           <span

@@ -102,9 +102,10 @@ DIGNITY: warm, kind, gentle. Quiet humanity. No caricature, no stereotype, no pa
 
 // Strict framing block. Short, repeated, capitalized — image models obey these much better than long paragraphs.
 export const FRAMING_BLOCK = `
-IMAGE FORMAT — STRICT: square 1:1 canvas. Full-bleed illustration. The illustrated background MUST extend all the way to the four edges of the image.
-ABSOLUTELY FORBIDDEN: paper sheet, torn paper edge, deckled edge, white margin, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette.
-Composition: chest-up bust, subject centered, character occupies ~65-75% of the frame, looking softly toward the camera.
+IMAGE FORMAT — STRICT: square 1:1 canvas. Full-bleed illustration. The white background MUST extend all the way to the four edges of the image.
+FRAMING — STRICT: the subject is composed from the TOP of the head down to the BOTTOM edge of the image. The torso, chest and shoulders MUST touch and bleed into the bottom edge of the canvas. No empty white area below the subject. No floating bust. No head-only portrait. No cropped torso fading into white.
+ABSOLUTELY FORBIDDEN: paper sheet, torn paper edge, deckled edge, white margin, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair.
+Composition: head + neck + shoulders + chest, subject centered, character occupies ~80-90% of the frame vertically (top of skull near top edge, chest bleeding into bottom edge), looking softly toward the camera.
 `.trim();
 
 // ---- Background system --------------------------------------------------------
@@ -112,13 +113,13 @@ Composition: chest-up bust, subject centered, character occupies ~65-75% of the 
 // curated imported assets. The image model must therefore generate the subject
 // on a perfectly plain white background, edge-to-edge, with no halo, no glow,
 // no gradient and no decoration — so the front-end can layer the portrait
-// cleanly over any background via mix-blend-mode: multiply.
+// cleanly over any background.
 export function buildBackgroundBlock(_seed: string): string {
   return `
 BACKGROUND — STRICT PLAIN WHITE (NON-NEGOTIABLE):
 Pure plain white background (#FFFFFF), perfectly uniform, edge-to-edge, full-bleed to all four corners of the square canvas.
-ABSOLUTELY NO: halo, glow, gradient, mesh gradient, color tint, shadow behind the subject, vignette, texture, paper grain, framing, border, dot, pattern, scenery, object, furniture, window, wall, sky.
-The subject must be cleanly isolated on this flat white, ready for layered composition. Any background color or decoration is a critical failure.
+ABSOLUTELY NO: halo, glow, gradient, mesh gradient, color tint, shadow behind the subject, vignette, texture, paper grain, framing, border, dot, pattern, scenery, object, furniture, window, wall, sky, soft fade where the body meets the bottom edge.
+The subject must be cleanly isolated on this flat white, with crisp opaque edges, ready for layered composition. Any background color or decoration is a critical failure.
 `.trim();
 }
 
@@ -127,7 +128,10 @@ The subject must be cleanly isolated on this flat white, ready for layered compo
 export const NEGATIVE_PROMPT = [
   "no photograph", "no photorealism", "no 3D render", "no CGI", "no Pixar style",
   "no flat vector sticker", "no anime", "no manga", "no oil painting", "no saturated watercolor",
-  "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture", "no vignette",
+  "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture",
+  "no vignette", "no faded edges", "no watercolor edges", "no soft fade at bottom",
+  "no cropped torso", "no head-only portrait", "no floating bust", "no drop shadow under chin",
+  "no ghosted edges", "no soft halo around hair",
   "no colored background", "no gradient background", "no halo behind the subject", "no glow behind the subject", "no shadow behind the subject",
   "no textured background", "no patterns", "no geometric shapes in background",
   "no contextual scene", "no interior", "no furniture", "no window", "no objects behind the subject",
