@@ -887,7 +887,7 @@ const AvatarStudio = () => {
 
                     {/* Failed banner */}
                     {selected.avatar_status === "failed" && (
-                      <div className="text-xs rounded-md border border-destructive/40 bg-destructive/10 text-destructive px-2 py-1.5 flex items-start gap-1.5 max-w-md mx-auto">
+                      <div className="text-xs rounded-md border border-destructive/40 bg-destructive/10 text-destructive px-2 py-1.5 flex items-start gap-1.5 w-[200px]">
                         <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                         <div>
                           {(selected as any).avatar_qa_report?.code === "no_credits"
