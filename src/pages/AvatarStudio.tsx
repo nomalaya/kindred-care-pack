@@ -40,6 +40,7 @@ import {
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
   Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown, ExternalLink,
+  PanelLeft, Image as ImageIcon, SlidersHorizontal, Info,
 } from "lucide-react";
 
 type Beneficiary = any;
