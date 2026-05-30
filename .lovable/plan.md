@@ -1,38 +1,62 @@
-## Diagnostic
+# Refonte Avatar Studio
 
-Vérification du PNG livré par l'edge function `clean-avatar-background` :
-- Mode : `RGB` (pas de canal alpha)
-- Pixels transparents : `0 / 1 048 576` → 100 % opaque
+Objectif : simplifier et fluidifier l'Avatar Studio sans toucher à la logique métier (génération, sauvegarde, RLS, edge functions). Toutes les modifications restent dans `src/pages/AvatarStudio.tsx` et composants UI associés.
 
-Gemini `gemini-3.1-flash-image-preview` **ne sait pas produire de PNG transparent** — il a remplacé le fond par du blanc plein malgré le prompt. Donc dans `BeneficiaryAvatar`, l'`<img>` couvre intégralement la div qui porte le `background-image` du bucket → aucun fond importé visible sur `/donate/:id`.
+## 1. Layout 2 colonnes (au lieu de 3)
 
-## Solution : chroma-key serveur (post-traitement)
+- Colonne gauche fixe : liste des bénéficiaires (largeur ~320px).
+- Colonne droite : panneau principal avec onglets **Visuel** / **Attributs** (au lieu d'afficher les deux côte à côte).
+- En dessous de 1280px : la liste devient un Sheet (drawer) ouvert par un bouton dans le header.
 
-Garder Gemini pour produire un PNG **fond blanc propre** (ça il le fait très bien), puis transformer ce blanc en transparence dans l'edge function avant upload, en utilisant `imagescript` (lib Deno-native, pure TS).
+## 2. Bouton "Générer" unifié
 
-### `supabase/functions/clean-avatar-background/index.ts`
-- **Prompt** : revenir à « replace background with pure solid white #FFFFFF, crisp edges » (efficace, déjà éprouvé).
-- **Nouveau post-traitement** après réception du PNG Gemini :
-  - `import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts"`
-  - Décoder le PNG, parcourir chaque pixel :
-    - Calcul `whiteness = min(R,G,B)` et `chroma = max(R,G,B) - min(R,G,B)`
-    - Si `whiteness >= 248 && chroma <= 6` → `alpha = 0` (fond plein)
-    - Si `whiteness >= 230 && chroma <= 12` → alpha proportionnel (rampe linéaire de 0 à 255) pour anti-aliasing doux sur les contours cheveux/épaules
-    - Sinon → `alpha = 255` (sujet)
-  - Ré-encoder en PNG avec canal alpha → upload sur `avatars/cleaned/{id}.png`.
-- Conserver tout le reste : auth, idempotence, archivage `avatar_versions`, gestion 402/429.
+- Split-button unique : action principale = dernier mode utilisé (Aperçu par défaut), caret ouvre menu (Aperçu / HD / Importer une image).
+- "Nettoyer le fond" devient un bouton-overlay sur l'image (comme le bouton Zoom actuel).
+- "Approuver" et "Verrouiller" déplacés dans un footer sticky du panneau Visuel.
 
-### Vérification automatique
-Après upload, log côté serveur le pourcentage de pixels transparents (`transparent_ratio`). Si < 5 %, retourner une erreur explicite « Détourage raté — réessayez » pour éviter d'écraser silencieusement avec un mauvais résultat.
+## 3. Trois onglets de workflow
 
-## Fichiers touchés
-- `supabase/functions/clean-avatar-background/index.ts` — prompt + post-traitement chroma-key + check qualité
+Remplacer les 6 pills de filtre par 3 onglets clairs :
+- **À faire** (draft + failed)
+- **À valider** (generated)
+- **Validés** (approved + locked)
+
+Sous-filtre discret "uniquement échecs" dans À faire.
+
+## 4. Auto-save silencieux + raccourcis visibles
+
+- Supprimer les badges "Sauvegarde…" clignotants ; n'afficher qu'en cas d'erreur (toast).
+- Afficher les raccourcis (P, G, A, L) en hint sous chaque bouton.
+- Corriger les flèches ↑/↓ pour sélectionner + scroller la liste vers l'élément actif.
+
+## 5. Éditeur d'attributs amélioré
+
+- Badge "modifié" par section (Identité, Apparence, etc.).
+- Bouton "Réinitialiser cette section" à partir des valeurs inférées.
+- Popover "Pourquoi cette valeur ?" par champ inféré.
+
+## 6. Carrousel de versions
+
+- Remplacer la grille 8 miniatures par un carrousel horizontal scrollable (jusqu'à 20 versions).
+- Version active mise en avant à gauche.
+- Comparaison via Shift+clic sur 2 miniatures (overlay split-view).
+
+## 7. Quick wins
+
+- Titre "Avatar Studio" + compteur "200 bénéficiaires" fusionnés dans la toolbar.
+- Badge debug déplacé en tooltip sur l'image.
+- Header sticky en haut du panneau de droite.
+
+## Détails techniques
+
+- Fichier principal : `src/pages/AvatarStudio.tsx` (refactor en sous-composants `<BeneficiaryList />`, `<StudioToolbar />`, `<VisualPanel />`, `<AttributesPanel />`, `<VersionsCarousel />` dans `src/components/avatar-studio/`).
+- Composants shadcn utilisés : `Tabs`, `DropdownMenu` (split button), `Sheet` (drawer mobile), `Popover`, `Tooltip`, `ScrollArea`.
+- Aucun changement aux edge functions, à la DB, ni aux hooks de génération/sauvegarde — uniquement réorganisation de l'UI et bindings d'événements existants.
+- Raccourcis clavier conservés (P, G, A, L) + nouvelles flèches ↑/↓ via `useEffect` keydown.
+- Tokens design system existants conservés (Soleil Émeraude, Inter, fond off-white).
 
 ## Hors scope
-- Aucune modification frontend (le pipeline `<img>` + `background-image` du fond importé fonctionne déjà dès que le PNG a un canal alpha)
-- Pas de migration DB, pas de modif matching/panier/checkout
 
-## Test
-1. Avatar Studio → Irina → **Nettoyer le fond** (5-10 s)
-2. **Voir la fiche donateur** → un des 200 fonds doit apparaître derrière la silhouette
-3. Cas limite : zoom sur les bords des cheveux → pas de halo blanc visible
+- Pas de modification de la logique de génération Nano Banana / Pro.
+- Pas de modification de la table `beneficiary_avatars` ni des RLS.
+- Pas de changement des prompts ou du système d'inférence.
