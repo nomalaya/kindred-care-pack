@@ -52,7 +52,13 @@ const AvatarStudio = () => {
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | WorkflowStatus | "failed">("all");
+  const [filter, setFilter] = useState<"all" | "todo" | "review" | "done">("all");
+  const [showFailedOnly, setShowFailedOnly] = useState(false);
+  const [panelTab, setPanelTab] = useState<"visual" | "attrs">("visual");
+  const [listSheetOpen, setListSheetOpen] = useState(false);
+  const [defaultGenMode, setDefaultGenMode] = useState<"preview" | "final">(
+    () => (typeof window !== "undefined" && (localStorage.getItem("avatar-studio-default-mode") as any)) || "final",
+  );
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [versions, setVersions] = useState<any[]>([]);
