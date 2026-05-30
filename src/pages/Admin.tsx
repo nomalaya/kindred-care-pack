@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { AlertTriangle, Loader2, Sparkles, CheckCircle2, RefreshCw, Wand2, ShieldCheck, Eye } from "lucide-react";
 import { AVATAR_VOCAB, STATUS_LABEL, STATUS_COLOR, AvatarStatus } from "@/lib/avatarTraits";
+import AvatarBackgroundsPanel from "@/features/avatar-studio/AvatarBackgroundsPanel";
 
 const TARGET_MODEL = "google/gemini-3-pro-image-preview";
 
