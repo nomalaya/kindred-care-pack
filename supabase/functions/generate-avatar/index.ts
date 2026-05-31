@@ -7,6 +7,7 @@ import {
   MODEL_PREVIEW,
   MODEL_FINAL,
 } from "../_shared/avatarArtDirection.ts";
+import { cropAvatarBytes } from "../_shared/avatarCrop.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
