@@ -7,6 +7,7 @@ import {
   MODEL_PREVIEW,
   MODEL_FINAL,
 } from "../_shared/avatarArtDirection.ts";
+import { cropAvatarBytes } from "../_shared/avatarCrop.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,7 +46,10 @@ async function generateImage(prompt: string, model: string): Promise<Uint8Array>
   const url = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
   if (!url) throw new Error("No image returned");
   const base64 = url.replace(/^data:image\/\w+;base64,/, "");
-  return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  const raw = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  // Deterministic post-process crop — guarantees identical framing on every avatar,
+  // independent of the model's compliance with the FRAMING prompt block.
+  return await cropAvatarBytes(raw);
 }
 
 async function runQA(supabase: any, imageBytes: Uint8Array): Promise<{ scores: any; notes: string[]; global_score: number }> {

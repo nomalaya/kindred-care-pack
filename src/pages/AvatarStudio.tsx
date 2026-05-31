@@ -40,7 +40,7 @@ import {
   Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
   Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown, ExternalLink,
-  PanelLeft, Image as ImageIcon, SlidersHorizontal, Info, Trash2, X,
+  PanelLeft, Image as ImageIcon, SlidersHorizontal, Info, Trash2, X, Crop,
 } from "lucide-react";
 
 
@@ -530,6 +530,31 @@ const AvatarStudio = () => {
     }
     setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...updates } : b));
     toast.success("Version restaurée comme avatar actif");
+  };
+
+  // Recadrage déterministe (juste au-dessus de la poitrine) appliqué à une version
+  // existante, qui devient l'avatar HD actif. Aucun crédit AI consommé.
+  const recropVersion = async (v: any) => {
+    if (!selected) return;
+    if (isLocked) {
+      toast.error("Avatar verrouillé. Déverrouillez d'abord.");
+      return;
+    }
+    if (!confirm("Recadrer cette version juste au-dessus de la poitrine et la définir comme avatar actif ?")) return;
+    setBusy("clean");
+    try {
+      const { data, error } = await supabase.functions.invoke("recrop-avatar-version", {
+        body: { beneficiary_id: selected.id, version_id: v.id },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Version recadrée — c'est désormais l'avatar actif.");
+      await refresh();
+    } catch (e: any) {
+      toast.error("Recadrage impossible : " + (e?.message || "erreur inconnue"));
+    } finally {
+      setBusy(null);
+    }
   };
 
   const toggleVersionSelect = (id: string) => {
@@ -1071,6 +1096,17 @@ const AvatarStudio = () => {
                                   aria-label="Supprimer cette version"
                                 >
                                   <Trash2 className="h-3 w-3" />
+                                </button>
+                              )}
+                              {!selectionMode && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); recropVersion(v); }}
+                                  disabled={isLocked || busy === "clean"}
+                                  className="absolute top-1 right-[3.25rem] w-5 h-5 rounded bg-background/80 hover:bg-primary hover:text-primary-foreground text-muted-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
+                                  title="Recadrer ↑ poitrine et définir comme avatar actif"
+                                  aria-label="Recadrer au-dessus de la poitrine"
+                                >
+                                  <Crop className="h-3 w-3" />
                                 </button>
                               )}
                               {!isActive && !selectionMode && (
