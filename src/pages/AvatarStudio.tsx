@@ -662,23 +662,22 @@ const AvatarStudio = () => {
     toast.success("Version restaurée comme avatar actif");
   };
 
-  // Recadrage déterministe (juste au-dessus de la poitrine) appliqué à une version
+  // Recadrage déterministe (zoom + recentrage visage) appliqué à une version
   // existante, qui devient l'avatar HD actif. Aucun crédit AI consommé.
-  const recropVersion = async (v: any) => {
+  const recropVersion = async (v: any, params: { zoom: number; faceY: number }) => {
     if (!selected) return;
     if (isLocked) {
       toast.error("Avatar verrouillé. Déverrouillez d'abord.");
       return;
     }
-    if (!confirm("Recadrer cette version juste au-dessus de la poitrine et la définir comme avatar actif ?")) return;
     setBusy("clean");
     try {
       const { data, error } = await supabase.functions.invoke("recrop-avatar-version", {
-        body: { beneficiary_id: selected.id, version_id: v.id },
+        body: { beneficiary_id: selected.id, version_id: v.id, zoom: params.zoom, faceY: params.faceY },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("Version recadrée — c'est désormais l'avatar actif.");
+      toast.success(`Recadrée (×${params.zoom.toFixed(2)}) — c'est l'avatar actif.`);
       await refresh();
     } catch (e: any) {
       toast.error("Recadrage impossible : " + (e?.message || "erreur inconnue"));
