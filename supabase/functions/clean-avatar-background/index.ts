@@ -5,7 +5,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
-import { cropAvatarBytes } from "../_shared/avatarCrop.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -127,11 +126,7 @@ serve(async (req) => {
     const sourceUrl = b.avatar_url.split("?")[0];
 
     // 1) Ask Gemini for a clean pure-white background
-    const whitePngRaw = await geminiWhiteBackground(sourceUrl);
-
-    // 1b) Apply the deterministic crop so re-cleaned avatars keep the same framing
-    //     as freshly generated ones (head + neck + collarbone, white bottom pad).
-    const whitePng = await cropAvatarBytes(whitePngRaw);
+    const whitePng = await geminiWhiteBackground(sourceUrl);
 
     // 2) Server-side chroma-key: white → transparent
     const { bytes: transparentPng, transparentRatio } = await whiteToAlpha(whitePng);
