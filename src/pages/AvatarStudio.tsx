@@ -1228,15 +1228,12 @@ const AvatarStudio = () => {
                                 </button>
                               )}
                               {!selectionMode && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); recropVersion(v); }}
-                                  disabled={isLocked || busy === "clean"}
-                                  className="absolute top-1 right-[3.25rem] w-5 h-5 rounded bg-background/80 hover:bg-primary hover:text-primary-foreground text-muted-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
-                                  title="Recadrer ↑ poitrine et définir comme avatar actif"
-                                  aria-label="Recadrer au-dessus de la poitrine"
-                                >
-                                  <Crop className="h-3 w-3" />
-                                </button>
+                                <RecropPopover
+                                  imageUrl={v.image_url}
+                                  disabled={isLocked}
+                                  busy={busy === "clean"}
+                                  onApply={(params) => recropVersion(v, params)}
+                                />
                               )}
                               {!isActive && !selectionMode && (
                                 <button
