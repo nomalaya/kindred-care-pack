@@ -4,7 +4,7 @@
 // No AI credits consumed — pure image post-processing.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { cropAvatarBytes, CROP_TOP_KEEP_RATIO_DEFAULT } from "../_shared/avatarCrop.ts";
+import { cropAvatarBytes, CROP_ZOOM_DEFAULT, CROP_FACE_Y_DEFAULT } from "../_shared/avatarCrop.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
