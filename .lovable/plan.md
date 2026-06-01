@@ -1,61 +1,60 @@
+## Constat
+
+- Le prompt actuel (`avatarArtDirection.ts`) demande déjà un cadrage « collarbone / au-dessus de la poitrine », mais Gemini ne respecte pas systématiquement cette consigne — d'où des avatars qui descendent trop bas.
+- La seule façon **fiable** d'obtenir un cadrage strictement identique sur tous les avatars est un **recadrage déterministe côté serveur** (post-traitement de l'image générée), pas un nouveau prompt.
+- Pour les avatars déjà générés, il faut un bouton « Recadrer » sur une version existante (depuis le carrousel de versions dans AvatarStudio) qui applique le même recadrage et la promeut comme avatar actif.
+
 ## Objectif
 
-Remplacer le recadrage actuel (crop haut 72 % + bande blanche en bas) par un **zoom recentré sur le visage** qui remplit tout le carré 1:1 — sans aucune marge blanche. Défauts calés sur la V2 validée : `zoom = 1.35`, `faceCenterY = 0.38`. Sliders dans le studio pour ajuster avatar par avatar.
+1. Tous les **futurs** avatars (preview Flash, final HD, batch) sont automatiquement recadrés à une **ligne de coupe constante** (juste au-dessus de la poitrine, ~72 % de la hauteur conservée depuis le haut — valeur centralisée et réglable).
+2. Sur une version existante qui plaît, un bouton **« Recadrer ↑ poitrine »** applique exactement le même recadrage et la définit comme avatar HD actif.
 
-## Modifications
+## Modifications (frontend + edge functions, zéro changement de schéma DB)
 
-### 1. `supabase/functions/_shared/avatarCrop.ts` (réécriture de la logique)
+### 1. Constante partagée
 
-- Nouvelles constantes exportées :
-  - `CROP_ZOOM_DEFAULT = 1.35`
-  - `CROP_FACE_Y_DEFAULT = 0.38`
-- Nouvelle signature :
-  ```ts
-  cropAvatarBytes(bytes, { zoom = 1.35, faceY = 0.38 } = {})
-  ```
-- Algorithme :
-  1. Décode le PNG (imagescript).
-  2. Calcule `side = round(w / zoom)`, fenêtre carrée centrée horizontalement (`cx = w/2`), verticalement autour de `faceY * h`, **clampée aux bords** pour rester dans l'image.
-  3. `crop(x1, y1, side, side)` puis `resize(w, w)` en bicubique pour remplir le canvas 1:1.
-  4. Re-encode PNG.
-- Clamp sécurité : `zoom ∈ [1.0, 2.5]`, `faceY ∈ [0.20, 0.60]`.
-- Plus de pad blanc — l'image remplit toujours le carré.
+Créer `supabase/functions/_shared/avatarCrop.ts` :
+- Constante `CROP_TOP_KEEP_RATIO = 0.72` (fraction de hauteur conservée depuis le haut — ajustable d'un seul endroit).
+- Fonction `cropAvatarBytes(bytes: Uint8Array): Promise<Uint8Array>` qui :
+  - décode le PNG (via `npm:@jsquash/png` ou `https://deno.land/x/imagescript`),
+  - garde uniquement les `height * 0.72` premiers pixels,
+  - ré-encode en PNG carré en re-paddant le bas en blanc pur pour conserver un canvas 1:1 (cohérent avec le système de fond blanc actuel).
+- Idempotent et déterministe.
 
-### 2. `supabase/functions/generate-avatar/index.ts` & `clean-avatar-background/index.ts`
+### 2. Application au pipeline de génération
 
-- Mise à jour des appels `cropAvatarBytes(raw)` → utilisent les défauts (`1.35` / `0.38`). Aucun autre changement.
+- `supabase/functions/generate-avatar/index.ts` : passer `bytes` dans `cropAvatarBytes()` **avant** l'upload (modes preview ET final, et avant l'envoi à `qa-avatar` pour que le score reflète l'image livrée).
+- `supabase/functions/generate-avatar-batch/index.ts` : idem si elle gère ses propres uploads (sinon elle hérite via generate-avatar).
+- `supabase/functions/clean-avatar-background/index.ts` : appliquer le même crop pour rester cohérent quand on re-traite un fond.
 
-### 3. `supabase/functions/recrop-avatar-version/index.ts`
+### 3. Nouvelle edge function `recrop-avatar-version`
 
-- Accepte `{ beneficiary_id, version_id, zoom?, faceY? }` (au lieu de `ratio`).
-- Transmet `{ zoom, faceY }` à `cropAvatarBytes`.
-- Tag dans le prompt archivé : `[recropped zoom=X faceY=Y]`.
-- Rétro-compatibilité : si `ratio` est encore reçu, on l'ignore proprement.
+- Input : `{ beneficiary_id, version_id }` (ou `image_url`).
+- Action :
+  - Télécharge l'image de la version depuis le bucket `avatars`,
+  - applique `cropAvatarBytes()`,
+  - upload comme nouvelle version `versions/{beneficiary_id}/recropped-{ts}.png`,
+  - upload sur `{beneficiary_id}.png` (avatar actif HD),
+  - met à jour `beneficiaries.avatar_url`, `avatar_status='validated'`, `avatar_workflow_status` (préserve approved/locked sinon → `generated`),
+  - insère une ligne dans `avatar_versions` avec `model_used` hérité + tag dans le `prompt` ("[recropped]"),
+  - copie le `qa_score` de la version source (le contenu visuel reste le même, seul le bas change).
 
-### 4. UI `src/pages/AvatarStudio.tsx`
+### 4. UI AvatarStudio
 
-Sur chaque vignette du carrousel de versions (colonne centrale), remplacer le bouton `Crop` simple par un **Popover de recadrage** :
+- Dans la carte de chaque version du carrousel (colonne centrale du nouveau layout 3 colonnes), ajouter un bouton icône **« Recadrer ↑ poitrine »** (Crop icon, tooltip explicite).
+- Au clic : confirme (toast) → appelle `recrop-avatar-version` → `refresh()` → la version recadrée apparaît dans le carrousel et devient l'avatar actif.
+- Petit slider optionnel (admin-only, dans le header de la colonne) « Hauteur du cadrage » 0.60 → 0.85 — stocké dans `localStorage` pour le studio uniquement ; envoyé en paramètre optionnel à `recrop-avatar-version` (le défaut reste 0.72 pour la génération auto).
 
-- Icône `Crop` → ouvre un popover compact (~260 px).
-- **Slider Zoom** : `1.0 → 2.5`, pas `0.05`, défaut `1.35`. Label live « Zoom ×1.35 ».
-- **Slider Hauteur visage** : `0.20 → 0.55`, pas `0.02`, défaut `0.38`. Label « Visage : haut / centre ».
-- **Aperçu live** dans le popover : la miniature de la version affichée avec `transform: scale(zoom) translateY(((0.5 - faceY) * 100)%)` à l'intérieur d'un wrapper `overflow-hidden aspect-square` → preview WYSIWYG sans appel serveur.
-- Bouton **« Appliquer »** → toast → appelle `recrop-avatar-version` avec `{ zoom, faceY }` → `refresh()`. Désactivé si `locked`.
-- Persistance des derniers réglages en `localStorage` (`avatarStudio.recrop.zoom`, `.faceY`) comme valeurs initiales du prochain popover.
+### 5. Nettoyage prompt
 
-### 5. Aucun changement DB / RLS / matching / panier
-
-Comportement public inchangé : seule l'image dans le bucket `avatars` change.
-
-## Détails techniques
-
-- `imagescript` supporte `Image.resize(w, h)` (Lanczos par défaut) — utilisé pour le rescale après crop.
-- Le clamp horizontal/vertical évite tout débordement quand `faceY` est extrême ou `zoom` faible.
-- À `zoom = 1.0` et `faceY = 0.5` la fonction est l'identité (pratique pour annuler un recadrage).
-- Le slider d'aperçu live n'a aucun coût AI — seul le clic « Appliquer » déclenche l'edge function et archive une nouvelle version.
+Garder le bloc FRAMING actuel (renforce la cohérence), mais documenter dans le fichier que le cadrage **définitif** est garanti par le post-traitement, pas par le prompt.
 
 ## Hors scope
 
-- Pas de drag du visage (les 2 sliders suffisent).
-- Pas de re-génération AI.
-- Pas de re-traitement en masse — chaque avatar se recadre à la demande via son popover.
+- Aucun changement de table, RLS, matching ou logique de panier.
+- Pas de recadrage rectangulaire manuel par drag — le besoin est un cadrage **uniforme**, pas un éditeur photo.
+- Pas de re-génération : on recadre l'image existante, on ne dépense pas de crédits AI.
+
+## Question avant build
+
+Le ratio par défaut **0.72** (on garde les 72 % supérieurs de l'image, ce qui coupe pile au-dessus de la poitrine pour les générations Gemini actuelles) te convient comme point de départ, ou tu préfères **0.68** (un peu plus haut, vraiment au ras des clavicules) ? Le slider dans le studio permettra de toute façon de l'ajuster en live.

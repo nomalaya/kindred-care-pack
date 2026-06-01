@@ -4,7 +4,7 @@
 // No AI credits consumed — pure image post-processing.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { cropAvatarBytes, CROP_ZOOM_DEFAULT, CROP_FACE_Y_DEFAULT } from "../_shared/avatarCrop.ts";
+import { cropAvatarBytes, CROP_TOP_KEEP_RATIO_DEFAULT } from "../_shared/avatarCrop.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,12 +18,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { beneficiary_id, version_id, zoom, faceY } = await req.json();
+    const { beneficiary_id, version_id, ratio } = await req.json();
     if (!beneficiary_id) throw new Error("beneficiary_id required");
     if (!version_id) throw new Error("version_id required");
 
-    const cropZoom = typeof zoom === "number" ? zoom : CROP_ZOOM_DEFAULT;
-    const cropFaceY = typeof faceY === "number" ? faceY : CROP_FACE_Y_DEFAULT;
+    const cropRatio = typeof ratio === "number" ? ratio : CROP_TOP_KEEP_RATIO_DEFAULT;
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
@@ -47,7 +46,7 @@ serve(async (req) => {
     if (!resp.ok) throw new Error(`Source image fetch failed: ${resp.status}`);
     const srcBytes = new Uint8Array(await resp.arrayBuffer());
 
-    const recropped = await cropAvatarBytes(srcBytes, { zoom: cropZoom, faceY: cropFaceY });
+    const recropped = await cropAvatarBytes(srcBytes, cropRatio);
 
     const ts = Date.now();
     const activeFileName = `${beneficiary_id}.png`;
@@ -88,10 +87,10 @@ serve(async (req) => {
       qa_score: v.qa_score,
       qa_report: v.qa_report,
       seed: v.seed,
-      prompt: `[recropped from ${version_id} zoom=${cropZoom.toFixed(2)} faceY=${cropFaceY.toFixed(2)}] ${v.prompt || ""}`.slice(0, 4000),
+      prompt: `[recropped from ${version_id} ratio=${cropRatio}] ${v.prompt || ""}`.slice(0, 4000),
     });
 
-    return new Response(JSON.stringify({ success: true, newUrl, zoom: cropZoom, faceY: cropFaceY }), {
+    return new Response(JSON.stringify({ success: true, newUrl, ratio: cropRatio }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
