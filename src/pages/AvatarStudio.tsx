@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -45,6 +46,135 @@ import {
 
 
 type Beneficiary = any;
+
+// Live-preview recrop popover — WYSIWYG zoom + face recenter.
+// Mirrors the deterministic crop applied server-side by `recrop-avatar-version`.
+const RECROP_LS_ZOOM = "avatarStudio.recrop.zoom";
+const RECROP_LS_FACE = "avatarStudio.recrop.faceY";
+const RECROP_DEFAULT_ZOOM = 1.35;
+const RECROP_DEFAULT_FACE_Y = 0.38;
+
+function readInitialRecrop() {
+  try {
+    const z = parseFloat(localStorage.getItem(RECROP_LS_ZOOM) || "");
+    const f = parseFloat(localStorage.getItem(RECROP_LS_FACE) || "");
+    return {
+      zoom: Number.isFinite(z) && z >= 1 && z <= 2.5 ? z : RECROP_DEFAULT_ZOOM,
+      faceY: Number.isFinite(f) && f >= 0.2 && f <= 0.55 ? f : RECROP_DEFAULT_FACE_Y,
+    };
+  } catch {
+    return { zoom: RECROP_DEFAULT_ZOOM, faceY: RECROP_DEFAULT_FACE_Y };
+  }
+}
+
+function RecropPopover({
+  imageUrl,
+  disabled,
+  busy,
+  onApply,
+}: {
+  imageUrl: string;
+  disabled: boolean;
+  busy: boolean;
+  onApply: (params: { zoom: number; faceY: number }) => Promise<void> | void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [zoom, setZoom] = useState(RECROP_DEFAULT_ZOOM);
+  const [faceY, setFaceY] = useState(RECROP_DEFAULT_FACE_Y);
+
+  useEffect(() => {
+    if (open) {
+      const init = readInitialRecrop();
+      setZoom(init.zoom);
+      setFaceY(init.faceY);
+    }
+  }, [open]);
+
+  // CSS preview: scale around the face point so the preview matches the
+  // server crop (window of side w/zoom centered on faceY).
+  const previewStyle: React.CSSProperties = {
+    transform: `scale(${zoom})`,
+    transformOrigin: `50% ${faceY * 100}%`,
+  };
+
+  const apply = async () => {
+    try {
+      localStorage.setItem(RECROP_LS_ZOOM, String(zoom));
+      localStorage.setItem(RECROP_LS_FACE, String(faceY));
+    } catch { /* ignore */ }
+    await onApply({ zoom, faceY });
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          disabled={disabled}
+          className="absolute top-1 right-[3.25rem] w-5 h-5 rounded bg-background/80 hover:bg-primary hover:text-primary-foreground text-muted-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
+          title="Recadrer (zoom + recentrer le visage)"
+          aria-label="Recadrer"
+        >
+          <Crop className="h-3 w-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[260px] p-3 space-y-3"
+        onClick={(e) => e.stopPropagation()}
+        side="bottom"
+        align="end"
+      >
+        <div className="text-xs font-semibold">Recadrer la version</div>
+        <div className="aspect-square w-full overflow-hidden rounded border bg-muted">
+          <img src={imageUrl} alt="" className="w-full h-full object-cover" style={previewStyle} />
+        </div>
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-muted-foreground">Zoom</span>
+            <span className="font-mono">×{zoom.toFixed(2)}</span>
+          </div>
+          <Slider
+            min={1.0} max={2.5} step={0.05}
+            value={[zoom]}
+            onValueChange={(v) => setZoom(v[0])}
+          />
+        </div>
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-muted-foreground">Hauteur visage</span>
+            <span className="font-mono">{Math.round(faceY * 100)}%</span>
+          </div>
+          <Slider
+            min={0.20} max={0.55} step={0.02}
+            value={[faceY]}
+            onValueChange={(v) => setFaceY(v[0])}
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>↑ Haut</span><span>Centre ↓</span>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm" variant="ghost" className="flex-1 h-8 text-xs"
+            onClick={() => { setZoom(RECROP_DEFAULT_ZOOM); setFaceY(RECROP_DEFAULT_FACE_Y); }}
+          >
+            Réinit.
+          </Button>
+          <Button
+            size="sm" className="flex-1 h-8 text-xs"
+            disabled={busy || disabled}
+            onClick={apply}
+          >
+            {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Appliquer"}
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+
 
 
 
@@ -532,23 +662,22 @@ const AvatarStudio = () => {
     toast.success("Version restaurée comme avatar actif");
   };
 
-  // Recadrage déterministe (juste au-dessus de la poitrine) appliqué à une version
+  // Recadrage déterministe (zoom + recentrage visage) appliqué à une version
   // existante, qui devient l'avatar HD actif. Aucun crédit AI consommé.
-  const recropVersion = async (v: any) => {
+  const recropVersion = async (v: any, params: { zoom: number; faceY: number }) => {
     if (!selected) return;
     if (isLocked) {
       toast.error("Avatar verrouillé. Déverrouillez d'abord.");
       return;
     }
-    if (!confirm("Recadrer cette version juste au-dessus de la poitrine et la définir comme avatar actif ?")) return;
     setBusy("clean");
     try {
       const { data, error } = await supabase.functions.invoke("recrop-avatar-version", {
-        body: { beneficiary_id: selected.id, version_id: v.id },
+        body: { beneficiary_id: selected.id, version_id: v.id, zoom: params.zoom, faceY: params.faceY },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("Version recadrée — c'est désormais l'avatar actif.");
+      toast.success(`Recadrée (×${params.zoom.toFixed(2)}) — c'est l'avatar actif.`);
       await refresh();
     } catch (e: any) {
       toast.error("Recadrage impossible : " + (e?.message || "erreur inconnue"));
@@ -1099,15 +1228,12 @@ const AvatarStudio = () => {
                                 </button>
                               )}
                               {!selectionMode && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); recropVersion(v); }}
-                                  disabled={isLocked || busy === "clean"}
-                                  className="absolute top-1 right-[3.25rem] w-5 h-5 rounded bg-background/80 hover:bg-primary hover:text-primary-foreground text-muted-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
-                                  title="Recadrer ↑ poitrine et définir comme avatar actif"
-                                  aria-label="Recadrer au-dessus de la poitrine"
-                                >
-                                  <Crop className="h-3 w-3" />
-                                </button>
+                                <RecropPopover
+                                  imageUrl={v.image_url}
+                                  disabled={isLocked}
+                                  busy={busy === "clean"}
+                                  onApply={(params) => recropVersion(v, params)}
+                                />
                               )}
                               {!isActive && !selectionMode && (
                                 <button
