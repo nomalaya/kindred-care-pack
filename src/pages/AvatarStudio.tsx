@@ -971,6 +971,23 @@ const AvatarStudio = () => {
                     />
                   </div>
 
+                  {(selected.avatar_url || selected.avatar_preview_url) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start text-xs"
+                      onClick={() => setFramingDialogOpen(true)}
+                      disabled={isLocked}
+                    >
+                      <Crop className="h-3.5 w-3.5 mr-2" />
+                      <span className="flex-1 text-left">Ajuster le cadrage</span>
+                      {!isDefaultFraming(readFramingFromRow(selected)) && (
+                        <span className="text-[10px] text-muted-foreground">modifié</span>
+                      )}
+                    </Button>
+                  )}
+
                   {dignityBlocked && (
                     <div className="text-xs rounded-md border border-[hsl(var(--status-failed-border))] bg-[hsl(var(--status-failed-bg))] text-[hsl(var(--status-failed-fg))] px-2 py-1.5 flex items-start gap-1.5">
                       <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
