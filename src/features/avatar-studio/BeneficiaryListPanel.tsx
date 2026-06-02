@@ -1,5 +1,6 @@
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { WORKFLOW_COLOR, WORKFLOW_LABEL, WorkflowStatus } from "@/lib/avatarTraits";
+import { readFramingFromRow } from "@/lib/avatarFraming";
 import { ExternalLink } from "lucide-react";
 
 interface Beneficiary {
@@ -12,6 +13,9 @@ interface Beneficiary {
   avatar_workflow_status?: string | null;
   avatar_status?: string | null;
   avatar_qa_score?: number | null;
+  avatar_scale?: number | null;
+  avatar_offset_x?: number | null;
+  avatar_offset_y?: number | null;
 }
 
 export function BeneficiaryListPanel({
