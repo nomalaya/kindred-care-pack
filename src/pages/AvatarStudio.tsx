@@ -1478,6 +1478,19 @@ const AvatarStudio = () => {
           {lightboxUrl && <img src={lightboxUrl} alt="" className="w-full rounded" />}
         </DialogContent>
       </Dialog>
+
+      {selected && (selected.avatar_url || selected.avatar_preview_url) && (
+        <AvatarFramingDialog
+          open={framingDialogOpen}
+          onOpenChange={setFramingDialogOpen}
+          beneficiaryId={selected.id}
+          imageUrl={selected.avatar_url || selected.avatar_preview_url}
+          initialFraming={readFramingFromRow(selected)}
+          onChange={(f) => {
+            setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, avatar_scale: f.scale, avatar_offset_x: f.offsetX, avatar_offset_y: f.offsetY } : b));
+          }}
+        />
+      )}
     </Layout>
   );
 };
