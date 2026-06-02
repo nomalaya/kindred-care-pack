@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
+import { readFramingFromRow } from "@/lib/avatarFraming";
 import BackButton from "@/components/BackButton";
 import { motion } from "framer-motion";
 import { MapPin, Quote, Navigation, Sparkles, Heart } from "lucide-react";
@@ -218,6 +219,7 @@ const BeneficiarySelection = () => {
                       avatarUrl={b.avatar_url}
                       previewUrl={(b as any).avatar_preview_url}
                       backgroundSeed={b.id}
+                      framing={readFramingFromRow(b as any)}
                       size="lg"
                     />
                   </div>

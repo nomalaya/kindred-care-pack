@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Download, Share2, Heart, Gift, Receipt, Mail } from "lucide-react";
 import TaxInfoLink from "@/components/TaxInfoLink";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
+import { readFramingFromRow } from "@/lib/avatarFraming";
 import SocialProof from "@/components/SocialProof";
 import PostDonSocialBlock from "@/components/PostDonSocialBlock";
 
@@ -135,6 +136,7 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
               skinTone={beneficiary.avatar_skin_tone}
               avatarUrl={beneficiary.avatar_url}
               backgroundSeed={beneficiary.id}
+              framing={readFramingFromRow(beneficiary as any)}
               size="md"
             />
             <div>
