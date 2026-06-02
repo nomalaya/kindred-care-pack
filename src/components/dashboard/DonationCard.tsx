@@ -2,6 +2,7 @@ import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { generateIndividualReceipt } from "@/lib/generateReceipt";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { readFramingFromRow } from "@/lib/avatarFraming";
 
 interface Beneficiary {
   id?: string;
@@ -13,6 +14,9 @@ interface Beneficiary {
   avatar_hair_type: string;
   avatar_skin_tone: string;
   avatar_url?: string;
+  avatar_scale?: number;
+  avatar_offset_x?: number;
+  avatar_offset_y?: number;
 }
 
 interface DonationCardProps {
@@ -64,6 +68,7 @@ const DonationCard = ({
           skinTone={b.avatar_skin_tone}
           avatarUrl={b.avatar_url}
           backgroundSeed={b.id}
+          framing={readFramingFromRow(b)}
           size="sm"
         />
         <div className="flex-1">

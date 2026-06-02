@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
+import { readFramingFromRow } from "@/lib/avatarFraming";
 import BackButton from "@/components/BackButton";
 import DonationConfirmation from "@/components/DonationConfirmation";
 import DonationAmountSelector from "@/components/DonationAmountSelector";
@@ -258,6 +259,7 @@ const DonationFlow = () => {
                 skinTone={beneficiary.avatar_skin_tone}
                 avatarUrl={beneficiary.avatar_url}
                 backgroundSeed={beneficiary.id}
+                framing={readFramingFromRow(beneficiary as any)}
                 size="lg"
               />
             </div>

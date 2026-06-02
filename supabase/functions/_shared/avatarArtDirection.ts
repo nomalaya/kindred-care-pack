@@ -104,8 +104,9 @@ DIGNITY: warm, kind, gentle. Quiet humanity. No caricature, no stereotype, no pa
 export const FRAMING_BLOCK = `
 IMAGE FORMAT — STRICT: square 1:1 canvas. Full-bleed illustration. The white background MUST extend all the way to the four edges of the image.
 FRAMING — STRICT: the subject is composed of HEAD + NECK + COLLARBONE + VERY TOP OF SHOULDERS only. The bottom edge of the canvas crops the body at the COLLARBONE LINE, ABOVE the chest. The chest, bust, breasts and torso MUST NOT be visible. Only a thin sliver of the garment neckline may appear at the bottom edge.
-ABSOLUTELY FORBIDDEN: visible chest, visible bust, visible breasts, cleavage, full torso, sweater or shirt extending into the lower half of the image, paper sheet, torn paper edge, deckled edge, white margin, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair.
-Composition: head + neck + collarbone, subject centered, the face occupies the upper-middle portion of the frame, the bottom edge of the canvas falls exactly at the collarbone / upper-shoulder line, never lower. Looking softly toward the camera.
+SUBJECT SIZE — TARGET: the subject occupies approximately 70% of the canvas (both height and width). Preferred range: 65%–75%. The model should aim for 70% whenever possible. AT LEAST 15% of pure white margin MUST remain visible on EACH of the four sides (top, bottom, left, right). The subject must NEVER touch any edge of the canvas.
+COMPOSITION: subject perfectly centered horizontally and vertically. The face occupies the upper-middle portion of the framed subject. Looking softly toward the camera.
+ABSOLUTELY FORBIDDEN: visible chest, visible bust, visible breasts, cleavage, full torso, sweater or shirt extending into the lower half of the image, edge-to-edge subject, head touching the top edge, shoulders touching the side edges, paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair.
 `.trim();
 
 

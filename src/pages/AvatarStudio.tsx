@@ -41,7 +41,10 @@ import {
   Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown, ExternalLink,
   PanelLeft, Image as ImageIcon, SlidersHorizontal, Info, Trash2, X,
+  Crop,
 } from "lucide-react";
+import { AvatarFramingDialog } from "@/features/avatar-studio/AvatarFramingDialog";
+import { readFramingFromRow, isDefaultFraming, framingToTransform } from "@/lib/avatarFraming";
 
 
 type Beneficiary = any;
@@ -69,6 +72,7 @@ const AvatarStudio = () => {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(new Set());
+  const [framingDialogOpen, setFramingDialogOpen] = useState(false);
 
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
   const saveTimer = useRef<any>(null);
@@ -818,6 +822,7 @@ const AvatarStudio = () => {
                         src={selected.avatar_url || selected.avatar_preview_url}
                         alt={selected.alias_first_name}
                         className="w-full h-full object-cover cursor-zoom-in"
+                        style={framingToTransform(readFramingFromRow(selected))}
                         onClick={() => setLightboxUrl(selected.avatar_url || selected.avatar_preview_url)}
                       />
                     ) : (
@@ -965,6 +970,23 @@ const AvatarStudio = () => {
                       }}
                     />
                   </div>
+
+                  {(selected.avatar_url || selected.avatar_preview_url) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start text-xs"
+                      onClick={() => setFramingDialogOpen(true)}
+                      disabled={isLocked}
+                    >
+                      <Crop className="h-3.5 w-3.5 mr-2" />
+                      <span className="flex-1 text-left">Ajuster le cadrage</span>
+                      {!isDefaultFraming(readFramingFromRow(selected)) && (
+                        <span className="text-[10px] text-muted-foreground">modifié</span>
+                      )}
+                    </Button>
+                  )}
 
                   {dignityBlocked && (
                     <div className="text-xs rounded-md border border-[hsl(var(--status-failed-border))] bg-[hsl(var(--status-failed-bg))] text-[hsl(var(--status-failed-fg))] px-2 py-1.5 flex items-start gap-1.5">
@@ -1456,6 +1478,19 @@ const AvatarStudio = () => {
           {lightboxUrl && <img src={lightboxUrl} alt="" className="w-full rounded" />}
         </DialogContent>
       </Dialog>
+
+      {selected && (selected.avatar_url || selected.avatar_preview_url) && (
+        <AvatarFramingDialog
+          open={framingDialogOpen}
+          onOpenChange={setFramingDialogOpen}
+          beneficiaryId={selected.id}
+          imageUrl={selected.avatar_url || selected.avatar_preview_url}
+          initialFraming={readFramingFromRow(selected)}
+          onChange={(f) => {
+            setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, avatar_scale: f.scale, avatar_offset_x: f.offsetX, avatar_offset_y: f.offsetY } : b));
+          }}
+        />
+      )}
     </Layout>
   );
 };

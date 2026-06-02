@@ -109,6 +109,8 @@ export type Database = {
           avatar_model_used: string | null
           avatar_moustache: string | null
           avatar_nose: string | null
+          avatar_offset_x: number
+          avatar_offset_y: number
           avatar_parent_energy: string | null
           avatar_posture: string | null
           avatar_preview_url: string | null
@@ -117,6 +119,7 @@ export type Database = {
           avatar_qa_report: Json | null
           avatar_qa_score: number | null
           avatar_resilience_level: number | null
+          avatar_scale: number
           avatar_seed: number | null
           avatar_skin_tone: string | null
           avatar_status: string | null
@@ -194,6 +197,8 @@ export type Database = {
           avatar_model_used?: string | null
           avatar_moustache?: string | null
           avatar_nose?: string | null
+          avatar_offset_x?: number
+          avatar_offset_y?: number
           avatar_parent_energy?: string | null
           avatar_posture?: string | null
           avatar_preview_url?: string | null
@@ -202,6 +207,7 @@ export type Database = {
           avatar_qa_report?: Json | null
           avatar_qa_score?: number | null
           avatar_resilience_level?: number | null
+          avatar_scale?: number
           avatar_seed?: number | null
           avatar_skin_tone?: string | null
           avatar_status?: string | null
@@ -279,6 +285,8 @@ export type Database = {
           avatar_model_used?: string | null
           avatar_moustache?: string | null
           avatar_nose?: string | null
+          avatar_offset_x?: number
+          avatar_offset_y?: number
           avatar_parent_energy?: string | null
           avatar_posture?: string | null
           avatar_preview_url?: string | null
@@ -287,6 +295,7 @@ export type Database = {
           avatar_qa_report?: Json | null
           avatar_qa_score?: number | null
           avatar_resilience_level?: number | null
+          avatar_scale?: number
           avatar_seed?: number | null
           avatar_skin_tone?: string | null
           avatar_status?: string | null

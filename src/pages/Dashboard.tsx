@@ -3,6 +3,7 @@ import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
+import { readFramingFromRow } from "@/lib/avatarFraming";
 import { Navigate, Link } from "react-router-dom";
 import { Package, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -121,6 +122,7 @@ const Dashboard = () => {
                       skinTone={b.avatar_skin_tone}
                       avatarUrl={b.avatar_url}
                       backgroundSeed={b.id}
+                      framing={readFramingFromRow(b as any)}
                       size="sm"
                     />
                   </div>
