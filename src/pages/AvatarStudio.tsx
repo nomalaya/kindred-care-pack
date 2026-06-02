@@ -822,6 +822,7 @@ const AvatarStudio = () => {
                         src={selected.avatar_url || selected.avatar_preview_url}
                         alt={selected.alias_first_name}
                         className="w-full h-full object-cover cursor-zoom-in"
+                        style={framingToTransform(readFramingFromRow(selected))}
                         onClick={() => setLightboxUrl(selected.avatar_url || selected.avatar_preview_url)}
                       />
                     ) : (
