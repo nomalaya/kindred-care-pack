@@ -72,6 +72,7 @@ const AvatarStudio = () => {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(new Set());
+  const [framingDialogOpen, setFramingDialogOpen] = useState(false);
 
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
   const saveTimer = useRef<any>(null);
