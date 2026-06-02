@@ -44,7 +44,7 @@ import {
   Crop,
 } from "lucide-react";
 import { AvatarFramingDialog } from "@/features/avatar-studio/AvatarFramingDialog";
-import { readFramingFromRow, isDefaultFraming } from "@/lib/avatarFraming";
+import { readFramingFromRow, isDefaultFraming, framingToTransform } from "@/lib/avatarFraming";
 
 
 type Beneficiary = any;
