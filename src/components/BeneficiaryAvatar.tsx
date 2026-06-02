@@ -1,4 +1,5 @@
 import { useAvatarBackground } from "@/lib/avatarBackground";
+import { framingToTransform, type AvatarFraming } from "@/lib/avatarFraming";
 
 interface AvatarProps {
   gender?: string;
@@ -14,6 +15,12 @@ interface AvatarProps {
    * `avatar-backgrounds` bucket. Pass the beneficiary id or avatar_seed.
    */
   backgroundSeed?: string | number | null;
+  /**
+   * Non-destructive display transform (zoom + offset). Read from the
+   * beneficiary row via `readFramingFromRow`. When omitted, native object-cover
+   * is used (identical to legacy behaviour).
+   */
+  framing?: AvatarFraming;
 }
 
 // Premium fallback — warm gradient circle with initial.
@@ -24,6 +31,7 @@ const BeneficiaryAvatar = ({
   avatarUrl,
   previewUrl,
   backgroundSeed,
+  framing,
 }: AvatarProps) => {
   const dimensions = { sm: 48, md: 80, lg: 120 };
   const dim = dimensions[size];
@@ -33,6 +41,7 @@ const BeneficiaryAvatar = ({
   const bgUrl = useAvatarBackground(backgroundSeed ?? null);
 
   if (resolved) {
+    const transformStyle = framing ? framingToTransform(framing) : undefined;
     return (
       <div
         className="relative rounded-full overflow-hidden ring-1 ring-black/5"
@@ -52,7 +61,10 @@ const BeneficiaryAvatar = ({
           height={dim}
           loading="lazy"
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: "center top" }}
+          style={{
+            objectPosition: "center top",
+            ...(transformStyle ?? {}),
+          }}
         />
         {isPreview && (
           <span
