@@ -52,6 +52,7 @@ export function BeneficiaryListPanel({
                   avatarUrl={b.avatar_url}
                   previewUrl={b.avatar_preview_url}
                   backgroundSeed={b.id}
+                  framing={readFramingFromRow(b)}
                   size="sm"
                 />
                 <div className="flex-1 min-w-0">
