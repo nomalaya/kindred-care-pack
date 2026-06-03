@@ -55,7 +55,7 @@ const Dashboard = () => {
       const [donRes, followRes, profileRes] = await Promise.all([
         supabase
           .from("donations")
-          .select("id, amount, delivery_status, created_at, products_sent, beneficiaries_public!beneficiary_id(alias_first_name, approx_age, region, avatar_gender, avatar_age_range, avatar_hair_type, avatar_skin_tone, avatar_url)")
+          .select("id, amount, delivery_status, created_at, products_sent, beneficiaries_public!beneficiary_id(alias_first_name, approx_age, region, avatar_gender, avatar_age_range, avatar_hair_type, avatar_skin_tone, avatar_url, avatar_scale, avatar_offset_x, avatar_offset_y)")
           .eq("donor_id", user.id)
           .order("created_at", { ascending: false }),
         supabase
