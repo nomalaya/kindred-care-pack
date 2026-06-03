@@ -1013,7 +1013,10 @@ export type Database = {
           avatar_age_range: string | null
           avatar_gender: string | null
           avatar_hair_type: string | null
+          avatar_offset_x: number | null
+          avatar_offset_y: number | null
           avatar_preview_url: string | null
+          avatar_scale: number | null
           avatar_skin_tone: string | null
           avatar_status: string | null
           avatar_url: string | null
@@ -1042,7 +1045,10 @@ export type Database = {
           avatar_age_range?: string | null
           avatar_gender?: string | null
           avatar_hair_type?: string | null
+          avatar_offset_x?: number | null
+          avatar_offset_y?: number | null
           avatar_preview_url?: string | null
+          avatar_scale?: number | null
           avatar_skin_tone?: string | null
           avatar_status?: string | null
           avatar_url?: string | null
@@ -1071,7 +1077,10 @@ export type Database = {
           avatar_age_range?: string | null
           avatar_gender?: string | null
           avatar_hair_type?: string | null
+          avatar_offset_x?: number | null
+          avatar_offset_y?: number | null
           avatar_preview_url?: string | null
+          avatar_scale?: number | null
           avatar_skin_tone?: string | null
           avatar_status?: string | null
           avatar_url?: string | null
@@ -1138,6 +1147,9 @@ export type Database = {
           avatar_age_range: string
           avatar_gender: string
           avatar_hair_type: string
+          avatar_offset_x: number
+          avatar_offset_y: number
+          avatar_scale: number
           avatar_skin_tone: string
           avatar_url: string
           beneficiary_category: string
