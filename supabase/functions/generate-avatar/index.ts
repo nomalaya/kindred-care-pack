@@ -317,7 +317,7 @@ serve(async (req) => {
 
         // -------------------- EDIT (image→image) --------------------
         if (mode === "edit" || mode === "edit_hd") {
-          const sourceUrl: string = b.avatar_source_url || b.avatar_url;
+          const sourceUrl: string = resolvedSourceUrl || b.avatar_source_url || b.avatar_url;
           const editPrompt = `${buildEditPrompt(editDiff)}\n[render-token: ${nonce}]`;
           traitsUpdate.avatar_prompt = editPrompt;
 
