@@ -1265,6 +1265,7 @@ const AvatarStudio = () => {
                           );
                         })}
                       </div>
+                      </>
                     )}
                   </div>
                 </div>
