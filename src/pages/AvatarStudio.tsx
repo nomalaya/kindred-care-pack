@@ -926,6 +926,37 @@ const AvatarStudio = () => {
                     )}
                   </div>
 
+                  {/* Aperçu fraîchement généré — badge + bascule comparaison */}
+                  {isShowingFreshPreview && (
+                    <div className="text-xs rounded-md border border-[hsl(var(--status-generated-border))] bg-[hsl(var(--status-generated-bg))] text-[hsl(var(--status-generated-fg))] px-2 py-1.5 flex items-center gap-2">
+                      <Eye className="h-3.5 w-3.5 shrink-0" />
+                      <span className="flex-1">Aperçu en attente de validation</span>
+                      {hasBothPreviewAndHd && (
+                        <button
+                          type="button"
+                          onClick={() => setShowHdInstead(true)}
+                          className="underline underline-offset-2 hover:opacity-80"
+                        >
+                          Voir l'avatar HD validé
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {showHdInstead && hasBothPreviewAndHd && (
+                    <div className="text-xs rounded-md border border-border bg-muted/50 text-muted-foreground px-2 py-1.5 flex items-center gap-2">
+                      <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                      <span className="flex-1">Avatar HD validé (référence)</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowHdInstead(false)}
+                        className="underline underline-offset-2 hover:opacity-80"
+                      >
+                        Revoir le nouvel aperçu
+                      </button>
+                    </div>
+                  )}
+
+
                   {/* Failed banner */}
                   {selected.avatar_status === "failed" && (
                     <div className="text-xs rounded-md border border-destructive/40 bg-destructive/10 text-destructive px-2 py-1.5 flex items-start gap-1.5">
