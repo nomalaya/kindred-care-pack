@@ -267,4 +267,67 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
 // Same model for preview and final to guarantee a single consistent cartoon style across the catalog.
 export const MODEL_PREVIEW = "google/gemini-3.1-flash-image-preview";
 export const MODEL_FINAL = "google/gemini-3.1-flash-image-preview";
+export const MODEL_EDIT = "google/gemini-3.1-flash-image-preview";
 export const MODEL_QA = "google/gemini-2.5-flash";
+
+// ---------------------------------------------------------------------------
+// EDIT-MODE PROMPT — used when a beneficiary already has an approved avatar
+// and the user changes a small subset of attributes. We send the existing
+// image as a visual reference and ask Gemini to modify ONLY the listed
+// attributes, preserving everything else (face identity, pose, framing,
+// background, lighting, style). FRAMING_BLOCK and buildBackgroundBlock are
+// intentionally NOT reused here — they would force a re-crop and a new
+// background.
+// ---------------------------------------------------------------------------
+import type { TraitDiff } from "./avatarTraits.ts";
+
+const EDIT_VALUE_LABELS: Record<string, Record<string, string>> = {
+  avatar_hair_color: HAIR_COLOR_DESC,
+  avatar_hair_type: HAIR_TYPE_DESC,
+  avatar_skin_tone: SKIN_DESC,
+  avatar_nose: NOSE_DESC,
+  avatar_body_type: BODY_TYPE_DESC,
+  avatar_clothing_color_palette: PALETTE_DESC,
+  avatar_clothing_style: CLOTHING_STYLE_DESC,
+  avatar_expression: EXPRESSION_DESCRIPTIONS,
+  avatar_posture: POSTURE_DESCRIPTIONS,
+};
+
+function describeValue(key: string, value: unknown): string {
+  if (value === null || value === undefined || value === "") return "(retiré)";
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "(aucun)";
+  const dict = EDIT_VALUE_LABELS[key];
+  if (dict && typeof value === "string" && dict[value]) return dict[value];
+  return String(value).replace(/_/g, " ");
+}
+
+export function buildEditPrompt(diff: TraitDiff[]): string {
+  const changes = diff
+    .map(d => `- ${d.humanLabel}: ${describeValue(d.key, d.after)}`)
+    .join("\n");
+
+  return [
+    `EDIT THE PROVIDED REFERENCE IMAGE — this is a precise retouch, NOT a regeneration.`,
+    ``,
+    `PRESERVE STRICTLY (non-negotiable):`,
+    `- the exact same person and facial identity (same face shape, same proportions, same gaze)`,
+    `- the exact same pose, body angle, head tilt, shoulder position`,
+    `- the exact same framing, crop, composition, camera distance and subject scale within the canvas`,
+    `- the exact same background (color, texture, edges)`,
+    `- the exact same lighting direction, color temperature and shadows`,
+    `- the exact same artistic style (line work, shading, color palette, illustration style)`,
+    ``,
+    `CHANGE ONLY the following attributes, keeping every other visual element untouched:`,
+    changes || `- (no change requested)`,
+    ``,
+    `DO NOT:`,
+    `- regenerate from scratch`,
+    `- change the cropping, the canvas margins or the subject size`,
+    `- change the background or add any decoration behind the subject`,
+    `- alter the face structure or identity`,
+    `- redraw clothing other than the requested change`,
+    ``,
+    `Return ONE square 1:1 image with the requested changes applied as a minimal, surgical retouch on top of the reference.`,
+  ].join("\n");
+}
+
