@@ -630,7 +630,9 @@ const AvatarStudio = () => {
   const deleteVersions = async (ids: string[]) => {
     if (!ids.length) return;
     const activeUrl = selected?.avatar_url;
+    const sourceUrl = (selected as any)?.avatar_source_url ?? null;
     const targetsActive = versions.some(v => ids.includes(v.id) && v.image_url === activeUrl);
+    const targetsSource = !!sourceUrl && versions.some(v => ids.includes(v.id) && v.image_url === sourceUrl);
     const msg = ids.length === 1
       ? `Supprimer définitivement cette version ?${targetsActive ? "\n\n⚠ C'est la version actuellement active de l'avatar. L'image affichée restera inchangée mais ne sera plus archivée." : ""}`
       : `Supprimer définitivement ${ids.length} versions ?${targetsActive ? "\n\n⚠ La version actuellement active fait partie de la sélection." : ""}`;
@@ -642,6 +644,24 @@ const AvatarStudio = () => {
     }
     setVersions(prev => prev.filter(v => !ids.includes(v.id)));
     setSelectedVersionIds(new Set());
+
+    // Si l'on vient de supprimer la base de retouche, on la réancre immédiatement
+    // sur l'avatar actif pour éviter que la prochaine génération reparte d'une image
+    // qui n'existe plus.
+    if (targetsSource && selected && sourceUrl && sourceUrl !== activeUrl) {
+      const newSource = activeUrl ?? null;
+      const { error: upErr } = await supabase
+        .from("beneficiaries")
+        .update({ avatar_source_url: newSource } as any)
+        .eq("id", selected.id);
+      if (!upErr) {
+        setBeneficiaries(prev => prev.map(b =>
+          b.id === selected.id ? { ...b, avatar_source_url: newSource } as any : b,
+        ));
+        toast.info("Base de retouche réancrée sur l'avatar actif.");
+      }
+    }
+
     toast.success(ids.length === 1 ? "Version supprimée" : `${ids.length} versions supprimées`);
   };
 
@@ -1175,8 +1195,11 @@ const AvatarStudio = () => {
                     ) : (
                       <>
                       {(() => {
-                        const sourceUrl = (selected as any).avatar_source_url ?? selected.avatar_url;
-                        const sourceMissing = !!sourceUrl && !versions.some(v => v.image_url === sourceUrl);
+                        const rawSource = (selected as any).avatar_source_url ?? null;
+                        const activeUrl = selected.avatar_url ?? null;
+                        const sourceMissing = !!rawSource
+                          && rawSource !== activeUrl
+                          && !versions.some(v => v.image_url === rawSource);
                         return sourceMissing ? (
                           <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
                             La base de retouche actuelle n'existe plus dans vos versions. Cliquez sur « Base de retouche » sur une version pour la réancrer.

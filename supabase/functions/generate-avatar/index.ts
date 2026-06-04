@@ -227,7 +227,36 @@ serve(async (req) => {
     let resolvedSourceUrl: string | null = null;
     let fallbackReason: string | null = null;
     if (mode === "edit" || mode === "edit_hd") {
-      resolvedSourceUrl = b.avatar_source_url || b.avatar_url || null;
+      // Validate avatar_source_url: it must either equal the current active avatar,
+      // or still exist in avatar_versions. Otherwise it points to a deleted image
+      // and we fall back to the current active avatar.
+      let candidateSource: string | null = b.avatar_source_url || null;
+      const activeUrl: string | null = b.avatar_url || null;
+      let sourceIsStale = false;
+      if (candidateSource && candidateSource !== activeUrl) {
+        const { data: ver } = await supabase
+          .from("avatar_versions")
+          .select("id")
+          .eq("beneficiary_id", beneficiary_id)
+          .eq("image_url", candidateSource)
+          .maybeSingle();
+        if (!ver) {
+          sourceIsStale = true;
+          console.log(`[generate-avatar] ${beneficiary_id} stale avatar_source_url, falling back to avatar_url`);
+          candidateSource = activeUrl;
+        }
+      } else if (!candidateSource) {
+        candidateSource = activeUrl;
+      }
+      if (sourceIsStale) {
+        // Persist the correction immediately so future calls don't re-resolve a deleted URL.
+        await supabase
+          .from("beneficiaries")
+          .update({ avatar_source_url: candidateSource })
+          .eq("id", beneficiary_id);
+        (b as any).avatar_source_url = candidateSource;
+      }
+      resolvedSourceUrl = candidateSource;
       const previousTraits = b.avatar_generated_traits as Partial<AvatarTraits> | null;
       const currentTraits = inferAvatarTraits(b);
 
@@ -288,7 +317,7 @@ serve(async (req) => {
 
         // -------------------- EDIT (image→image) --------------------
         if (mode === "edit" || mode === "edit_hd") {
-          const sourceUrl: string = b.avatar_source_url || b.avatar_url;
+          const sourceUrl: string = resolvedSourceUrl || b.avatar_source_url || b.avatar_url;
           const editPrompt = `${buildEditPrompt(editDiff)}\n[render-token: ${nonce}]`;
           traitsUpdate.avatar_prompt = editPrompt;
 
