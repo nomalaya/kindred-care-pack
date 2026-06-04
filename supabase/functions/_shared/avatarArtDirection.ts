@@ -1,7 +1,7 @@
 // Centralized art direction — invariants injected in every avatar prompt.
 // Locked: not editable from admin panel. Guarantees premium homogeneous catalog.
 
-import { AvatarTraits } from "./avatarTraits.ts";
+import { AvatarTraits, TraitDiff } from "./avatarTraits.ts";
 
 const EXPRESSION_DESCRIPTIONS: Record<string, string> = {
   gentle_smile: "a gentle, sincere smile, warm eyes",
