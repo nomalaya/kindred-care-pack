@@ -1195,8 +1195,11 @@ const AvatarStudio = () => {
                     ) : (
                       <>
                       {(() => {
-                        const sourceUrl = (selected as any).avatar_source_url ?? selected.avatar_url;
-                        const sourceMissing = !!sourceUrl && !versions.some(v => v.image_url === sourceUrl);
+                        const rawSource = (selected as any).avatar_source_url ?? null;
+                        const activeUrl = selected.avatar_url ?? null;
+                        const sourceMissing = !!rawSource
+                          && rawSource !== activeUrl
+                          && !versions.some(v => v.image_url === rawSource);
                         return sourceMissing ? (
                           <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
                             La base de retouche actuelle n'existe plus dans vos versions. Cliquez sur « Base de retouche » sur une version pour la réancrer.
