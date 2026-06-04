@@ -286,34 +286,64 @@ const AvatarStudio = () => {
   }, [selected?.id, selected?.avatar_gender, selected?.avatar_age_range, isLocked]);
 
 
+  // Auto-route: if the selected beneficiary already has an approved avatar
+  // (avatar_url + workflow approved/locked OR an avatar_source_url snapshot),
+  // we switch to the edit pipeline so only the changed attributes are altered.
+  // Otherwise, a full text-to-image generation is performed.
+  const isEditCapable = !!selected
+    && !!((selected as any).avatar_url || (selected as any).avatar_source_url)
+    && !!((selected as any).avatar_generated_traits);
+
   const generate = async (mode: "preview" | "final") => {
     if (!selected) return;
     if (dignityBlocked) {
       toast.error("Génération bloquée : niveau de dignité < 3");
       return;
     }
+    const effectiveMode: "preview" | "final" | "edit" | "edit_hd" = isEditCapable
+      ? (mode === "preview" ? "edit" : "edit_hd")
+      : mode;
     setBusy(mode);
     try {
-      const { error } = await supabase.functions.invoke("generate-avatar", {
-        body: { beneficiary_id: selected.id, mode, force: true },
+      const { data, error } = await supabase.functions.invoke("generate-avatar", {
+        body: { beneficiary_id: selected.id, mode: effectiveMode, force: true },
       });
       if (error) throw error;
-      toast.success(mode === "preview" ? "Aperçu en génération…" : "Portrait HD en génération…");
+      const skipped = (data as any)?.skipped;
+      if (skipped === true) {
+        const reason = (data as any)?.reason;
+        if (reason === "no_changes") {
+          toast.info("Aucune modification détectée — l'avatar reste inchangé.");
+        } else {
+          toast.info(`Génération ignorée (${reason ?? "raison inconnue"}).`);
+        }
+        setBusy(null);
+        return;
+      }
+      const wasEdited = (data as any)?.edited === true;
+      const diffLabels: string[] = ((data as any)?.diff ?? []).map((d: any) => d.label);
+      const baseMsg = effectiveMode === "edit" || effectiveMode === "edit_hd"
+        ? `Édition contrôlée en cours${diffLabels.length ? ` (${diffLabels.join(", ")})` : ""}…`
+        : (mode === "preview" ? "Aperçu en génération…" : "Portrait HD en génération…");
+      toast.success(baseMsg);
+      void wasEdited;
       setBeneficiaries(prev => prev.map(b =>
         b.id === selected.id ? { ...b, avatar_status: "pending" } : b,
       ));
-      // Filet de sécurité si le Realtime ne renvoie rien dans les 30s
+      // Filet de sécurité si le Realtime ne renvoie rien dans les 60s
+      // (édition + auto-clean peut prendre un peu plus de temps que le preview seul)
       setTimeout(() => {
         if (busyRef.current === mode) {
           refresh();
           setBusy(null);
         }
-      }, 30000);
+      }, 60000);
     } catch (e: any) {
       toast.error("Erreur : " + (e.message || "échec"));
       setBusy(null);
     }
   };
+
 
   // Idempotent : remplace l'arrière-plan de l'avatar existant par du blanc pur
   // pour que les fonds importés (bucket avatar-backgrounds) puissent passer
