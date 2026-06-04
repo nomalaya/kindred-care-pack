@@ -868,13 +868,13 @@ const AvatarStudio = () => {
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
                   {/* Image with overlays — remplit la colonne */}
                   <div className="aspect-square w-full bg-muted rounded-lg overflow-hidden relative group">
-                    {selected.avatar_url || selected.avatar_preview_url ? (
+                    {displayAvatarUrl(selected) ? (
                       <img
-                        src={selected.avatar_url || selected.avatar_preview_url}
+                        src={displayAvatarUrl(selected)!}
                         alt={selected.alias_first_name}
                         className="w-full h-full object-cover cursor-zoom-in"
                         style={framingToTransform(readFramingFromRow(selected))}
-                        onClick={() => setLightboxUrl(selected.avatar_url || selected.avatar_preview_url)}
+                        onClick={() => setLightboxUrl(displayAvatarUrl(selected))}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -1045,7 +1045,7 @@ const AvatarStudio = () => {
 
 
 
-                  {(selected.avatar_url || selected.avatar_preview_url) && (
+                  {displayAvatarUrl(selected) && (
                     <Button
                       type="button"
                       variant="outline"
@@ -1195,7 +1195,7 @@ const AvatarStudio = () => {
                 {/* Sticky workflow footer */}
                 {(() => {
                   const ws = (selected.avatar_workflow_status || "draft") as WorkflowStatus;
-                  const hasImage = !!(selected.avatar_url || selected.avatar_preview_url);
+                  const hasImage = !!displayAvatarUrl(selected);
                   type Cfg = { label: string; icon: LucideIcon; variant: "default" | "secondary" | "outline"; onClick: () => void; hint: string | null; shortcut?: string };
                   let main: Cfg;
                   if (ws === "approved") {
@@ -1553,12 +1553,12 @@ const AvatarStudio = () => {
         </DialogContent>
       </Dialog>
 
-      {selected && (selected.avatar_url || selected.avatar_preview_url) && (
+      {selected && displayAvatarUrl(selected) && (
         <AvatarFramingDialog
           open={framingDialogOpen}
           onOpenChange={setFramingDialogOpen}
           beneficiaryId={selected.id}
-          imageUrl={selected.avatar_url || selected.avatar_preview_url}
+          imageUrl={displayAvatarUrl(selected)!}
           initialFraming={readFramingFromRow(selected)}
           onChange={(f) => {
             setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, avatar_scale: f.scale, avatar_offset_x: f.offsetX, avatar_offset_y: f.offsetY } : b));
