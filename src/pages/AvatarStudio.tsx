@@ -1173,9 +1173,20 @@ const AvatarStudio = () => {
                     {versions.length === 0 ? (
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
                     ) : (
+                      <>
+                      {(() => {
+                        const sourceUrl = (selected as any).avatar_source_url ?? selected.avatar_url;
+                        const sourceMissing = !!sourceUrl && !versions.some(v => v.image_url === sourceUrl);
+                        return sourceMissing ? (
+                          <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
+                            La base de retouche actuelle n'existe plus dans vos versions. Cliquez sur « Base de retouche » sur une version pour la réancrer.
+                          </div>
+                        ) : null;
+                      })()}
                       <div className="flex gap-1.5 overflow-x-auto pb-2 snap-x scroll-pl-1 -mx-1 px-1">
                         {versions.map(v => {
                           const isActive = selected.avatar_url === v.image_url;
+                          const isSource = ((selected as any).avatar_source_url ?? selected.avatar_url) === v.image_url;
                           const url = v.image_url || "";
                           const isPreview = url.includes("/preview-") || url.includes("/preview/");
                           const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
