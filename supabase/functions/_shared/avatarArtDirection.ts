@@ -279,7 +279,8 @@ export const MODEL_QA = "google/gemini-2.5-flash";
 // intentionally NOT reused here — they would force a re-crop and a new
 // background.
 // ---------------------------------------------------------------------------
-import type { TraitDiff } from "./avatarTraits.ts";
+
+
 
 const EDIT_VALUE_LABELS: Record<string, Record<string, string>> = {
   avatar_hair_color: HAIR_COLOR_DESC,
