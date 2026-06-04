@@ -488,3 +488,136 @@ export function inferAvatarTraits(b: BeneficiaryInput): AvatarTraits {
     avatar_nose: b.avatar_nose ?? undefined,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Edit-mode trait diff — used by the Avatar Studio "edit existing avatar" path.
+// Compares the traits actually used at the last generation (snapshot in
+// `avatar_generated_traits`) against the current values to derive a minimal,
+// human-readable list of attributes that should be modified on top of the
+// reference image, while preserving everything else (pose, framing, background).
+// ---------------------------------------------------------------------------
+
+// Attributes whose change would break visual identity continuity — if any of
+// these change, we must NOT do an image-edit; we must fall back to a full
+// regeneration so the result stays believable.
+export const STRUCTURAL_TRAIT_KEYS: Array<keyof AvatarTraits> = [
+  "avatar_gender",
+  "avatar_age_range",
+  "avatar_skin_tone",
+  "avatar_face_shape",
+  "avatar_nose",
+  "avatar_eye_shape",
+  "avatar_hair_type",
+  "avatar_body_type",
+  "avatar_head_covering",
+];
+
+// All other trait keys are considered "soft" — safe to mutate via image edit.
+export const SOFT_TRAIT_KEYS: Array<keyof AvatarTraits> = [
+  "avatar_hair_color",
+  "avatar_hair_length",
+  "avatar_hair_volume",
+  "avatar_hair_style",
+  "avatar_hair_recession",
+  "avatar_bald_level",
+  "avatar_beard",
+  "avatar_moustache",
+  "avatar_eye_color",
+  "avatar_clothing_style",
+  "avatar_clothing_color_palette",
+  "avatar_expression",
+  "avatar_posture",
+  "avatar_parent_energy",
+  "avatar_cultural_style",
+  "avatar_cultural_style_override",
+  "avatar_forehead_mark",
+  "avatar_mobility_aid",
+  "avatar_tired_level",
+  "avatar_emotional_brightness",
+  "avatar_resilience_level",
+  "avatar_fatigue_level",
+  "avatar_facial_features",
+];
+
+export interface TraitDiff {
+  key: string;
+  before: unknown;
+  after: unknown;
+  structural: boolean;
+  humanLabel: string;
+}
+
+const HUMAN_LABELS: Record<string, string> = {
+  avatar_gender: "genre",
+  avatar_age_range: "tranche d'âge",
+  avatar_skin_tone: "teint",
+  avatar_hair_type: "type de cheveux",
+  avatar_hair_color: "couleur de cheveux",
+  avatar_hair_length: "longueur de cheveux",
+  avatar_hair_volume: "volume de cheveux",
+  avatar_hair_style: "coiffure",
+  avatar_hair_recession: "dégagement frontal",
+  avatar_bald_level: "calvitie",
+  avatar_beard: "barbe",
+  avatar_moustache: "moustache",
+  avatar_eye_color: "couleur des yeux",
+  avatar_eye_shape: "forme des yeux",
+  avatar_face_shape: "forme du visage",
+  avatar_nose: "nez",
+  avatar_facial_features: "traits du visage",
+  avatar_body_type: "morphologie",
+  avatar_clothing_style: "style vestimentaire",
+  avatar_clothing_color_palette: "palette vestimentaire",
+  avatar_expression: "expression",
+  avatar_posture: "posture",
+  avatar_parent_energy: "énergie parentale",
+  avatar_cultural_style: "style culturel",
+  avatar_cultural_style_override: "style culturel",
+  avatar_head_covering: "couvre-chef",
+  avatar_forehead_mark: "marque frontale",
+  avatar_mobility_aid: "aide à la mobilité",
+  avatar_tired_level: "niveau de fatigue",
+  avatar_emotional_brightness: "luminosité émotionnelle",
+  avatar_resilience_level: "résilience",
+  avatar_fatigue_level: "fatigue",
+};
+
+function normalizeForCompare(v: unknown): unknown {
+  if (v === null || v === undefined || v === "") return null;
+  if (Array.isArray(v)) {
+    const arr = [...v].map(x => String(x)).sort();
+    return arr.length === 0 ? null : arr.join("|");
+  }
+  return v;
+}
+
+/**
+ * Compute the trait diff between the snapshot used for the previous generation
+ * and the current traits. Empty when nothing meaningful changed.
+ */
+export function diffTraits(
+  previous: Partial<AvatarTraits> | null | undefined,
+  current: AvatarTraits,
+): TraitDiff[] {
+  if (!previous) return [];
+  const out: TraitDiff[] = [];
+  const allKeys = new Set<string>([...STRUCTURAL_TRAIT_KEYS, ...SOFT_TRAIT_KEYS] as string[]);
+  for (const key of allKeys) {
+    const before = normalizeForCompare((previous as any)[key]);
+    const after = normalizeForCompare((current as any)[key]);
+    if (before === after) continue;
+    out.push({
+      key,
+      before: (previous as any)[key] ?? null,
+      after: (current as any)[key] ?? null,
+      structural: (STRUCTURAL_TRAIT_KEYS as string[]).includes(key),
+      humanLabel: HUMAN_LABELS[key] ?? key,
+    });
+  }
+  return out;
+}
+
+export function hasStructuralChange(diff: TraitDiff[]): boolean {
+  return diff.some(d => d.structural);
+}
+

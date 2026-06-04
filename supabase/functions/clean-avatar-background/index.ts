@@ -109,21 +109,27 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { beneficiary_id } = await req.json();
+    const body = await req.json();
+    const beneficiary_id: string | undefined = body.beneficiary_id;
+    // "final" → clean avatar_url (default, original behaviour)
+    // "preview" → clean avatar_preview_url (used by auto-clean after Aperçu rapide)
+    const targetMode: "final" | "preview" = body.target === "preview" ? "preview" : "final";
     if (!beneficiary_id) throw new Error("beneficiary_id required");
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
     const { data: b, error: bErr } = await supabase
       .from("beneficiaries")
-      .select("id, avatar_url")
+      .select("id, avatar_url, avatar_preview_url")
       .eq("id", beneficiary_id)
       .single();
     if (bErr || !b) throw new Error("Beneficiary not found");
-    if (!b.avatar_url) throw new Error("Beneficiary has no avatar to clean");
+
+    const rawUrl = targetMode === "preview" ? b.avatar_preview_url : b.avatar_url;
+    if (!rawUrl) throw new Error(`Beneficiary has no ${targetMode} avatar to clean`);
 
     // Strip cache-busting query string before fetch
-    const sourceUrl = b.avatar_url.split("?")[0];
+    const sourceUrl = rawUrl.split("?")[0];
 
     // 1) Ask Gemini for a clean pure-white background
     const whitePng = await geminiWhiteBackground(sourceUrl);
@@ -131,7 +137,7 @@ serve(async (req) => {
     // 2) Server-side chroma-key: white → transparent
     const { bytes: transparentPng, transparentRatio } = await whiteToAlpha(whitePng);
 
-    console.log(`[clean-avatar-background] ${beneficiary_id} transparent_ratio=${transparentRatio.toFixed(3)}`);
+    console.log(`[clean-avatar-background] ${beneficiary_id} (${targetMode}) transparent_ratio=${transparentRatio.toFixed(3)}`);
 
     if (transparentRatio < 0.05) {
       throw new Error(
@@ -139,9 +145,11 @@ serve(async (req) => {
       );
     }
 
-    // 3) Upload (idempotent overwrite)
+    // 3) Upload (idempotent overwrite). Distinct path per target to avoid collisions.
     const ts = Date.now();
-    const fileName = `cleaned/${beneficiary_id}.png`;
+    const fileName = targetMode === "preview"
+      ? `cleaned/preview-${beneficiary_id}.png`
+      : `cleaned/${beneficiary_id}.png`;
     const { error: upErr } = await supabase.storage
       .from("avatars")
       .upload(fileName, transparentPng, { contentType: "image/png", upsert: true });
@@ -150,21 +158,26 @@ serve(async (req) => {
     const { data: u } = supabase.storage.from("avatars").getPublicUrl(fileName);
     const newUrl = `${u.publicUrl}?t=${ts}`;
 
+    const updatePatch = targetMode === "preview"
+      ? { avatar_preview_url: newUrl }
+      : { avatar_url: newUrl };
+
     await supabase
       .from("beneficiaries")
-      .update({ avatar_url: newUrl })
+      .update(updatePatch)
       .eq("id", beneficiary_id);
 
     await supabase.from("avatar_versions").insert({
       beneficiary_id,
       image_url: u.publicUrl,
-      model_used: "clean-bg/google/gemini-3.1-flash-image-preview+chroma-key",
+      model_used: `clean-bg/${targetMode}/google/gemini-3.1-flash-image-preview+chroma-key`,
       prompt: CLEAN_PROMPT,
     });
 
-    return new Response(JSON.stringify({ success: true, newUrl, transparentRatio }), {
+    return new Response(JSON.stringify({ success: true, newUrl, transparentRatio, target: targetMode }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (e: any) {
     console.error("clean-avatar-background error:", e);
     const status =
