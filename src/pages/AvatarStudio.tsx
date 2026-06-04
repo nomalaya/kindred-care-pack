@@ -296,6 +296,25 @@ const AvatarStudio = () => {
     && !!((selected as any).avatar_url || (selected as any).avatar_source_url)
     && !!((selected as any).avatar_generated_traits);
 
+  // Affichage : quand un aperçu fraîchement généré existe (status === "preview"),
+  // on le montre en priorité sur l'avatar HD obsolète. L'opérateur peut basculer
+  // temporairement vers le HD validé pour comparer avant approbation.
+  const displayAvatarUrl = (b: any): string | null => {
+    if (!b) return null;
+    if (!showHdInstead && b.avatar_status === "preview" && b.avatar_preview_url) {
+      return b.avatar_preview_url;
+    }
+    return b.avatar_url || b.avatar_preview_url || null;
+  };
+  const isShowingFreshPreview = !!selected
+    && !showHdInstead
+    && selected.avatar_status === "preview"
+    && !!selected.avatar_preview_url;
+  const hasBothPreviewAndHd = !!selected
+    && !!selected.avatar_url
+    && !!selected.avatar_preview_url
+    && selected.avatar_status === "preview";
+
   const generate = async (mode: "preview" | "final") => {
     if (!selected) return;
     if (dignityBlocked) {
