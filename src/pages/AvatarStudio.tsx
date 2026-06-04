@@ -73,6 +73,7 @@ const AvatarStudio = () => {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(new Set());
   const [framingDialogOpen, setFramingDialogOpen] = useState(false);
+  const [showHdInstead, setShowHdInstead] = useState(false);
 
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
   const saveTimer = useRef<any>(null);
@@ -127,9 +128,10 @@ const AvatarStudio = () => {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!selectedId) { setVersions([]); setInferenceReasons({}); setSelectedVersionIds(new Set()); return; }
+    if (!selectedId) { setVersions([]); setInferenceReasons({}); setSelectedVersionIds(new Set()); setShowHdInstead(false); return; }
     setInferenceReasons({}); // reset à chaque changement de bénéficiaire
     setSelectedVersionIds(new Set());
+    setShowHdInstead(false);
     (async () => {
       const { data } = await supabase
         .from("avatar_versions" as any)
@@ -293,6 +295,25 @@ const AvatarStudio = () => {
   const isEditCapable = !!selected
     && !!((selected as any).avatar_url || (selected as any).avatar_source_url)
     && !!((selected as any).avatar_generated_traits);
+
+  // Affichage : quand un aperçu fraîchement généré existe (status === "preview"),
+  // on le montre en priorité sur l'avatar HD obsolète. L'opérateur peut basculer
+  // temporairement vers le HD validé pour comparer avant approbation.
+  const displayAvatarUrl = (b: any): string | null => {
+    if (!b) return null;
+    if (!showHdInstead && b.avatar_status === "preview" && b.avatar_preview_url) {
+      return b.avatar_preview_url;
+    }
+    return b.avatar_url || b.avatar_preview_url || null;
+  };
+  const isShowingFreshPreview = !!selected
+    && !showHdInstead
+    && selected.avatar_status === "preview"
+    && !!selected.avatar_preview_url;
+  const hasBothPreviewAndHd = !!selected
+    && !!selected.avatar_url
+    && !!selected.avatar_preview_url
+    && selected.avatar_status === "preview";
 
   const generate = async (mode: "preview" | "final") => {
     if (!selected) return;
@@ -847,13 +868,13 @@ const AvatarStudio = () => {
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
                   {/* Image with overlays — remplit la colonne */}
                   <div className="aspect-square w-full bg-muted rounded-lg overflow-hidden relative group">
-                    {selected.avatar_url || selected.avatar_preview_url ? (
+                    {displayAvatarUrl(selected) ? (
                       <img
-                        src={selected.avatar_url || selected.avatar_preview_url}
+                        src={displayAvatarUrl(selected)!}
                         alt={selected.alias_first_name}
                         className="w-full h-full object-cover cursor-zoom-in"
                         style={framingToTransform(readFramingFromRow(selected))}
-                        onClick={() => setLightboxUrl(selected.avatar_url || selected.avatar_preview_url)}
+                        onClick={() => setLightboxUrl(displayAvatarUrl(selected))}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -904,6 +925,37 @@ const AvatarStudio = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* Aperçu fraîchement généré — badge + bascule comparaison */}
+                  {isShowingFreshPreview && (
+                    <div className="text-xs rounded-md border border-[hsl(var(--status-generated-border))] bg-[hsl(var(--status-generated-bg))] text-[hsl(var(--status-generated-fg))] px-2 py-1.5 flex items-center gap-2">
+                      <Eye className="h-3.5 w-3.5 shrink-0" />
+                      <span className="flex-1">Aperçu en attente de validation</span>
+                      {hasBothPreviewAndHd && (
+                        <button
+                          type="button"
+                          onClick={() => setShowHdInstead(true)}
+                          className="underline underline-offset-2 hover:opacity-80"
+                        >
+                          Voir l'avatar HD validé
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {showHdInstead && hasBothPreviewAndHd && (
+                    <div className="text-xs rounded-md border border-border bg-muted/50 text-muted-foreground px-2 py-1.5 flex items-center gap-2">
+                      <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                      <span className="flex-1">Avatar HD validé (référence)</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowHdInstead(false)}
+                        className="underline underline-offset-2 hover:opacity-80"
+                      >
+                        Revoir le nouvel aperçu
+                      </button>
+                    </div>
+                  )}
+
 
                   {/* Failed banner */}
                   {selected.avatar_status === "failed" && (
@@ -1024,7 +1076,7 @@ const AvatarStudio = () => {
 
 
 
-                  {(selected.avatar_url || selected.avatar_preview_url) && (
+                  {displayAvatarUrl(selected) && (
                     <Button
                       type="button"
                       variant="outline"
@@ -1174,7 +1226,7 @@ const AvatarStudio = () => {
                 {/* Sticky workflow footer */}
                 {(() => {
                   const ws = (selected.avatar_workflow_status || "draft") as WorkflowStatus;
-                  const hasImage = !!(selected.avatar_url || selected.avatar_preview_url);
+                  const hasImage = !!displayAvatarUrl(selected);
                   type Cfg = { label: string; icon: LucideIcon; variant: "default" | "secondary" | "outline"; onClick: () => void; hint: string | null; shortcut?: string };
                   let main: Cfg;
                   if (ws === "approved") {
@@ -1532,12 +1584,12 @@ const AvatarStudio = () => {
         </DialogContent>
       </Dialog>
 
-      {selected && (selected.avatar_url || selected.avatar_preview_url) && (
+      {selected && displayAvatarUrl(selected) && (
         <AvatarFramingDialog
           open={framingDialogOpen}
           onOpenChange={setFramingDialogOpen}
           beneficiaryId={selected.id}
-          imageUrl={selected.avatar_url || selected.avatar_preview_url}
+          imageUrl={displayAvatarUrl(selected)!}
           initialFraming={readFramingFromRow(selected)}
           onChange={(f) => {
             setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, avatar_scale: f.scale, avatar_offset_x: f.offsetX, avatar_offset_y: f.offsetY } : b));

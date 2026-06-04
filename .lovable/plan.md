@@ -1,145 +1,55 @@
+## Diagnostic
 
-# Diagnostic du pipeline Avatar Studio actuel
+J'ai inspecté la base de données pour Léa Île-de-France 28 ans (`de8c19bc-…`) :
 
-## Réponse directe à votre analyse
-
-Le système est aujourd'hui en **Mode C uniquement** : *toujours* une régénération complète text-to-image, même quand un avatar approuvé existe déjà. Il n'existe **aucun mécanisme d'édition contrôlée** d'un avatar existant. Les boutons "Aperçu rapide" et "Générer en HD" produisent strictement la même chose à un modèle près.
-
-## Pipeline actuel — fichiers et flux
-
-### 1. Déclenchement (frontend)
-**`src/pages/AvatarStudio.tsx`** — fonction `generate(mode)` (lignes ~289-310)
-- Appelle `supabase.functions.invoke("generate-avatar", { body: { beneficiary_id, mode } })`
-- `mode = "preview"` → bouton **Aperçu rapide** (raccourci `P`)
-- `mode = "final"` → bouton **Générer en HD** (raccourci `G`)
-- Aucune image existante n'est transmise. Aucun mécanisme "modifier seulement X".
-
-### 2. Génération (backend)
-**`supabase/functions/generate-avatar/index.ts`**
-- Charge le bénéficiaire (`select *`)
-- Appelle `inferAvatarTraits(b)` pour reconstituer tous les attributs phénotypiques depuis les colonnes `avatar_*`
-- Construit un prompt complet via `buildAvatarPrompt(traits)` — **texte pur, aucune image de référence**
-- Envoie à `ai.gateway.lovable.dev/v1/chat/completions` avec :
-  - `MODEL_PREVIEW = google/gemini-3.1-flash-image-preview` (mode preview)
-  - `MODEL_FINAL = google/gemini-3.1-flash-image-preview` (mode final — **identique**)
-- Le mode `final` ajoute uniquement une étape QA (`qa-avatar`) + 1 retry si score borderline
-- Sauvegarde dans bucket `avatars/` et écrit `avatar_preview_url` ou `avatar_url`
-
-### 3. Prompt utilisé
-**`supabase/functions/_shared/avatarArtDirection.ts` — `buildAvatarPrompt()`**
-
-Données injectées (depuis les colonnes `avatar_*` du bénéficiaire) :
-- Genre, tranche d'âge, type/longueur/style/volume/couleur de cheveux
-- Teint, forme de visage, nez, forme et couleur d'yeux, traits faciaux
-- Morphologie, niveau de fatigue, niveau de luminosité émotionnelle
-- Barbe/moustache/calvitie (hommes), couvre-chef, marque frontale
-- Expression, posture, vêtements, palette, style culturel
-- Aide à la mobilité, énergie parentale
-
-**Cadrage** : forcé par `FRAMING_BLOCK` — coupe à la clavicule, sujet à ~70% du canvas, marges de 15% min sur les 4 côtés.
-
-**Fond** : forcé par `buildBackgroundBlock()` — blanc plein `#FFFFFF` edge-to-edge, sans halo/gradient/ombre.
-
-**Aucune notion de seed visuel persistant** : `avatar_seed` existe mais n'est utilisé que comme nonce de prompt (pas comme seed image). Conséquence : **chaque génération produit un visage différent**, même avec attributs identiques. C'est cohérent avec le diagnostic — il n'y a aucune notion de "même personne".
-
-### 4. Différence Aperçu / HD / Régénération
-| Action | Modèle | QA | Stockage | Stratégie |
-|---|---|---|---|---|
-| Aperçu rapide | flash-image-preview | ❌ | `avatar_preview_url` | 1 appel |
-| Générer en HD | flash-image-preview (identique) | ✅ | `avatar_url` | 1-2 appels + scoring |
-| Régénération | même chose | — | écrase | aucune préservation |
-
-**Conclusion factuelle** : la "régénération" est une création depuis zéro. Le système ne sait pas qu'un avatar approuvé existait.
-
-## Origine des deux gênes visuelles
-
-1. **Coupure basse (clavicule, parfois bord arrondi/dégradé)** : imposée par `FRAMING_BLOCK` (`avatarArtDirection.ts`) — *"the bottom edge of the canvas crops the body at the COLLARBONE LINE"*. Les arrondis/dégradés que vous voyez sont des défauts du modèle malgré la liste de négatifs.
-2. **Fond blanc opaque** : imposé par `buildBackgroundBlock()` — *"Pure plain white background (#FFFFFF)"*. Le détourage (transparent) n'est appliqué qu'après clic manuel sur "Nettoyer le fond" (edge function `clean-avatar-background`).
-
-# Évolution proposée
-
-## A. Détourage automatique post-génération (les 2 modes)
-
-Dans `supabase/functions/generate-avatar/index.ts`, après avoir uploadé l'image générée et avant de finaliser, invoquer **automatiquement** `clean-avatar-background` :
-- En mode `preview` : juste après l'upload de `preview/${id}.png`
-- En mode `final` : juste après l'upload du `${id}.png` validé QA
-
-Conséquence : les bénéficiaires affichent immédiatement le fond importé du bucket `avatar-backgrounds`, **sans clic manuel**. Le fond blanc reste demandé au modèle (le pipeline est plus fiable comme ça, conformément à votre réponse) mais n'est jamais visible.
-
-## B. Nouveau mode "Édition" (préservation visuelle)
-
-Introduire un troisième mode `edit` dans l'edge function, déclenché automatiquement par le frontend quand :
-- `avatar_workflow_status === "approved"` ou `"locked"`, OU
-- `avatar_url` existe déjà ET les seuls attributs changés depuis la dernière génération sont des attributs "édition douce"
-
-### Logique de routage (frontend, `AvatarStudio.tsx`)
-```text
-clic "Aperçu rapide"
-  ├── pas d'avatar_url ET pas d'avatar_preview_url → mode "preview" (création complète)
-  └── avatar_url existe                            → mode "edit"  (édition contrôlée)
-
-clic "Générer en HD"
-  ├── pas d'avatar_url           → mode "final" (création complète + QA)
-  └── avatar_url existe          → mode "edit_hd" (édition + QA)
-```
-
-### Implémentation backend du mode `edit`
-
-Gemini `gemini-3.1-flash-image-preview` accepte des **images d'entrée** dans `messages[].content` (format multimodal). On envoie :
-- L'avatar actuel (`avatar_url`) comme image de référence
-- Un prompt d'édition minimaliste qui liste **uniquement les attributs réellement modifiés** depuis la génération précédente
-
-Pour détecter les attributs modifiés on compare la ligne `beneficiaries` courante au snapshot du `avatar_prompt` archivé (les traits qui ont servi à la dernière génération sont déjà stockés colonne par colonne). Une fonction `diffTraits(prev, next)` retourne la liste des changements.
-
-### Prompt d'édition (nouveau, `avatarArtDirection.ts`)
-```text
-EDIT THE PROVIDED IMAGE — preserve everything except the attributes listed below.
-
-PRESERVE (strict): the exact same person, identity, facial structure, pose,
-framing, composition, body angle, camera distance, lighting, background,
-clothing style, color palette and artistic style of the reference image.
-
-CHANGE ONLY:
-- {{liste des attributs modifiés avec leur nouvelle valeur}}
-
-Do not regenerate from scratch. Do not change the face shape. Do not change
-the framing or crop. Do not change the background.
-```
-
-Aucune réutilisation des blocs `FRAMING_BLOCK` ni `buildBackgroundBlock` en mode édition — c'est crucial : ces blocs forceraient un re-cadrage.
-
-### Garde-fous
-- Si la liste des changements est vide → ne pas appeler le modèle (`skipped: "no_changes"`)
-- Si plus de N (≈5) attributs changent simultanément ou si un attribut structurel change (genre, tranche d'âge, type de cheveux) → bascule automatique en mode création complète (édition trop divergente, l'identité ne tient pas)
-- Conserver l'historique : chaque édition crée une nouvelle ligne `avatar_versions` avec `model_used`, prompt diff, et image source référencée
-
-### Stockage
-- Mode `edit` écrit dans `avatar_preview_url` (l'utilisateur doit valider avant que `avatar_url` ne soit remplacé via le bouton existant "Promouvoir l'aperçu")
-- Mode `edit_hd` (édition + QA réussi) écrit directement dans `avatar_url` et préserve `avatar_workflow_status = "approved"`
-
-## C. Indicateurs UI (sans changement structurel)
-
-Dans `AvatarStudio.tsx`, juste sous le bouton principal, afficher un libellé contextuel :
-- *"Création complète"* (pas d'avatar existant)
-- *"Édition contrôlée — basée sur l'avatar approuvé"* (sinon)
-
-Plus la liste compacte des attributs qui seront modifiés au prochain clic (le diff). Aucun nouveau composant lourd, juste un petit bloc texte.
-
-# Fichiers concernés
-
-| Fichier | Nature du changement |
+| champ | valeur |
 |---|---|
-| `supabase/functions/generate-avatar/index.ts` | Ajout des branches `mode === "edit"` et `"edit_hd"`, appel auto à `clean-avatar-background` après chaque upload |
-| `supabase/functions/_shared/avatarArtDirection.ts` | Nouvelle fonction `buildEditPrompt(prevTraits, nextTraits, sourceImageUrl)`. Aucun changement aux fonctions existantes |
-| `supabase/functions/_shared/avatarTraits.ts` | Ajout d'un helper `diffTraits(prev, next)` retournant la liste des champs modifiés avec libellé humain |
-| `src/pages/AvatarStudio.tsx` | Routage `preview/final/edit/edit_hd` côté `generate()`, label contextuel sous le bouton, raccourcis inchangés |
-| `src/features/avatar-studio/fields.tsx` | (optionnel) marquer chaque champ comme `structural` ou `soft` pour le seuil de bascule auto |
+| `avatar_status` | `preview` |
+| `avatar_url` (HD validé d'avant) | image **stale** (générée le 11/11/2026) |
+| `avatar_preview_url` (aperçu d'aujourd'hui) | image **fraîche** avec cheveux chatain + expression réservée |
+| `avatar_hair_color` | `dark_brown` ✅ |
+| `avatar_expression` | `reserved` ✅ |
+| `avatar_generated_traits` (snapshot) | présent ✅ |
 
-Aucune migration DB requise : toutes les colonnes nécessaires existent (`avatar_url`, `avatar_preview_url`, `avatar_prompt`, `avatar_workflow_status`, l'historique `avatar_versions`).
+**Le pipeline a bien fonctionné** : l'aperçu rapide a généré un nouveau portrait avec les bons attributs, l'a stocké dans `avatar_preview_url` et écrit le snapshot. Le détourage du fond s'est aussi exécuté.
 
-# Livrables attendus à la fin de l'implémentation
+**Le bug est uniquement côté affichage** : dans `AvatarStudio.tsx`, le portrait principal et le lightbox utilisent partout :
 
-1. Le clic "Aperçu rapide" sur Léa (avatar approuvé) ne régénère plus un nouveau visage — il modifie seulement les attributs changés (ex : couleur de cheveux châtain) en gardant pose, cadrage, fond et identité
-2. Aucun avatar généré ne présente de fond blanc visible (détourage auto)
-3. La coupe basse n'est plus problématique en édition (le cadrage de la source est préservé), et reste contrôlée en création
-4. Indicateur clair dans l'UI du mode en cours (création vs édition) et des attributs qui seront modifiés
+```tsx
+selected.avatar_url || selected.avatar_preview_url
+```
+
+→ tant que le HD validé existe, on continue d'afficher l'**ancien** avatar, même quand un aperçu plus récent (avec les modifications demandées) est disponible. C'est pour ça que Léa "garde" ses cheveux blancs visuellement, alors qu'en réalité un nouvel aperçu avec cheveux chatain a été produit.
+
+Conséquence : l'opérateur ne voit jamais le résultat d'un Aperçu rapide lancé sur un bénéficiaire déjà approuvé, ni en mode Édition contrôlée, ni en mode bootstrap. Inutile de toucher au pipeline de génération.
+
+## Correctif
+
+Règle d'affichage : quand `avatar_status === "preview"` ET qu'un `avatar_preview_url` existe, on montre l'aperçu en priorité. Sinon, on garde l'avatar HD validé.
+
+Helper local dans `src/pages/AvatarStudio.tsx` :
+
+```ts
+const displayAvatarUrl = (b: any): string | null => {
+  if (!b) return null;
+  if (b.avatar_status === "preview" && b.avatar_preview_url) return b.avatar_preview_url;
+  return b.avatar_url || b.avatar_preview_url || null;
+};
+```
+
+Remplacement aux 5 sites identifiés (lignes 850, 852, 856, 1027, 1177, 1535, 1540) de `selected.avatar_url || selected.avatar_preview_url` par `displayAvatarUrl(selected)`.
+
+## Indicateurs UX complémentaires (légers)
+
+Pour qu'il soit évident qu'on regarde un aperçu non encore validé :
+
+1. Sous la vignette du portrait, quand on affiche un aperçu (status `preview`), ajouter un petit badge "Aperçu en attente de validation" (réutilise `STATUS_COLOR.preview`).
+2. Lorsqu'un avatar a un `avatar_url` HD ET un `avatar_preview_url` plus récent, ajouter un lien discret "Voir l'avatar HD validé" qui bascule temporairement vers l'ancien (utile pour comparer avant approbation).
+
+Ces ajouts restent purement UI, aucune logique métier ni schéma touché.
+
+## Fichiers modifiés
+
+- `src/pages/AvatarStudio.tsx` (helper + 7 remplacements + badge "Aperçu en attente" + toggle de comparaison)
+
+Aucun changement edge function, aucune migration. Le pipeline backend (preview / final / edit / edit_hd + auto-clean) reste tel quel.
