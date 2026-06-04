@@ -1001,6 +1001,29 @@ const AvatarStudio = () => {
                     />
                   </div>
 
+                  {/* Indicateur de mode : création complète vs édition contrôlée */}
+                  <div
+                    className={`text-[11px] rounded-md px-2 py-1.5 border ${
+                      isEditCapable
+                        ? "bg-primary/5 border-primary/20 text-primary"
+                        : "bg-muted border-border text-muted-foreground"
+                    }`}
+                    title={
+                      isEditCapable
+                        ? "L'avatar existant sert de référence. Pose, cadrage et fond sont préservés ; seuls les attributs modifiés depuis la dernière génération sont retouchés."
+                        : "Aucune référence visuelle — création complète depuis les attributs."
+                    }
+                  >
+                    {isEditCapable
+                      ? "✏️ Édition contrôlée — basée sur l'avatar approuvé"
+                      : "🎨 Création complète — première génération"}
+                    <span className="block text-[10px] opacity-70 mt-0.5">
+                      Le fond importé sera visible automatiquement après génération.
+                    </span>
+                  </div>
+
+
+
                   {(selected.avatar_url || selected.avatar_preview_url) && (
                     <Button
                       type="button"
