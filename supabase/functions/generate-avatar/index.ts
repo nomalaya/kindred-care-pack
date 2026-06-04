@@ -224,31 +224,45 @@ serve(async (req) => {
     // reference, or whether we must fall back to a full regeneration.
     // ------------------------------------------------------------------
     let editDiff: TraitDiff[] = [];
+    let resolvedSourceUrl: string | null = null;
+    let fallbackReason: string | null = null;
     if (mode === "edit" || mode === "edit_hd") {
-      const sourceUrl: string | null = b.avatar_source_url || b.avatar_url || null;
+      resolvedSourceUrl = b.avatar_source_url || b.avatar_url || null;
       const previousTraits = b.avatar_generated_traits as Partial<AvatarTraits> | null;
       const currentTraits = inferAvatarTraits(b);
 
-      if (!sourceUrl || !previousTraits) {
+      if (!resolvedSourceUrl || !previousTraits) {
         // Bootstrap: no snapshot yet → cannot diff. Treat as full generation;
         // the snapshot will be written below so future edits work.
-        console.log(`[generate-avatar] ${beneficiary_id} edit→fallback (no snapshot)`);
+        fallbackReason = !resolvedSourceUrl ? "no_source_url" : "no_snapshot";
+        console.log(`[generate-avatar] ${beneficiary_id} edit→fallback (${fallbackReason})`);
         mode = mode === "edit" ? "preview" : "final";
       } else {
         editDiff = diffTraits(previousTraits, currentTraits);
+        console.log(
+          `[generate-avatar] ${beneficiary_id} edit diff (${editDiff.length}):`,
+          editDiff.map(d => `${d.key}:${d.before}→${d.after}`).join(", "),
+        );
+        console.log(`[generate-avatar] ${beneficiary_id} source_url: ${resolvedSourceUrl}`);
         if (editDiff.length === 0) {
-          return new Response(JSON.stringify({ skipped: true, reason: "no_changes" }), {
+          return new Response(JSON.stringify({
+            skipped: true,
+            reason: "no_changes",
+            source_url: resolvedSourceUrl,
+          }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
         if (hasStructuralChange(editDiff) || editDiff.length > MAX_EDIT_DIFF) {
+          fallbackReason = hasStructuralChange(editDiff) ? "structural_change" : "too_many_changes";
           console.log(
-            `[generate-avatar] ${beneficiary_id} edit→fallback (structural=${hasStructuralChange(editDiff)} count=${editDiff.length})`,
+            `[generate-avatar] ${beneficiary_id} edit→fallback (${fallbackReason}, count=${editDiff.length})`,
           );
           mode = mode === "edit" ? "preview" : "final";
         }
       }
     }
+
 
     // Mark pending immediately
     await supabase.from("beneficiaries").update({
@@ -492,7 +506,9 @@ serve(async (req) => {
       accepted: true,
       mode,
       edited: mode === "edit" || mode === "edit_hd",
-      diff: editDiff.map(d => ({ key: d.key, label: d.humanLabel })),
+      source_url: resolvedSourceUrl,
+      fallback_reason: fallbackReason,
+      diff: editDiff.map(d => ({ key: d.key, label: d.humanLabel, before: d.before, after: d.after })),
     }), {
       status: 202,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
