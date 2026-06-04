@@ -1246,7 +1246,7 @@ const AvatarStudio = () => {
                                   <Trash2 className="h-3 w-3" />
                                 </button>
                               )}
-                              {!isActive && !selectionMode && (
+                              {!isSource && !selectionMode && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); restoreVersion(v); }}
                                   disabled={isLocked}
@@ -1257,8 +1257,19 @@ const AvatarStudio = () => {
                                 </button>
                               )}
                               {isActive && (
-                                <span className="absolute top-0 left-0 bg-primary text-primary-foreground text-[9px] px-1 rounded-br pointer-events-none">
+                                <span
+                                  className="absolute top-0 left-0 bg-primary text-primary-foreground text-[9px] px-1 rounded-br pointer-events-none"
+                                  title="Avatar affiché publiquement (pas forcément la base de retouche)"
+                                >
                                   Actif
+                                </span>
+                              )}
+                              {isSource && (
+                                <span
+                                  className="absolute bottom-0 left-0 bg-secondary text-secondary-foreground text-[9px] px-1 rounded-tr pointer-events-none flex items-center gap-0.5"
+                                  title="Base utilisée pour la prochaine retouche"
+                                >
+                                  <RotateCcw className="h-2.5 w-2.5" />Source
                                 </span>
                               )}
                             </div>
