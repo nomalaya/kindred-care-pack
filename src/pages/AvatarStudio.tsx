@@ -565,10 +565,40 @@ const AvatarStudio = () => {
       toast.error("Avatar verrouillé. Déverrouillez d'abord.");
       return;
     }
-    if (!confirm("Réutiliser cette version comme avatar actif ? L'avatar actuel sera remplacé (statut passera à « Généré »).")) return;
+    if (!confirm("Définir cette version comme base de retouche ? L'avatar actif et l'aperçu en cours seront remplacés par cette image, et la prochaine génération en repartira.")) return;
+
+    // Construire un snapshot d'attributs qui reflète l'image restaurée :
+    // - Les traits structurels (genre, âge, visage, etc.) restent calés sur les
+    //   attributs actuels du bénéficiaire.
+    // - Les traits "soft" visuels (cheveux, expression, vêtements, etc.) sont
+    //   réinitialisés à null. Ainsi, toute valeur déjà saisie par l'opérateur
+    //   pour ces champs apparaîtra automatiquement comme un changement
+    //   à appliquer lors du prochain "Aperçu rapide" / "Générer en HD".
+    const SOFT_KEYS_TO_RESET = [
+      "avatar_hair_color", "avatar_hair_length", "avatar_hair_volume", "avatar_hair_style",
+      "avatar_hair_recession", "avatar_bald_level",
+      "avatar_beard", "avatar_moustache",
+      "avatar_eye_color",
+      "avatar_clothing_style", "avatar_clothing_color_palette",
+      "avatar_expression", "avatar_posture", "avatar_parent_energy",
+      "avatar_cultural_style", "avatar_cultural_style_override",
+      "avatar_forehead_mark", "avatar_mobility_aid",
+      "avatar_tired_level", "avatar_emotional_brightness",
+      "avatar_resilience_level", "avatar_fatigue_level",
+      "avatar_facial_features",
+    ];
+    const snapshot: Record<string, any> = {};
+    for (const [k, val] of Object.entries(selected)) {
+      if (k.startsWith("avatar_") && !SOFT_KEYS_TO_RESET.includes(k)) {
+        snapshot[k] = val;
+      }
+    }
+    for (const k of SOFT_KEYS_TO_RESET) snapshot[k] = null;
+
     const updates: any = {
       avatar_url: v.image_url,
-      avatar_preview_url: v.image_url,
+      avatar_source_url: v.image_url,
+      avatar_preview_url: null,
       avatar_status: "validated",
       avatar_workflow_status: "generated",
       avatar_model_used: v.model_used ?? null,
@@ -577,6 +607,7 @@ const AvatarStudio = () => {
       avatar_seed: v.seed ?? null,
       avatar_prompt: v.prompt ?? null,
       avatar_generated_at: new Date().toISOString(),
+      avatar_generated_traits: snapshot,
     };
     const { error } = await supabase.from("beneficiaries").update(updates).eq("id", selected.id);
     if (error) {
@@ -584,7 +615,8 @@ const AvatarStudio = () => {
       return;
     }
     setBeneficiaries(prev => prev.map(b => b.id === selected.id ? { ...b, ...updates } : b));
-    toast.success("Version restaurée comme avatar actif");
+    setShowHdInstead(false);
+    toast.success("Base de retouche définie. Vos modifications d'attributs seront appliquées au prochain aperçu.");
   };
 
   const toggleVersionSelect = (id: string) => {
