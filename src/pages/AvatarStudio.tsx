@@ -73,6 +73,7 @@ const AvatarStudio = () => {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(new Set());
   const [framingDialogOpen, setFramingDialogOpen] = useState(false);
+  const [showHdInstead, setShowHdInstead] = useState(false);
 
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
   const saveTimer = useRef<any>(null);
@@ -127,9 +128,10 @@ const AvatarStudio = () => {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!selectedId) { setVersions([]); setInferenceReasons({}); setSelectedVersionIds(new Set()); return; }
+    if (!selectedId) { setVersions([]); setInferenceReasons({}); setSelectedVersionIds(new Set()); setShowHdInstead(false); return; }
     setInferenceReasons({}); // reset à chaque changement de bénéficiaire
     setSelectedVersionIds(new Set());
+    setShowHdInstead(false);
     (async () => {
       const { data } = await supabase
         .from("avatar_versions" as any)
