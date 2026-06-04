@@ -1094,17 +1094,20 @@ const AvatarStudio = () => {
                     }`}
                     title={
                       isEditCapable
-                        ? "L'avatar existant sert de référence. Pose, cadrage et fond sont préservés ; seuls les attributs modifiés depuis la dernière génération sont retouchés."
+                        ? "L'avatar source sert de référence visuelle. Pose, cadrage et fond sont préservés ; seuls les attributs modifiés depuis la dernière génération sont retouchés."
                         : "Aucune référence visuelle — création complète depuis les attributs."
                     }
                   >
                     {isEditCapable
-                      ? "✏️ Édition contrôlée — basée sur l'avatar approuvé"
+                      ? "✏️ Édition contrôlée — basée sur la version source"
                       : "🎨 Création complète — première génération"}
                     <span className="block text-[10px] opacity-70 mt-0.5">
-                      Le fond importé sera visible automatiquement après génération.
+                      {isEditCapable
+                        ? "Astuce : pour repartir d'une autre image, cliquez sur « Base de retouche » dans Versions."
+                        : "Le fond importé sera visible automatiquement après génération."}
                     </span>
                   </div>
+
 
 
 
@@ -1237,9 +1240,9 @@ const AvatarStudio = () => {
                                   onClick={(e) => { e.stopPropagation(); restoreVersion(v); }}
                                   disabled={isLocked}
                                   className="absolute inset-x-0 bottom-0 bg-primary/90 text-primary-foreground text-[10px] py-0.5 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
-                                  title="Réutiliser cette version comme avatar actif"
+                                  title="Définir cette version comme base de retouche pour la prochaine génération"
                                 >
-                                  <RotateCcw className="h-3 w-3" />Utiliser
+                                  <RotateCcw className="h-3 w-3" />Base de retouche
                                 </button>
                               )}
                               {isActive && (
