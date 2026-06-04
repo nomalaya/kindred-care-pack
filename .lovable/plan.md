@@ -1,87 +1,41 @@
-## Diagnostic
+## Problème
 
-Non, aujourd’hui la logique n’est pas suffisamment fiable pour tous les bénéficiaires déjà générés.
+Dans la carte « Versions » de `AvatarStudio.tsx`, le bouton « Base de retouche » n'apparaît au survol que si `selected.avatar_url !== v.image_url` (condition `!isActive`).
 
-Le bug n’est pas la génération elle-même : il vient de la **source utilisée pour l’édition contrôlée**.
+Pour Léa, la version aux cheveux blancs **est** l'avatar actif (`avatar_url`), elle reçoit donc le badge « Actif » et le bouton « Base de retouche » est masqué. Mais `avatar_source_url` pointe encore vers une ancienne image supprimée : c'est de là que repart la génération en mode édition, d'où l'incohérence.
 
-Cas observé sur Léa :
+Conséquence : impossible pour l'utilisateur de « réancrer » la base de retouche sur la version Active actuelle.
 
-- La version que vous voulez conserver est bien dans `Versions` : l’avatar cheveux blancs.
-- Mais quand vous restaurez / utilisez cette version, le studio met surtout à jour `avatar_url` et `avatar_preview_url`.
-- Il ne met pas correctement à jour `avatar_source_url`, qui est pourtant la source prioritaire utilisée par la fonction de génération en mode édition.
-- En plus, `avatar_generated_traits` peut rester aligné sur le dernier aperçu déjà modifié (`châtain foncé` + `réservé`).
+## Plan
 
-Résultat : quand vous cliquez sur **Générer un aperçu**, l’édition contrôlée peut :
+Frontend uniquement, dans `src/pages/AvatarStudio.tsx`, section « Versions carousel » (lignes 1138–1255).
 
-1. repartir d’une mauvaise image source ;
-2. croire qu’il n’y a aucun changement à faire ;
-3. ou réutiliser un ancien aperçu qui ne correspond plus à la version choisie.
+1. **Calculer un second flag `isSource`** dans la boucle des versions :
+   - `const isSource = (selected.avatar_source_url ?? selected.avatar_url) === v.image_url;`
 
-C’est exactement l’inverse de ce que vous voulez : **prendre l’avatar cheveux blancs comme base visuelle, puis seulement modifier cheveux + expression**.
+2. **Toujours afficher le bouton « Base de retouche » au survol**, sauf quand la vignette est déjà la source de retouche.
+   - Remplacer la condition `{!isActive && !selectionMode && (...)}` par `{!isSource && !selectionMode && (...)}`.
+   - Le bouton apparaît donc aussi sur la version « Actif » si la source de retouche est différente — exactement le cas de Léa.
 
-## Correctif à appliquer
+3. **Ajouter un badge visuel « Source »** sur la vignette utilisée comme base de retouche (différent du badge « Actif ») :
+   - Petit badge en bas-gauche, par ex. `bg-secondary text-secondary-foreground`, texte « Source », icône `RotateCcw` 9px.
+   - Si une vignette est à la fois Active et Source, afficher les deux badges (coins distincts).
 
-### 1. Quand une version est restaurée, elle devient la source officielle de retouche
+4. **Avertir quand la source pointe vers une image absente des versions** :
+   - Après chargement de `versions`, si `selected.avatar_source_url` est défini et n'apparaît dans aucune `v.image_url`, afficher un petit message d'alerte sous le titre Versions : « La base de retouche actuelle n'existe plus dans vos versions. Cliquez sur « Base de retouche » sur une version pour la réancrer. »
 
-Dans `restoreVersion()` (`src/pages/AvatarStudio.tsx`) :
+5. **Mettre à jour le tooltip** du badge « Actif » pour préciser qu'il ne s'agit pas forcément de la base de retouche (« Avatar affiché publiquement »).
 
-- définir `avatar_url = v.image_url` ;
-- définir `avatar_preview_url = null` pour ne pas garder un ancien aperçu concurrent ;
-- définir `avatar_source_url = v.image_url` ;
-- remettre `avatar_status = "validated"` ;
-- conserver le statut workflow cohérent (`generated` ou approuvé ensuite par l’utilisateur).
+## Détails techniques
 
-Ainsi, si vous cliquez sur la version cheveux blancs puis générez un aperçu, l’édition contrôlée partira bien de cette image-là.
+- Aucun changement backend, aucune migration.
+- Pas de modification de `restoreVersion()` — la logique est déjà correcte (elle écrit `avatar_source_url`, vide `avatar_preview_url`, reconstruit le snapshot).
+- Pas de modification des edge functions.
 
-### 2. Recréer un snapshot d’attributs cohérent avec la version restaurée
+## Validation
 
-Quand une version est restaurée, on doit reconstruire `avatar_generated_traits` à partir des attributs actuels, mais avec les valeurs visuelles de référence de la version restaurée quand elles sont connues.
-
-Pour Léa, comme la version restaurée est l’avatar cheveux blancs :
-
-- la source visuelle = cheveux blancs ;
-- les attributs actuels demandés = châtain foncé + réservé ;
-- le diff doit donc contenir au minimum :
-  - couleur de cheveux : blanc → châtain foncé ;
-  - expression : ancienne expression → réservé.
-
-Pour éviter les incohérences, j’ajouterai un petit helper frontend qui prépare un snapshot de référence au moment de la restauration. Si la version n’a pas de métadonnées traits complètes, on force au moins les champs nécessaires à ne pas être considérés comme déjà modifiés.
-
-### 3. Côté génération, sécuriser la source utilisée
-
-Dans `generate-avatar/index.ts` :
-
-- garder la priorité à `avatar_source_url` quand il existe ;
-- mais ajouter des logs explicites et retourner dans la réponse :
-  - `source_url` utilisée ;
-  - `diff` détecté ;
-  - `mode` réel (`edit` ou fallback).
-
-Objectif : dans le toast / debug, on verra clairement si l’édition part bien de la version restaurée.
-
-### 4. Indicateur UI dans Avatar Studio
-
-Dans la zone “Versions”, je rendrai l’action plus explicite :
-
-- clic normal : aperçu grand format comme aujourd’hui ;
-- bouton / action claire : **Définir comme base de retouche**.
-
-Quand cette base est active, afficher un libellé discret :
-
-> Base de retouche : version HD sélectionnée
-
-Cela évite la confusion entre “voir une version” et “dire à l’IA de repartir de cette version”.
-
-## Fichiers concernés
-
-- `src/pages/AvatarStudio.tsx`
-  - restauration de version ;
-  - nettoyage de l’ancien aperçu ;
-  - mise à jour de `avatar_source_url` ;
-  - UI “base de retouche”.
-
-- `supabase/functions/generate-avatar/index.ts`
-  - retour debug `source_url` / `diff` ;
-  - logs plus explicites.
-
-Aucune migration n’est nécessaire : les colonnes existent déjà.
+1. Ouvrir le studio sur Léa.
+2. Vérifier qu'un badge « Source » apparaît sur la vignette correspondant à l'image actuellement utilisée comme base — ou un avertissement si elle est absente.
+3. Survoler la version cheveux blancs (Actif) : le bouton « Base de retouche » est visible.
+4. Cliquer dessus → toast « Base de retouche définie », puis le badge « Source » bascule sur la vignette cheveux blancs.
+5. Lancer « Générer un aperçu » en Aperçu rapide : l'image renvoyée part bien des cheveux blancs avec hair=châtain foncé et expression=Réservé.

@@ -1173,9 +1173,20 @@ const AvatarStudio = () => {
                     {versions.length === 0 ? (
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
                     ) : (
+                      <>
+                      {(() => {
+                        const sourceUrl = (selected as any).avatar_source_url ?? selected.avatar_url;
+                        const sourceMissing = !!sourceUrl && !versions.some(v => v.image_url === sourceUrl);
+                        return sourceMissing ? (
+                          <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
+                            La base de retouche actuelle n'existe plus dans vos versions. Cliquez sur « Base de retouche » sur une version pour la réancrer.
+                          </div>
+                        ) : null;
+                      })()}
                       <div className="flex gap-1.5 overflow-x-auto pb-2 snap-x scroll-pl-1 -mx-1 px-1">
                         {versions.map(v => {
                           const isActive = selected.avatar_url === v.image_url;
+                          const isSource = ((selected as any).avatar_source_url ?? selected.avatar_url) === v.image_url;
                           const url = v.image_url || "";
                           const isPreview = url.includes("/preview-") || url.includes("/preview/");
                           const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
@@ -1235,7 +1246,7 @@ const AvatarStudio = () => {
                                   <Trash2 className="h-3 w-3" />
                                 </button>
                               )}
-                              {!isActive && !selectionMode && (
+                              {!isSource && !selectionMode && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); restoreVersion(v); }}
                                   disabled={isLocked}
@@ -1246,14 +1257,26 @@ const AvatarStudio = () => {
                                 </button>
                               )}
                               {isActive && (
-                                <span className="absolute top-0 left-0 bg-primary text-primary-foreground text-[9px] px-1 rounded-br pointer-events-none">
+                                <span
+                                  className="absolute top-0 left-0 bg-primary text-primary-foreground text-[9px] px-1 rounded-br pointer-events-none"
+                                  title="Avatar affiché publiquement (pas forcément la base de retouche)"
+                                >
                                   Actif
+                                </span>
+                              )}
+                              {isSource && (
+                                <span
+                                  className="absolute bottom-0 left-0 bg-secondary text-secondary-foreground text-[9px] px-1 rounded-tr pointer-events-none flex items-center gap-0.5"
+                                  title="Base utilisée pour la prochaine retouche"
+                                >
+                                  <RotateCcw className="h-2.5 w-2.5" />Source
                                 </span>
                               )}
                             </div>
                           );
                         })}
                       </div>
+                      </>
                     )}
                   </div>
                 </div>
