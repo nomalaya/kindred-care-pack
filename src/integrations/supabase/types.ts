@@ -98,6 +98,7 @@ export type Database = {
           avatar_forehead_mark: string | null
           avatar_gender: string | null
           avatar_generated_at: string | null
+          avatar_generated_traits: Json | null
           avatar_hair_color: string | null
           avatar_hair_length: string | null
           avatar_hair_recession: string | null
@@ -122,6 +123,7 @@ export type Database = {
           avatar_scale: number
           avatar_seed: number | null
           avatar_skin_tone: string | null
+          avatar_source_url: string | null
           avatar_status: string | null
           avatar_tired_level: number | null
           avatar_url: string | null
@@ -186,6 +188,7 @@ export type Database = {
           avatar_forehead_mark?: string | null
           avatar_gender?: string | null
           avatar_generated_at?: string | null
+          avatar_generated_traits?: Json | null
           avatar_hair_color?: string | null
           avatar_hair_length?: string | null
           avatar_hair_recession?: string | null
@@ -210,6 +213,7 @@ export type Database = {
           avatar_scale?: number
           avatar_seed?: number | null
           avatar_skin_tone?: string | null
+          avatar_source_url?: string | null
           avatar_status?: string | null
           avatar_tired_level?: number | null
           avatar_url?: string | null
@@ -274,6 +278,7 @@ export type Database = {
           avatar_forehead_mark?: string | null
           avatar_gender?: string | null
           avatar_generated_at?: string | null
+          avatar_generated_traits?: Json | null
           avatar_hair_color?: string | null
           avatar_hair_length?: string | null
           avatar_hair_recession?: string | null
@@ -298,6 +303,7 @@ export type Database = {
           avatar_scale?: number
           avatar_seed?: number | null
           avatar_skin_tone?: string | null
+          avatar_source_url?: string | null
           avatar_status?: string | null
           avatar_tired_level?: number | null
           avatar_url?: string | null
