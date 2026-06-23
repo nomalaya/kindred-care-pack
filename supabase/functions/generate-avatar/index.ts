@@ -647,6 +647,27 @@ serve(async (req) => {
 
         if (mode === "preview") {
           const bytes = await generateImage(prompt, MODEL_PREVIEW);
+
+          // -------- PRE-CLEAN BUST GATE --------
+          const preGate = await gateBustPreClean(supabase, bytes);
+          if (!preGate.ok) {
+            console.error(
+              `[generate-avatar] PREVIEW pre-clean bust gate FAILED ${beneficiary_id} ` +
+              `bust=${preGate.qa?.scores?.bust_completeness}`,
+            );
+            await supabase.from("beneficiaries").update({
+              avatar_status: "failed",
+              avatar_qa_report: {
+                stage: "pre_clean",
+                reason: preGate.reason,
+                scores: preGate.qa?.scores ?? null,
+                notes: preGate.qa?.notes ?? null,
+              },
+            }).eq("id", beneficiary_id);
+            return;
+          }
+
+          const snapshot = snapshotPreviewFields(b);
           const ts = Date.now();
           const fileName = `preview/${beneficiary_id}.png`;
           const versionFileName = `versions/${beneficiary_id}/preview-${ts}.png`;
@@ -673,15 +694,21 @@ serve(async (req) => {
             seed: traits.avatar_seed,
             prompt,
           });
-          await autoCleanBackground(supabase, beneficiary_id, "preview");
+          await runCleanAndVerify(
+            supabase, beneficiary_id, "preview", "avatar_preview_url", snapshot, fileName,
+          );
           return;
         }
 
-        // FINAL mode: Pro + QA scoring
+        // FINAL mode: Pro + QA scoring (runFinalPipeline already calls QA with bust_completeness)
         const { best, attempts } = await runFinalPipeline(supabase, prompt);
         const qa = best.qa!;
 
-        if (qa.global_score >= QA_PASS) {
+        // Pre-clean bust gate is implicit here: runFinalPipeline runs runQA which
+        // includes bust_completeness with hard-fail < 75, so a bust defect drops
+        // global_score and triggers the QA_PASS branch below to fail.
+        if (qa.global_score >= QA_PASS && !failsBust(qa)) {
+          const snapshot = snapshotFinalFields(b);
           const ts = Date.now();
           const fileName = `${beneficiary_id}.png`;
           const versionFileName = `versions/${beneficiary_id}/final-${ts}.png`;
@@ -719,7 +746,9 @@ serve(async (req) => {
             seed: traits.avatar_seed,
             prompt,
           });
-          await autoCleanBackground(supabase, beneficiary_id, "final");
+          await runCleanAndVerify(
+            supabase, beneficiary_id, "final", "avatar_url", snapshot, fileName,
+          );
         } else {
           const ts = Date.now();
           const fileName = `rejected/${beneficiary_id}-${ts}.png`;
