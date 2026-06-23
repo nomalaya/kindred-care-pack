@@ -116,9 +116,9 @@ const AvatarStudio = () => {
           if (cur === "final" && next.avatar_status === "validated") setBusy(null);
           if (next.avatar_status === "failed" && (cur === "preview" || cur === "final")) {
             const r: any = next.avatar_qa_report || {};
-            if (r.code === "no_credits") toast.error("Crédits Lovable AI insuffisants.");
-            else if (r.code === "rate_limited") toast.error("Trop de requêtes IA. Réessayez dans 1 minute.");
-            else toast.error("Échec génération : " + (r.error || "erreur"));
+            const reason = r.reason || r.code;
+            const msg = failureReasonToMessage(reason, r);
+            toast.error(msg);
             setBusy(null);
           }
         },
@@ -1019,16 +1019,16 @@ const AvatarStudio = () => {
                   )}
 
 
-                  {/* Failed banner */}
+                  {/* Failed banner — surface the real cause from avatar_qa_report */}
                   {selected.avatar_status === "failed" && (
                     <div className="text-xs rounded-md border border-destructive/40 bg-destructive/10 text-destructive px-2 py-1.5 flex items-start gap-1.5">
                       <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                       <div>
-                        {(selected as any).avatar_qa_report?.code === "no_credits"
-                          ? "Crédits Lovable AI insuffisants. Rechargez le workspace."
-                          : (selected as any).avatar_qa_report?.code === "rate_limited"
-                          ? "Trop de requêtes. Réessayez dans 1 minute."
-                          : "Dernière génération échouée. Réessayez."}
+                        {failureReasonToMessage(
+                          (selected as any).avatar_qa_report?.reason
+                            ?? (selected as any).avatar_qa_report?.code,
+                          (selected as any).avatar_qa_report,
+                        )}
                       </div>
                     </div>
                   )}
