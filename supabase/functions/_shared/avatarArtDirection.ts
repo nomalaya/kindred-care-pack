@@ -106,6 +106,13 @@ IMAGE FORMAT — STRICT: square 1:1 canvas. Full-bleed illustration. The white b
 FRAMING — STRICT: the subject is composed of HEAD + NECK + COLLARBONE + VERY TOP OF SHOULDERS only. The bottom edge of the canvas crops the body at the COLLARBONE LINE, ABOVE the chest. The chest, bust, breasts and torso MUST NOT be visible. Only a thin sliver of the garment neckline may appear at the bottom edge.
 SUBJECT SIZE — TARGET: the subject occupies approximately 70% of the canvas (both height and width). Preferred range: 65%–75%. The model should aim for 70% whenever possible. AT LEAST 15% of pure white margin MUST remain visible on EACH of the four sides (top, bottom, left, right). The subject must NEVER touch any edge of the canvas.
 COMPOSITION: subject perfectly centered horizontally and vertically. The face occupies the upper-middle portion of the framed subject. Looking softly toward the camera.
+COMPLETE BUST — STRICT (NON-NEGOTIABLE):
+The portrait must show a complete, solid upper bust with visible shoulders and a continuous torso outline.
+The clothing and shoulders must remain fully drawn and fully opaque until the intended lower bust boundary.
+The lower bust must end as a CLEAN DRAWN PORTRAIT (a real garment line), NOT as a fading wash into the white background.
+Do not fade, dissolve, wash out, blur, crop, mask, vignette or watercolor-fade the lower bust.
+No white gradient over the body, no soft fade-out at the bottom, no circular crop, no cut-off torso, no disappearing body.
+Head, neck, shoulders, and upper torso must all be fully visible and fully inked.
 ABSOLUTELY FORBIDDEN: visible chest, visible bust, visible breasts, cleavage, full torso, sweater or shirt extending into the lower half of the image, edge-to-edge subject, head touching the top edge, shoulders touching the side edges, paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair.
 `.trim();
 
