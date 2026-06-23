@@ -17,7 +17,7 @@ import {
   inferAvatarTraits,
   AvatarTraits,
   diffTraits,
-  hasStructuralChange,
+  classifyDiff,
   TraitDiff,
 } from "../_shared/avatarTraits.ts";
 import {
@@ -27,6 +27,7 @@ import {
   MODEL_FINAL,
   MODEL_EDIT,
 } from "../_shared/avatarArtDirection.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,10 +41,11 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const QA_PASS = 75;
 const QA_BORDERLINE = 60;
 
-// Maximum number of soft attribute changes allowed in a single edit pass.
-// Above this we fall back to full regeneration — too many simultaneous tweaks
-// produce divergent identities in practice.
-const MAX_EDIT_DIFF = 5;
+// Soft cap on cumulative changes within a single edit pass — a safety net only.
+// Structural changes are now handled explicitly via requires_confirmation, not
+// via silent fallback. See classifyDiff().
+const MAX_EDIT_DIFF = 8;
+
 
 type GenMode = "preview" | "final" | "edit" | "edit_hd";
 
@@ -187,11 +189,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { beneficiary_id, mode: rawMode = "preview", force = false } = await req.json();
+    const {
+      beneficiary_id,
+      mode: rawMode = "preview",
+      force = false,
+      confirmStructural = false,
+    } = await req.json();
     if (!beneficiary_id) throw new Error("beneficiary_id required");
     if (!["preview", "final", "edit", "edit_hd"].includes(rawMode)) {
       throw new Error("mode must be 'preview', 'final', 'edit' or 'edit_hd'");
     }
+
     let mode: GenMode = rawMode as GenMode;
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
