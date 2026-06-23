@@ -348,14 +348,21 @@ serve(async (req) => {
         const nonce = `${traits.avatar_seed}`;
 
 
-        // Snapshot used for future edit diffs. Always overwrite on success.
+        // Snapshot used for future edit diffs. Written ONLY on paths that
+        // also promote avatar_url in the same UPDATE — otherwise the snapshot
+        // would drift ahead of the reference image actually used as the edit
+        // base (Léa case).
         const snapshotTraits: Record<string, any> = { ...traits };
+        const snapshotPatch: Record<string, any> = {
+          avatar_generated_traits: snapshotTraits,
+          avatar_generated_at: new Date().toISOString(),
+        };
 
+        // Current trait fields — safe to refresh on every success path
+        // (used by the UI). Does NOT include the snapshot.
         const traitsUpdate: Record<string, any> = {
           ...traits,
           avatar_seed: traits.avatar_seed,
-          avatar_generated_at: new Date().toISOString(),
-          avatar_generated_traits: snapshotTraits,
         };
 
         // -------------------- EDIT (image→image) --------------------
@@ -419,6 +426,7 @@ serve(async (req) => {
                 : "generated";
             await supabase.from("beneficiaries").update({
               ...traitsUpdate,
+              ...snapshotPatch,
               avatar_url: url,
               avatar_source_url: url,
               avatar_status: "validated",
@@ -519,6 +527,7 @@ serve(async (req) => {
               : "generated";
           await supabase.from("beneficiaries").update({
             ...traitsUpdate,
+            ...snapshotPatch,
             avatar_url: url,
             avatar_source_url: url,
             avatar_status: "validated",
