@@ -69,7 +69,8 @@ Dimensions (0=terrible, 100=excellent):
 - anonymity: a GENERIC archetypal character that does NOT resemble any real identifiable person, celebrity or public figure? Score 0 if it looks like a specific real person.
 - not_caricature: free of cultural caricature, stereotypes, exaggeration?
 - dignity: portrayed with dignity and humanity, no misery, no pathos?
-- human_warmth: emotionally credible, warm, kind (not commercial smile, not cold)?`;
+- human_warmth: emotionally credible, warm, kind (not commercial smile, not cold)?
+- bust_completeness: the lower bust is FULLY DRAWN with a clean garment line, shoulders fully visible, continuous torso outline. Score 0 if the body dissolves, fades into white, has a watercolor fade-out, is circular-cropped, vignetted, masked, or if the shoulders/clothing are cut off, unfinished, transparent at the bottom, or missing the lower bust.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
