@@ -808,6 +808,11 @@ serve(async (req) => {
         await supabase.from("beneficiaries").update({
           avatar_status: "failed",
           avatar_qa_report: {
+            reason: workErr.code === "no_credits"
+              ? "no_credits"
+              : workErr.code === "rate_limited"
+              ? "rate_limited"
+              : "work_error",
             error: workErr.message ?? String(workErr),
             code: workErr.code ?? null,
             gateway_status: workErr.gatewayStatus ?? null,
