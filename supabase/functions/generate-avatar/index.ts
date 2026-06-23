@@ -524,23 +524,51 @@ serve(async (req) => {
           const editPrompt = `${buildEditPrompt(editDiff, traits)}\n[render-token: ${nonce}]`;
           traitsUpdate.avatar_prompt = editPrompt;
 
-          const bytes = await generateEditedImage(editPrompt, sourceUrl, MODEL_EDIT);
-          const ts = Date.now();
+          // Which transformative attributes are in this diff? Tells QA to allow
+          // natural face/body changes (same person transformed).
+          const transformsInDiff = editDiff
+            .map(d => d.key)
+            .filter(k => (TRANSFORMATIVE_TRAIT_KEYS as string[]).includes(k));
+          const isBodyTypeEdit = transformsInDiff.includes("avatar_body_type");
 
-          // -------- PRE-CLEAN BUST GATE (applies to edit AND edit_hd) --------
-          const preGate = await gateBustPreClean(supabase, bytes);
+          // First attempt
+          let bytes = await generateEditedImage(editPrompt, sourceUrl, MODEL_EDIT);
+          let ts = Date.now();
+          let preGate = await gateBustPreClean(supabase, bytes, transformsInDiff);
+          let attempts = 1;
+
+          // For body-type edits specifically: retry ONCE with a seed-shifted
+          // prompt before giving up. We do NOT silently fall back to full
+          // text-to-image (would invent a new face).
+          if (!preGate.ok && isBodyTypeEdit) {
+            console.warn(
+              `[generate-avatar] EDIT body_type bust gate failed on attempt 1 ` +
+              `(${preGate.qa?.scores?.bust_completeness}) — retrying with seed-shift`,
+            );
+            const retryPrompt = `${editPrompt}\n[seed-shift-body-${Date.now()}]`;
+            bytes = await generateEditedImage(retryPrompt, sourceUrl, MODEL_EDIT);
+            ts = Date.now();
+            preGate = await gateBustPreClean(supabase, bytes, transformsInDiff);
+            attempts = 2;
+          }
+
           if (!preGate.ok) {
+            // Final failure — surface a precise reason.
+            const reason = isBodyTypeEdit ? "body_type_unstable" : preGate.reason;
             console.error(
               `[generate-avatar] EDIT pre-clean bust gate FAILED ${beneficiary_id} ` +
-              `bust=${preGate.qa?.scores?.bust_completeness}`,
+              `bust=${preGate.qa?.scores?.bust_completeness} reason=${reason} attempts=${attempts}`,
             );
             await supabase.from("beneficiaries").update({
               avatar_status: "failed",
               avatar_qa_report: {
                 stage: "pre_clean",
-                reason: preGate.reason,
+                reason,
                 scores: preGate.qa?.scores ?? null,
                 notes: preGate.qa?.notes ?? null,
+                attempts,
+                edited: true,
+                transforms: transformsInDiff,
               },
             }).eq("id", beneficiary_id);
             return;
@@ -580,7 +608,7 @@ serve(async (req) => {
           }
 
           // edit_hd: QA, on pass we promote to avatar_url
-          const qa = preGate.qa ?? await runQA(supabase, bytes);
+          const qa = preGate.qa ?? await runQA(supabase, bytes, transformsInDiff);
           if (qa.global_score >= QA_PASS) {
             const snapshot = snapshotFinalFields(b);
             const fileName = `${beneficiary_id}.png`;
