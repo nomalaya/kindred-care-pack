@@ -106,6 +106,13 @@ IMAGE FORMAT — STRICT: square 1:1 canvas. Full-bleed illustration. The white b
 FRAMING — STRICT: the subject is composed of HEAD + NECK + COLLARBONE + VERY TOP OF SHOULDERS only. The bottom edge of the canvas crops the body at the COLLARBONE LINE, ABOVE the chest. The chest, bust, breasts and torso MUST NOT be visible. Only a thin sliver of the garment neckline may appear at the bottom edge.
 SUBJECT SIZE — TARGET: the subject occupies approximately 70% of the canvas (both height and width). Preferred range: 65%–75%. The model should aim for 70% whenever possible. AT LEAST 15% of pure white margin MUST remain visible on EACH of the four sides (top, bottom, left, right). The subject must NEVER touch any edge of the canvas.
 COMPOSITION: subject perfectly centered horizontally and vertically. The face occupies the upper-middle portion of the framed subject. Looking softly toward the camera.
+COMPLETE BUST — STRICT (NON-NEGOTIABLE):
+The portrait must show a complete, solid upper bust with visible shoulders and a continuous torso outline.
+The clothing and shoulders must remain fully drawn and fully opaque until the intended lower bust boundary.
+The lower bust must end as a CLEAN DRAWN PORTRAIT (a real garment line), NOT as a fading wash into the white background.
+Do not fade, dissolve, wash out, blur, crop, mask, vignette or watercolor-fade the lower bust.
+No white gradient over the body, no soft fade-out at the bottom, no circular crop, no cut-off torso, no disappearing body.
+Head, neck, shoulders, and upper torso must all be fully visible and fully inked.
 ABSOLUTELY FORBIDDEN: visible chest, visible bust, visible breasts, cleavage, full torso, sweater or shirt extending into the lower half of the image, edge-to-edge subject, head touching the top edge, shoulders touching the side edges, paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair.
 `.trim();
 
@@ -141,6 +148,11 @@ export const NEGATIVE_PROMPT = [
   "no contextual scene", "no interior", "no furniture", "no window", "no objects behind the subject",
   "no identifiable real person", "no celebrity likeness",
   "no multiple faces", "no text", "no watermark", "no logo",
+  // Bust-completeness — direct tokens (no double negation) per operator brief.
+  "watercolor fade-out", "disappearing torso", "fading bust", "dissolved shoulders",
+  "cropped shoulders", "cut-off torso", "circular crop", "vignette mask over body",
+  "white gradient over body", "unfinished clothing", "body fading into background",
+  "lower bust missing", "transparent fade at bottom", "soft bottom dissolve",
 ].join(", ");
 
 export function buildAvatarPrompt(t: AvatarTraits): string {
@@ -338,6 +350,7 @@ export function buildEditPrompt(diff: TraitDiff[], traits: AvatarTraits): string
     `- the exact same background (color, texture, edges)`,
     `- the exact same lighting direction, color temperature and shadows`,
     `- the exact same artistic style (line work, shading, color palette, illustration style)`,
+    `- the exact original lower bust boundary, garment line, shoulder visibility and torso outline from the reference image`,
     ``,
     `CHANGE ONLY the following attributes, keeping every other visual element untouched:`,
     changes || `- (no change requested)`,
@@ -348,6 +361,9 @@ export function buildEditPrompt(diff: TraitDiff[], traits: AvatarTraits): string
     `- change the background or add any decoration behind the subject`,
     `- alter the face structure or identity`,
     `- redraw any feature or clothing not explicitly listed above`,
+    `- redraw the lower torso as a fade-out, watercolor wash or transparent dissolve`,
+    `- shorten, mask, vignette or circular-crop the bust of the reference`,
+    `- replace the existing drawn garment line with a soft gradient into the background`,
     ``,
     FRAMING_BLOCK,
     ``,

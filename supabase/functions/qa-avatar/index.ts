@@ -19,6 +19,7 @@ const WEIGHTS: Record<string, number> = {
   not_caricature: 1.5,
   dignity: 1.5,
   human_warmth: 1.0,
+  bust_completeness: 1.5, // no fade-out / dissolved / cropped bust — hard requirement
 };
 
 // Hard fail (force rejection) if any of these dimensions falls below threshold,
@@ -26,6 +27,7 @@ const WEIGHTS: Record<string, number> = {
 const HARD_FAIL_THRESHOLDS: Record<string, number> = {
   style_match: 70,
   anonymity: 70,
+  bust_completeness: 75,
 };
 
 function weightedScore(scores: Record<string, number>): number {
@@ -67,7 +69,8 @@ Dimensions (0=terrible, 100=excellent):
 - anonymity: a GENERIC archetypal character that does NOT resemble any real identifiable person, celebrity or public figure? Score 0 if it looks like a specific real person.
 - not_caricature: free of cultural caricature, stereotypes, exaggeration?
 - dignity: portrayed with dignity and humanity, no misery, no pathos?
-- human_warmth: emotionally credible, warm, kind (not commercial smile, not cold)?`;
+- human_warmth: emotionally credible, warm, kind (not commercial smile, not cold)?
+- bust_completeness: the lower bust is FULLY DRAWN with a clean garment line, shoulders fully visible, continuous torso outline. Score 0 if the body dissolves, fades into white, has a watercolor fade-out, is circular-cropped, vignetted, masked, or if the shoulders/clothing are cut off, unfinished, transparent at the bottom, or missing the lower bust.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
