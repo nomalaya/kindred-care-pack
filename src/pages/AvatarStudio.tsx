@@ -19,6 +19,7 @@ import {
   AVATAR_VOCAB, WORKFLOW_LABEL, WORKFLOW_COLOR, WorkflowStatus,
 } from "@/lib/avatarTraits";
 import { evaluateAvatarRules, RuleWarning } from "@/lib/avatarRules";
+import { failureReasonToMessage } from "@/lib/avatarFailureReason";
 import { inferStudioDefaultsWithReasons, type FieldReason } from "@/lib/avatarAutoInfer";
 import { ContextPanel } from "@/features/avatar-studio/ContextPanel";
 import { InferenceReasonsPanel } from "@/features/avatar-studio/InferenceReasonsPanel";
