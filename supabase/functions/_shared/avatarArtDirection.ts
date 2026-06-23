@@ -293,9 +293,101 @@ export const MODEL_QA = "google/gemini-2.5-flash";
 // drifts on art direction as soon as expression is touched (Léa case).
 // ---------------------------------------------------------------------------
 
+const EYE_COLOR_DESC: Record<string, string> = {
+  brown: "warm brown eyes",
+  dark_brown: "deep dark brown eyes",
+  hazel: "hazel eyes",
+  green: "green eyes",
+  blue: "blue eyes",
+  gray: "soft gray eyes",
+};
+const EYE_SHAPE_DESC: Record<string, string> = {
+  almond: "almond-shaped eyes",
+  round: "round, open eyes",
+  soft: "soft-shaped eyes",
+  narrow: "narrow eyes",
+  hooded: "hooded eyelids",
+  tired: "subtly tired eyes",
+  deep_set: "deep-set eyes",
+};
+const BEARD_DESC: Record<string, string> = {
+  none: "clean-shaven (no beard)",
+  light: "light stubble beard",
+  full: "full trimmed beard",
+  grey: "neatly trimmed grey beard",
+  religious_long: "a long untrimmed beard in a modest religious style, moustache kept short",
+};
+const MOUSTACHE_DESC: Record<string, string> = {
+  none: "no moustache",
+  light: "light thin moustache",
+  full: "full moustache",
+};
+const MOBILITY_DESC: Record<string, string> = {
+  none: "no visible mobility aid",
+  wheelchair_manual: "seated in a simple manual wheelchair, hands on the lap",
+  wheelchair_electric: "seated in a modern electric wheelchair with discreet controls",
+  cane: "holding a wooden walking cane",
+  crutches: "a single forearm crutch visible beside the subject",
+  walker: "a light walking frame visible in front",
+  visible_bandage: "a discreet white bandage on the forearm",
+  arm_sling: "one arm gently supported in a soft fabric sling",
+  oxygen_cannula: "wearing a discreet nasal oxygen cannula",
+};
+const HEAD_COVERING_DESC: Record<string, string> = {
+  none: "no head covering, hair fully visible",
+  light_scarf: "a light scarf draped on the shoulders, hair fully visible",
+  headscarf: "a modest headscarf partially covering the hair",
+  hijab_full: "a hijab fully covering the hair, ears and neck",
+  taqiyah: "a small white taqiyah on the crown of the head",
+  turban: "a neatly wrapped turban in a muted tone",
+  kippah: "a small discreet kippah on the crown of the head",
+};
+const FOREHEAD_MARK_DESC: Record<string, string> = {
+  none: "no forehead mark",
+  bindi_red: "a small red bindi centered on the forehead",
+  bindi_black: "a small black bindi centered on the forehead",
+  bindi_decorative: "a small decorative bindi centered on the forehead",
+};
+const PARENT_ENERGY_DESC: Record<string, string> = {
+  none: "no specific parental presence",
+  protective_parent: "warm protective parental presence",
+  practical_parent: "calm grounded parental presence",
+  tired_but_warm_parent: "weary parental presence softened by warmth",
+};
+const HAIR_LENGTH_DESC: Record<string, string> = {
+  very_short: "very short hair",
+  short: "short hair",
+  shoulder: "shoulder-length hair",
+  medium: "medium-length hair",
+  long: "long hair",
+};
+const HAIR_VOLUME_DESC: Record<string, string> = {
+  fine: "fine, thin hair volume",
+  natural: "natural hair volume",
+  light: "light hair volume",
+  thick: "thick, dense hair volume",
+};
+const HAIR_STYLE_DESC: Record<string, string> = {
+  clean_cut: "clean-cut hairstyle",
+  tousled: "tousled hairstyle",
+  side_parted: "side-parted hairstyle",
+  loose: "loose flowing hairstyle",
+  softly_tied: "softly tied back hairstyle",
+  half_up: "half-up hairstyle",
+  natural_waves: "natural waves hairstyle",
+  bun: "neat bun hairstyle",
+  braided_simple: "simple braid hairstyle",
+  cornrows: "cornrows hairstyle",
+  box_braids: "box braids hairstyle",
+  braided_updo: "braided updo hairstyle",
+};
+
 const EDIT_VALUE_LABELS: Record<string, Record<string, string>> = {
   avatar_hair_color: HAIR_COLOR_DESC,
   avatar_hair_type: HAIR_TYPE_DESC,
+  avatar_hair_length: HAIR_LENGTH_DESC,
+  avatar_hair_volume: HAIR_VOLUME_DESC,
+  avatar_hair_style: HAIR_STYLE_DESC,
   avatar_skin_tone: SKIN_DESC,
   avatar_nose: NOSE_DESC,
   avatar_body_type: BODY_TYPE_DESC,
@@ -303,6 +395,14 @@ const EDIT_VALUE_LABELS: Record<string, Record<string, string>> = {
   avatar_clothing_style: CLOTHING_STYLE_DESC,
   avatar_expression: EXPRESSION_DESCRIPTIONS,
   avatar_posture: POSTURE_DESCRIPTIONS,
+  avatar_eye_color: EYE_COLOR_DESC,
+  avatar_eye_shape: EYE_SHAPE_DESC,
+  avatar_beard: BEARD_DESC,
+  avatar_moustache: MOUSTACHE_DESC,
+  avatar_mobility_aid: MOBILITY_DESC,
+  avatar_head_covering: HEAD_COVERING_DESC,
+  avatar_forehead_mark: FOREHEAD_MARK_DESC,
+  avatar_parent_energy: PARENT_ENERGY_DESC,
 };
 
 function describeValue(key: string, value: unknown): string {
@@ -331,21 +431,71 @@ function buildSubjectRecap(t: AvatarTraits): string {
   return parts.filter(Boolean).join(", ");
 }
 
+// Per-trait "same person transformed" guidance blocks. These are injected at
+// the top of the edit prompt when a transformative attribute changes, so the
+// model knows it must transform the SAME individual (not invent a new person)
+// AND must allow the natural consequences of that attribute on the body/face.
+const TRANSFORM_BLOCKS: Record<string, string> = {
+  avatar_body_type: [
+    `BODY TYPE TRANSFORMATION — SAME PERSON:`,
+    `Transform the reference person to match the requested body type while keeping them clearly recognizable as the same individual.`,
+    `For a stronger/heavier body type, subtly increase facial fullness, cheek softness, chin softness, neck width, shoulder/upper-bust volume, and garment drape.`,
+    `For a thinner body type, subtly reduce facial fullness and slim the neck, shoulders and upper bust.`,
+    `Preserve the same eyes, gaze, nose identity, mouth identity, hairstyle, hair color, age range, head tilt, pose, artistic style, framing, lighting and overall likeness.`,
+    `Do NOT create a new face. Do NOT change the person into someone else.`,
+    `The result MUST look like the same person whose body type has changed naturally.`,
+  ].join("\n"),
+  avatar_age_range: [
+    `AGE TRANSFORMATION — SAME PERSON:`,
+    `Adjust the apparent age while keeping the same individual recognizable.`,
+    `Allow natural age signs (fine lines, skin tone, hair density) to evolve, but preserve the same eye shape, gaze, nose identity, mouth identity, hairstyle silhouette and overall likeness.`,
+  ].join("\n"),
+  avatar_expression: [
+    `EXPRESSION TRANSFORMATION — SAME PERSON:`,
+    `Adjust the facial expression musculature (eyes, brows, mouth corners) while preserving the same identity.`,
+    `Do not change face shape, nose, eye color/shape, hairstyle or pose.`,
+  ].join("\n"),
+};
+
+function buildTransformativeIntro(diff: TraitDiff[]): string {
+  const blocks = diff
+    .map(d => TRANSFORM_BLOCKS[d.key])
+    .filter(Boolean);
+  return blocks.length ? blocks.join("\n\n") + "\n" : "";
+}
+
+function affectsBodyShape(diff: TraitDiff[]): boolean {
+  return diff.some(d => d.key === "avatar_body_type");
+}
+
 export function buildEditPrompt(diff: TraitDiff[], traits: AvatarTraits): string {
   const changes = diff
     .map(d => `- ${d.humanLabel}: ${describeValue(d.key, d.after)}`)
     .join("\n");
   const subjectRecap = buildSubjectRecap(traits);
+  const transformativeIntro = buildTransformativeIntro(diff);
+
+  // When the body type changes, the face/neck/shoulders MUST be allowed to
+  // adapt — so we replace the strict "same proportions / same face shape"
+  // clauses with a softer "same identity" clause for that specific case.
+  const bodyShifts = affectsBodyShape(diff);
+  const identityClause = bodyShifts
+    ? `- the SAME person and SAME identity (same eyes, same gaze, same nose, same mouth, same hairstyle, same hair color, same age range, same overall likeness). Facial fullness, cheek softness, neck/shoulder width and garment drape ARE expected to change to match the new body type.`
+    : `- the exact same person and facial identity (same face shape, same proportions, same gaze, same eyes)`;
+  const poseClause = bodyShifts
+    ? `- the same pose, body angle and head tilt (shoulder/bust width may grow or shrink with the body type)`
+    : `- the exact same pose, body angle, head tilt, shoulder position`;
 
   return [
+    transformativeIntro,
     `EDIT THE PROVIDED REFERENCE IMAGE — surgical retouch, NOT regeneration.`,
     ``,
-    `REFERENCE SUBJECT (must remain visually identical):`,
+    `REFERENCE SUBJECT (must remain the same person):`,
     `${subjectRecap}.`,
     ``,
     `PRESERVE STRICTLY (non-negotiable):`,
-    `- the exact same person and facial identity (same face shape, same proportions, same gaze, same eyes)`,
-    `- the exact same pose, body angle, head tilt, shoulder position`,
+    identityClause,
+    poseClause,
     `- the exact same framing, crop, composition, camera distance and subject scale within the canvas`,
     `- the exact same background (color, texture, edges)`,
     `- the exact same lighting direction, color temperature and shadows`,
@@ -359,7 +509,9 @@ export function buildEditPrompt(diff: TraitDiff[], traits: AvatarTraits): string
     `- regenerate from scratch`,
     `- change the cropping, the canvas margins or the subject size`,
     `- change the background or add any decoration behind the subject`,
-    `- alter the face structure or identity`,
+    bodyShifts
+      ? `- replace the person with someone else (the face must remain recognizable as the same individual)`
+      : `- alter the face structure or identity`,
     `- redraw any feature or clothing not explicitly listed above`,
     `- redraw the lower torso as a fade-out, watercolor wash or transparent dissolve`,
     `- shorten, mask, vignette or circular-crop the bust of the reference`,
@@ -373,8 +525,8 @@ export function buildEditPrompt(diff: TraitDiff[], traits: AvatarTraits): string
     ``,
     `AVOID: ${NEGATIVE_PROMPT}.`,
     ``,
-    `Return ONE square 1:1 image with the requested changes applied as a minimal, surgical retouch on top of the reference. Every preserved element must remain pixel-faithful to the reference.`,
-  ].join("\n");
+    `Return ONE square 1:1 image with the requested changes applied as a minimal, surgical retouch on top of the reference. Every preserved element must remain pixel-faithful to the reference (except the elements explicitly transformed above).`,
+  ].filter(Boolean).join("\n");
 }
 
 

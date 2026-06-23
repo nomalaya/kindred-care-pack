@@ -45,17 +45,29 @@ function weightedScore(scores: Record<string, number>): number {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { image_url, image_base64 } = await req.json();
+    const { image_url, image_base64, transformative_traits } = await req.json();
     const imgUrl = image_url ?? (image_base64 ? `data:image/png;base64,${image_base64}` : null);
     if (!imgUrl) throw new Error("image_url or image_base64 required");
+    const transforms: string[] = Array.isArray(transformative_traits) ? transformative_traits : [];
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    const transformNotice = transforms.length
+      ? `
+TRANSFORMATIVE EDIT IN PROGRESS — the following attributes were intentionally changed: ${transforms.join(", ")}.
+For these attributes, the subject is the SAME person transformed (not a different person):
+- avatar_body_type: allow facial fullness, cheek softness, neck/shoulder width, bust width and garment drape to change naturally.
+- avatar_age_range: allow age signs (fine lines, skin tone, hair density) to evolve.
+- avatar_expression: allow facial musculature (mouth, brows, eyes) to shift with the expression.
+- avatar_fatigue_level / avatar_tired_level: allow subtle tiredness signs.
+Do NOT penalise identity for these natural transformations. Only penalise if the result clearly looks like a different person (different bone structure, different nose identity, different mouth identity, different eye shape, different hairstyle silhouette).`
+      : "";
+
     const systemPrompt = `You are a strict QA reviewer for an NGO beneficiary portrait catalog.
-You must score the image on 10 dimensions, each from 0 (terrible) to 100 (excellent).
+You must score the image on 11 dimensions, each from 0 (terrible) to 100 (excellent).
 Be honest and discriminating — do not inflate scores. Score 50-70 for borderline issues.
-Return concise notes explaining any score below 80.`;
+Return concise notes explaining any score below 80.${transformNotice}`;
 
     const userPrompt = `Score this avatar. Respond ONLY via the tool call.
 

@@ -19,6 +19,7 @@ import {
   diffTraits,
   classifyDiff,
   TraitDiff,
+  TRANSFORMATIVE_TRAIT_KEYS,
 } from "../_shared/avatarTraits.ts";
 import {
   buildAvatarPrompt,
@@ -130,12 +131,16 @@ async function generateEditedImage(prompt: string, sourceUrl: string, model: str
   return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 }
 
-async function runQA(supabase: any, imageBytes: Uint8Array): Promise<{ scores: any; notes: string[]; global_score: number }> {
+async function runQA(
+  supabase: any,
+  imageBytes: Uint8Array,
+  transformativeTraits: string[] = [],
+): Promise<{ scores: any; notes: string[]; global_score: number }> {
   let bin = "";
   for (let i = 0; i < imageBytes.length; i++) bin += String.fromCharCode(imageBytes[i]);
   const b64 = btoa(bin);
   const { data, error } = await supabase.functions.invoke("qa-avatar", {
-    body: { image_base64: b64 },
+    body: { image_base64: b64, transformative_traits: transformativeTraits },
   });
   if (error) throw new Error(`QA invoke error: ${error.message}`);
   return data;
@@ -318,9 +323,10 @@ async function runCleanAndVerify(
 async function gateBustPreClean(
   supabase: any,
   bytes: Uint8Array,
+  transformativeTraits: string[] = [],
 ): Promise<{ ok: true; qa: any } | { ok: false; qa: any | null; reason: string }> {
   try {
-    const qa = await runQA(supabase, bytes);
+    const qa = await runQA(supabase, bytes, transformativeTraits);
     if (failsBust(qa)) {
       return { ok: false, qa, reason: "bust_incomplete_pre_clean" };
     }
@@ -518,23 +524,51 @@ serve(async (req) => {
           const editPrompt = `${buildEditPrompt(editDiff, traits)}\n[render-token: ${nonce}]`;
           traitsUpdate.avatar_prompt = editPrompt;
 
-          const bytes = await generateEditedImage(editPrompt, sourceUrl, MODEL_EDIT);
-          const ts = Date.now();
+          // Which transformative attributes are in this diff? Tells QA to allow
+          // natural face/body changes (same person transformed).
+          const transformsInDiff = editDiff
+            .map(d => d.key)
+            .filter(k => (TRANSFORMATIVE_TRAIT_KEYS as string[]).includes(k));
+          const isBodyTypeEdit = transformsInDiff.includes("avatar_body_type");
 
-          // -------- PRE-CLEAN BUST GATE (applies to edit AND edit_hd) --------
-          const preGate = await gateBustPreClean(supabase, bytes);
+          // First attempt
+          let bytes = await generateEditedImage(editPrompt, sourceUrl, MODEL_EDIT);
+          let ts = Date.now();
+          let preGate = await gateBustPreClean(supabase, bytes, transformsInDiff);
+          let attempts = 1;
+
+          // For body-type edits specifically: retry ONCE with a seed-shifted
+          // prompt before giving up. We do NOT silently fall back to full
+          // text-to-image (would invent a new face).
+          if (!preGate.ok && isBodyTypeEdit) {
+            console.warn(
+              `[generate-avatar] EDIT body_type bust gate failed on attempt 1 ` +
+              `(${preGate.qa?.scores?.bust_completeness}) — retrying with seed-shift`,
+            );
+            const retryPrompt = `${editPrompt}\n[seed-shift-body-${Date.now()}]`;
+            bytes = await generateEditedImage(retryPrompt, sourceUrl, MODEL_EDIT);
+            ts = Date.now();
+            preGate = await gateBustPreClean(supabase, bytes, transformsInDiff);
+            attempts = 2;
+          }
+
           if (!preGate.ok) {
+            // Final failure — surface a precise reason.
+            const reason = isBodyTypeEdit ? "body_type_unstable" : preGate.reason;
             console.error(
               `[generate-avatar] EDIT pre-clean bust gate FAILED ${beneficiary_id} ` +
-              `bust=${preGate.qa?.scores?.bust_completeness}`,
+              `bust=${preGate.qa?.scores?.bust_completeness} reason=${reason} attempts=${attempts}`,
             );
             await supabase.from("beneficiaries").update({
               avatar_status: "failed",
               avatar_qa_report: {
                 stage: "pre_clean",
-                reason: preGate.reason,
+                reason,
                 scores: preGate.qa?.scores ?? null,
                 notes: preGate.qa?.notes ?? null,
+                attempts,
+                edited: true,
+                transforms: transformsInDiff,
               },
             }).eq("id", beneficiary_id);
             return;
@@ -574,7 +608,7 @@ serve(async (req) => {
           }
 
           // edit_hd: QA, on pass we promote to avatar_url
-          const qa = preGate.qa ?? await runQA(supabase, bytes);
+          const qa = preGate.qa ?? await runQA(supabase, bytes, transformsInDiff);
           if (qa.global_score >= QA_PASS) {
             const snapshot = snapshotFinalFields(b);
             const fileName = `${beneficiary_id}.png`;
@@ -774,6 +808,11 @@ serve(async (req) => {
         await supabase.from("beneficiaries").update({
           avatar_status: "failed",
           avatar_qa_report: {
+            reason: workErr.code === "no_credits"
+              ? "no_credits"
+              : workErr.code === "rate_limited"
+              ? "rate_limited"
+              : "work_error",
             error: workErr.message ?? String(workErr),
             code: workErr.code ?? null,
             gateway_status: workErr.gatewayStatus ?? null,
