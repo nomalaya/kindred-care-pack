@@ -148,6 +148,11 @@ export const NEGATIVE_PROMPT = [
   "no contextual scene", "no interior", "no furniture", "no window", "no objects behind the subject",
   "no identifiable real person", "no celebrity likeness",
   "no multiple faces", "no text", "no watermark", "no logo",
+  // Bust-completeness — direct tokens (no double negation) per operator brief.
+  "watercolor fade-out", "disappearing torso", "fading bust", "dissolved shoulders",
+  "cropped shoulders", "cut-off torso", "circular crop", "vignette mask over body",
+  "white gradient over body", "unfinished clothing", "body fading into background",
+  "lower bust missing", "transparent fade at bottom", "soft bottom dissolve",
 ].join(", ");
 
 export function buildAvatarPrompt(t: AvatarTraits): string {
