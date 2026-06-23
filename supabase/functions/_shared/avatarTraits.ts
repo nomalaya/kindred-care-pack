@@ -512,32 +512,38 @@ export const STRUCTURAL_TRAIT_KEYS: Array<keyof AvatarTraits> = [
   "avatar_head_covering",
 ];
 
-// All other trait keys are considered "soft" — safe to mutate via image edit.
-export const SOFT_TRAIT_KEYS: Array<keyof AvatarTraits> = [
-  "avatar_hair_color",
+// "Medium" traits — image-editable, but cumulating them risks identity drift.
+// Used by classifyDiff to escalate the edit to a richer prompt or block it.
+export const MEDIUM_TRAIT_KEYS: Array<keyof AvatarTraits> = [
   "avatar_hair_length",
-  "avatar_hair_volume",
   "avatar_hair_style",
+  "avatar_hair_volume",
   "avatar_hair_recession",
   "avatar_bald_level",
   "avatar_beard",
   "avatar_moustache",
+  "avatar_mobility_aid",
+  "avatar_cultural_style",
+  "avatar_cultural_style_override",
+];
+
+// All other trait keys are considered "soft / light" — safe to mutate via image edit.
+export const SOFT_TRAIT_KEYS: Array<keyof AvatarTraits> = [
+  "avatar_hair_color",
   "avatar_eye_color",
   "avatar_clothing_style",
   "avatar_clothing_color_palette",
   "avatar_expression",
   "avatar_posture",
   "avatar_parent_energy",
-  "avatar_cultural_style",
-  "avatar_cultural_style_override",
   "avatar_forehead_mark",
-  "avatar_mobility_aid",
   "avatar_tired_level",
   "avatar_emotional_brightness",
   "avatar_resilience_level",
   "avatar_fatigue_level",
   "avatar_facial_features",
 ];
+
 
 export interface TraitDiff {
   key: string;
@@ -620,4 +626,48 @@ export function diffTraits(
 export function hasStructuralChange(diff: TraitDiff[]): boolean {
   return diff.some(d => d.structural);
 }
+
+// ---------------------------------------------------------------------------
+// classifyDiff — assigns a severity level to a trait diff so the generation
+// pipeline can choose between a light edit, a richer edit, or a forced full
+// regeneration (with explicit operator confirmation).
+//   - structural: at least one identity-defining attribute changed
+//   - medium    : at least one identity-adjacent attribute changed
+//   - light     : only soft cosmetic attributes changed
+//   - none      : no diff
+// ---------------------------------------------------------------------------
+export type DiffLevel = "none" | "light" | "medium" | "structural";
+
+export interface DiffClassification {
+  level: DiffLevel;
+  structuralKeys: string[];
+  mediumKeys: string[];
+  lightKeys: string[];
+  humanLabels: string[];
+}
+
+export function classifyDiff(diff: TraitDiff[]): DiffClassification {
+  const structuralSet = new Set<string>(STRUCTURAL_TRAIT_KEYS as string[]);
+  const mediumSet = new Set<string>(MEDIUM_TRAIT_KEYS as string[]);
+  const structuralKeys: string[] = [];
+  const mediumKeys: string[] = [];
+  const lightKeys: string[] = [];
+  for (const d of diff) {
+    if (structuralSet.has(d.key)) structuralKeys.push(d.key);
+    else if (mediumSet.has(d.key)) mediumKeys.push(d.key);
+    else lightKeys.push(d.key);
+  }
+  let level: DiffLevel = "none";
+  if (structuralKeys.length) level = "structural";
+  else if (mediumKeys.length) level = "medium";
+  else if (lightKeys.length) level = "light";
+  return {
+    level,
+    structuralKeys,
+    mediumKeys,
+    lightKeys,
+    humanLabels: diff.map(d => d.humanLabel),
+  };
+}
+
 
