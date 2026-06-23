@@ -165,23 +165,170 @@ async function runFinalPipeline(
   return { best: attempts[0], attempts };
 }
 
+const BUST_FAIL = 75;
+
+function failsBust(qa: { scores?: any } | null | undefined): boolean {
+  const s = qa?.scores?.bust_completeness;
+  return typeof s === "number" && s < BUST_FAIL;
+}
+
+async function runQAByUrl(
+  supabase: any,
+  url: string,
+): Promise<{ scores: any; notes: string[]; global_score: number }> {
+  // Bust the cached image so we score the freshly cleaned file, not a CDN copy.
+  const cacheBuster = `${url.split("?")[0]}?qa=${Date.now()}`;
+  const { data, error } = await supabase.functions.invoke("qa-avatar", {
+    body: { image_url: cacheBuster },
+  });
+  if (error) throw new Error(`QA(url) invoke error: ${error.message}`);
+  return data;
+}
+
+// ---- Rollback snapshots ----------------------------------------------------
+// We capture the EXACT prior values of every field we may have written, so a
+// failed post-clean QA restores the row to its pre-generation state with a
+// single atomic UPDATE.
+function snapshotPreviewFields(b: any): Record<string, any> {
+  return {
+    avatar_preview_url: b.avatar_preview_url ?? null,
+    avatar_status: b.avatar_status ?? null,
+    avatar_model_used: b.avatar_model_used ?? null,
+    avatar_prompt: b.avatar_prompt ?? null,
+    avatar_qa_score: b.avatar_qa_score ?? null,
+    avatar_qa_report: b.avatar_qa_report ?? null,
+  };
+}
+
+function snapshotFinalFields(b: any): Record<string, any> {
+  return {
+    avatar_url: b.avatar_url ?? null,
+    avatar_source_url: b.avatar_source_url ?? null,
+    avatar_preview_url: b.avatar_preview_url ?? null,
+    avatar_status: b.avatar_status ?? null,
+    avatar_workflow_status: b.avatar_workflow_status ?? null,
+    avatar_model_used: b.avatar_model_used ?? null,
+    avatar_prompt: b.avatar_prompt ?? null,
+    avatar_generated_traits: b.avatar_generated_traits ?? null,
+    avatar_generated_at: b.avatar_generated_at ?? null,
+    avatar_qa_score: b.avatar_qa_score ?? null,
+    avatar_qa_report: b.avatar_qa_report ?? null,
+  };
+}
+
+async function rollbackBeneficiary(
+  supabase: any,
+  beneficiary_id: string,
+  snapshot: Record<string, any>,
+  newStoragePath: string | null,
+  reason: string,
+): Promise<void> {
+  console.error(
+    `[generate-avatar] ROLLBACK ${beneficiary_id} reason=${reason} ` +
+    `restoring keys=${Object.keys(snapshot).join(",")} removing=${newStoragePath ?? "(none)"}`,
+  );
+  const { error: upErr } = await supabase
+    .from("beneficiaries")
+    .update(snapshot)
+    .eq("id", beneficiary_id);
+  if (upErr) {
+    console.error(`[generate-avatar] ROLLBACK UPDATE failed ${beneficiary_id}:`, upErr);
+  }
+  if (newStoragePath) {
+    const { error: rmErr } = await supabase.storage.from("avatars").remove([newStoragePath]);
+    if (rmErr) console.error(`[generate-avatar] ROLLBACK remove ${newStoragePath} failed:`, rmErr);
+  }
+}
+
 /**
- * Fire-and-forget auto-clean: invokes clean-avatar-background so the imported
- * background bucket shows through behind the silhouette. Never blocks the
- * generation result — errors are logged and swallowed.
+ * SYNCHRONOUS clean + post-detourage QA gate.
+ * - Awaits clean-avatar-background (replaces the previous fire-and-forget).
+ * - Re-reads the served column to QA the EXACT image the user will see.
+ * - On bust_completeness < 75 (or clean invoke failure), rolls back every
+ *   field in `snapshot` and removes the newly uploaded file (best-effort).
+ *
+ * Returns { rejected, qaPost } so callers can include the score in their
+ * response/log without restructuring the upload branch.
  */
-async function autoCleanBackground(
+async function runCleanAndVerify(
   supabase: any,
   beneficiary_id: string,
   target: "preview" | "final",
-): Promise<void> {
+  servedColumn: "avatar_preview_url" | "avatar_url",
+  snapshot: Record<string, any>,
+  newStoragePath: string,
+): Promise<{ rejected: boolean; qaPost: any | null; reason?: string }> {
+  // 1. Synchronous clean
+  let cleanError: any = null;
   try {
     const { error } = await supabase.functions.invoke("clean-avatar-background", {
       body: { beneficiary_id, target },
     });
-    if (error) console.error(`auto-clean ${target} error:`, error);
+    cleanError = error ?? null;
   } catch (e) {
-    console.error(`auto-clean ${target} exception:`, e);
+    cleanError = e;
+  }
+  if (cleanError) {
+    console.error(`[generate-avatar] clean-avatar-background failed for ${beneficiary_id}:`, cleanError);
+    await rollbackBeneficiary(supabase, beneficiary_id, snapshot, newStoragePath, "clean_invoke_failed");
+    return { rejected: true, qaPost: null, reason: "clean_invoke_failed" };
+  }
+
+  // 2. Re-read served URL (clean may rewrite it)
+  const { data: refreshed, error: rdErr } = await supabase
+    .from("beneficiaries")
+    .select(servedColumn)
+    .eq("id", beneficiary_id)
+    .single();
+  if (rdErr || !refreshed) {
+    console.error(`[generate-avatar] post-clean read failed ${beneficiary_id}:`, rdErr);
+    return { rejected: false, qaPost: null, reason: "post_read_failed" };
+  }
+  const servedUrl: string | null = (refreshed as any)?.[servedColumn] ?? null;
+  if (!servedUrl) {
+    return { rejected: false, qaPost: null };
+  }
+
+  // 3. QA on the actually-served image
+  let qaPost: any | null = null;
+  try {
+    qaPost = await runQAByUrl(supabase, servedUrl);
+    console.log(
+      `[generate-avatar] post-clean QA ${beneficiary_id} ` +
+      `bust=${qaPost?.scores?.bust_completeness} global=${qaPost?.global_score}`,
+    );
+  } catch (e) {
+    console.error(`[generate-avatar] post-clean QA failed ${beneficiary_id}:`, e);
+    // QA call failure is NOT a rollback trigger — we only rollback on a
+    // confirmed bust defect. Best-effort: log and continue.
+    return { rejected: false, qaPost: null, reason: "post_qa_failed" };
+  }
+
+  if (failsBust(qaPost)) {
+    await rollbackBeneficiary(
+      supabase, beneficiary_id, snapshot, newStoragePath, "bust_incomplete_after_clean",
+    );
+    return { rejected: true, qaPost, reason: "bust_incomplete_after_clean" };
+  }
+  return { rejected: false, qaPost };
+}
+
+// Pre-clean bust gate. Used on every mode BEFORE upload so we never persist a
+// generation that is already broken at the model stage.
+async function gateBustPreClean(
+  supabase: any,
+  bytes: Uint8Array,
+): Promise<{ ok: true; qa: any } | { ok: false; qa: any | null; reason: string }> {
+  try {
+    const qa = await runQA(supabase, bytes);
+    if (failsBust(qa)) {
+      return { ok: false, qa, reason: "bust_incomplete_pre_clean" };
+    }
+    return { ok: true, qa };
+  } catch (e) {
+    console.error("[generate-avatar] pre-clean QA failed:", e);
+    // Don't block on a QA infrastructure error — best effort.
+    return { ok: true, qa: null };
   }
 }
 
