@@ -17,7 +17,7 @@ import {
   inferAvatarTraits,
   AvatarTraits,
   diffTraits,
-  hasStructuralChange,
+  classifyDiff,
   TraitDiff,
 } from "../_shared/avatarTraits.ts";
 import {
@@ -27,6 +27,7 @@ import {
   MODEL_FINAL,
   MODEL_EDIT,
 } from "../_shared/avatarArtDirection.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,10 +41,11 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const QA_PASS = 75;
 const QA_BORDERLINE = 60;
 
-// Maximum number of soft attribute changes allowed in a single edit pass.
-// Above this we fall back to full regeneration — too many simultaneous tweaks
-// produce divergent identities in practice.
-const MAX_EDIT_DIFF = 5;
+// Soft cap on cumulative changes within a single edit pass — a safety net only.
+// Structural changes are now handled explicitly via requires_confirmation, not
+// via silent fallback. See classifyDiff().
+const MAX_EDIT_DIFF = 8;
+
 
 type GenMode = "preview" | "final" | "edit" | "edit_hd";
 
@@ -187,11 +189,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { beneficiary_id, mode: rawMode = "preview", force = false } = await req.json();
+    const {
+      beneficiary_id,
+      mode: rawMode = "preview",
+      force = false,
+      confirmStructural = false,
+    } = await req.json();
     if (!beneficiary_id) throw new Error("beneficiary_id required");
     if (!["preview", "final", "edit", "edit_hd"].includes(rawMode)) {
       throw new Error("mode must be 'preview', 'final', 'edit' or 'edit_hd'");
     }
+
     let mode: GenMode = rawMode as GenMode;
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
@@ -282,13 +290,45 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        if (hasStructuralChange(editDiff) || editDiff.length > MAX_EDIT_DIFF) {
-          fallbackReason = hasStructuralChange(editDiff) ? "structural_change" : "too_many_changes";
-          console.log(
-            `[generate-avatar] ${beneficiary_id} edit→fallback (${fallbackReason}, count=${editDiff.length})`,
-          );
+        const cls = classifyDiff(editDiff);
+        console.log(
+          `[generate-avatar] ${beneficiary_id} edit classification: level=${cls.level} ` +
+          `structural=[${cls.structuralKeys.join(",")}] medium=[${cls.mediumKeys.join(",")}] light=[${cls.lightKeys.join(",")}]`,
+        );
+
+        // Structural change requires explicit operator confirmation.
+        // No silent fallback to full regeneration anymore.
+        if (cls.level === "structural" && !confirmStructural) {
+          const structuralLabels = editDiff
+            .filter(d => cls.structuralKeys.includes(d.key))
+            .map(d => d.humanLabel);
+          return new Response(JSON.stringify({
+            status: "requires_confirmation",
+            level: "structural",
+            structuralKeys: cls.structuralKeys,
+            structuralLabels,
+            message:
+              "Cette modification touche l'identité visuelle (" +
+              structuralLabels.join(", ") +
+              "). Utilisez la régénération complète pour la valider.",
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Confirmed structural change → full regeneration (text→image).
+        // Otherwise (light or medium) → image edit.
+        if (cls.level === "structural" && confirmStructural) {
+          fallbackReason = "structural_change_confirmed";
+          console.log(`[generate-avatar] ${beneficiary_id} structural change confirmed → full regen`);
+          mode = mode === "edit" ? "preview" : "final";
+        } else if (editDiff.length > MAX_EDIT_DIFF) {
+          fallbackReason = "too_many_changes";
+          console.log(`[generate-avatar] ${beneficiary_id} too many changes (${editDiff.length}) → full regen`);
           mode = mode === "edit" ? "preview" : "final";
         }
+
       }
     }
 
@@ -303,7 +343,10 @@ serve(async (req) => {
       try {
         const traits = inferAvatarTraits(b);
         const basePrompt = buildAvatarPrompt(traits);
-        const nonce = `${traits.avatar_seed}-${Date.now()}`;
+        // Seed-stable render token: same seed → same identity across regenerations.
+        // Date.now() is intentionally NOT included; it stays for file naming only.
+        const nonce = `${traits.avatar_seed}`;
+
 
         // Snapshot used for future edit diffs. Always overwrite on success.
         const snapshotTraits: Record<string, any> = { ...traits };
@@ -318,7 +361,7 @@ serve(async (req) => {
         // -------------------- EDIT (image→image) --------------------
         if (mode === "edit" || mode === "edit_hd") {
           const sourceUrl: string = resolvedSourceUrl || b.avatar_source_url || b.avatar_url;
-          const editPrompt = `${buildEditPrompt(editDiff)}\n[render-token: ${nonce}]`;
+          const editPrompt = `${buildEditPrompt(editDiff, traits)}\n[render-token: ${nonce}]`;
           traitsUpdate.avatar_prompt = editPrompt;
 
           // For edit_hd we run a single QA pass; no retry (edits already preserve identity).
