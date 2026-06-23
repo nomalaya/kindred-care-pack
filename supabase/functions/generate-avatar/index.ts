@@ -290,13 +290,45 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        if (hasStructuralChange(editDiff) || editDiff.length > MAX_EDIT_DIFF) {
-          fallbackReason = hasStructuralChange(editDiff) ? "structural_change" : "too_many_changes";
-          console.log(
-            `[generate-avatar] ${beneficiary_id} edit→fallback (${fallbackReason}, count=${editDiff.length})`,
-          );
+        const cls = classifyDiff(editDiff);
+        console.log(
+          `[generate-avatar] ${beneficiary_id} edit classification: level=${cls.level} ` +
+          `structural=[${cls.structuralKeys.join(",")}] medium=[${cls.mediumKeys.join(",")}] light=[${cls.lightKeys.join(",")}]`,
+        );
+
+        // Structural change requires explicit operator confirmation.
+        // No silent fallback to full regeneration anymore.
+        if (cls.level === "structural" && !confirmStructural) {
+          const structuralLabels = editDiff
+            .filter(d => cls.structuralKeys.includes(d.key))
+            .map(d => d.humanLabel);
+          return new Response(JSON.stringify({
+            status: "requires_confirmation",
+            level: "structural",
+            structuralKeys: cls.structuralKeys,
+            structuralLabels,
+            message:
+              "Cette modification touche l'identité visuelle (" +
+              structuralLabels.join(", ") +
+              "). Utilisez la régénération complète pour la valider.",
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Confirmed structural change → full regeneration (text→image).
+        // Otherwise (light or medium) → image edit.
+        if (cls.level === "structural" && confirmStructural) {
+          fallbackReason = "structural_change_confirmed";
+          console.log(`[generate-avatar] ${beneficiary_id} structural change confirmed → full regen`);
+          mode = mode === "edit" ? "preview" : "final";
+        } else if (editDiff.length > MAX_EDIT_DIFF) {
+          fallbackReason = "too_many_changes";
+          console.log(`[generate-avatar] ${beneficiary_id} too many changes (${editDiff.length}) → full regen`);
           mode = mode === "edit" ? "preview" : "final";
         }
+
       }
     }
 
