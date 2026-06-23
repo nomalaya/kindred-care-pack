@@ -518,11 +518,30 @@ serve(async (req) => {
           const editPrompt = `${buildEditPrompt(editDiff, traits)}\n[render-token: ${nonce}]`;
           traitsUpdate.avatar_prompt = editPrompt;
 
-          // For edit_hd we run a single QA pass; no retry (edits already preserve identity).
           const bytes = await generateEditedImage(editPrompt, sourceUrl, MODEL_EDIT);
           const ts = Date.now();
 
+          // -------- PRE-CLEAN BUST GATE (applies to edit AND edit_hd) --------
+          const preGate = await gateBustPreClean(supabase, bytes);
+          if (!preGate.ok) {
+            console.error(
+              `[generate-avatar] EDIT pre-clean bust gate FAILED ${beneficiary_id} ` +
+              `bust=${preGate.qa?.scores?.bust_completeness}`,
+            );
+            await supabase.from("beneficiaries").update({
+              avatar_status: "failed",
+              avatar_qa_report: {
+                stage: "pre_clean",
+                reason: preGate.reason,
+                scores: preGate.qa?.scores ?? null,
+                notes: preGate.qa?.notes ?? null,
+              },
+            }).eq("id", beneficiary_id);
+            return;
+          }
+
           if (mode === "edit") {
+            const snapshot = snapshotPreviewFields(b);
             const fileName = `preview/${beneficiary_id}.png`;
             const versionFileName = `versions/${beneficiary_id}/edit-${ts}.png`;
             const { error: upErr } = await supabase.storage.from("avatars").upload(
@@ -548,13 +567,16 @@ serve(async (req) => {
               seed: traits.avatar_seed,
               prompt: editPrompt,
             });
-            await autoCleanBackground(supabase, beneficiary_id, "preview");
+            await runCleanAndVerify(
+              supabase, beneficiary_id, "preview", "avatar_preview_url", snapshot, fileName,
+            );
             return;
           }
 
           // edit_hd: QA, on pass we promote to avatar_url
-          const qa = await runQA(supabase, bytes);
+          const qa = preGate.qa ?? await runQA(supabase, bytes);
           if (qa.global_score >= QA_PASS) {
+            const snapshot = snapshotFinalFields(b);
             const fileName = `${beneficiary_id}.png`;
             const versionFileName = `versions/${beneficiary_id}/edit-hd-${ts}.png`;
             const { error: upErr } = await supabase.storage.from("avatars").upload(
@@ -591,9 +613,12 @@ serve(async (req) => {
               seed: traits.avatar_seed,
               prompt: editPrompt,
             });
-            await autoCleanBackground(supabase, beneficiary_id, "final");
+            await runCleanAndVerify(
+              supabase, beneficiary_id, "final", "avatar_url", snapshot, fileName,
+            );
           } else {
             // QA failed on edit → store as preview so the operator can review
+            const snapshot = snapshotPreviewFields(b);
             const fileName = `preview/${beneficiary_id}.png`;
             const { error: upErr } = await supabase.storage.from("avatars").upload(
               fileName, bytes, { contentType: "image/png", upsert: true },
@@ -609,7 +634,9 @@ serve(async (req) => {
               avatar_qa_report: { scores: qa.scores, notes: qa.notes, edited: true, reason: "edit_qa_below_pass" },
               avatar_qa_score: qa.global_score,
             }).eq("id", beneficiary_id);
-            await autoCleanBackground(supabase, beneficiary_id, "preview");
+            await runCleanAndVerify(
+              supabase, beneficiary_id, "preview", "avatar_preview_url", snapshot, fileName,
+            );
           }
           return;
         }
