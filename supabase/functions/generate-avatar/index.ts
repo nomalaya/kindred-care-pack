@@ -426,6 +426,7 @@ serve(async (req) => {
                 : "generated";
             await supabase.from("beneficiaries").update({
               ...traitsUpdate,
+              ...snapshotPatch,
               avatar_url: url,
               avatar_source_url: url,
               avatar_status: "validated",
