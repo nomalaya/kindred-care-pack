@@ -330,6 +330,15 @@ const AvatarStudio = () => {
         body: { beneficiary_id: selected.id, mode: effectiveMode, force: true },
       });
       if (error) throw error;
+      // Structural change → backend refuses the silent edit and asks for an explicit
+      // full regeneration. We surface the message; UI workflow stays unchanged.
+      if ((data as any)?.status === "requires_confirmation") {
+        const msg = (data as any)?.message
+          ?? "Cette modification touche l'identité visuelle. Utilisez la régénération complète pour la valider.";
+        toast.error(msg, { duration: 8000 });
+        setBusy(null);
+        return;
+      }
       const skipped = (data as any)?.skipped;
       if (skipped === true) {
         const reason = (data as any)?.reason;
@@ -341,6 +350,7 @@ const AvatarStudio = () => {
         setBusy(null);
         return;
       }
+
       const wasEdited = (data as any)?.edited === true;
       const diffLabels: string[] = ((data as any)?.diff ?? []).map((d: any) => d.label);
       const baseMsg = effectiveMode === "edit" || effectiveMode === "edit_hd"
