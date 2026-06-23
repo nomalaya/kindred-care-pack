@@ -343,7 +343,10 @@ serve(async (req) => {
       try {
         const traits = inferAvatarTraits(b);
         const basePrompt = buildAvatarPrompt(traits);
-        const nonce = `${traits.avatar_seed}-${Date.now()}`;
+        // Seed-stable render token: same seed → same identity across regenerations.
+        // Date.now() is intentionally NOT included; it stays for file naming only.
+        const nonce = `${traits.avatar_seed}`;
+
 
         // Snapshot used for future edit diffs. Always overwrite on success.
         const snapshotTraits: Record<string, any> = { ...traits };
@@ -358,7 +361,7 @@ serve(async (req) => {
         // -------------------- EDIT (image→image) --------------------
         if (mode === "edit" || mode === "edit_hd") {
           const sourceUrl: string = resolvedSourceUrl || b.avatar_source_url || b.avatar_url;
-          const editPrompt = `${buildEditPrompt(editDiff)}\n[render-token: ${nonce}]`;
+          const editPrompt = `${buildEditPrompt(editDiff, traits)}\n[render-token: ${nonce}]`;
           traitsUpdate.avatar_prompt = editPrompt;
 
           // For edit_hd we run a single QA pass; no retry (edits already preserve identity).
