@@ -19,6 +19,7 @@ import {
   diffTraits,
   classifyDiff,
   TraitDiff,
+  TRANSFORMATIVE_TRAIT_KEYS,
 } from "../_shared/avatarTraits.ts";
 import {
   buildAvatarPrompt,
@@ -130,12 +131,16 @@ async function generateEditedImage(prompt: string, sourceUrl: string, model: str
   return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 }
 
-async function runQA(supabase: any, imageBytes: Uint8Array): Promise<{ scores: any; notes: string[]; global_score: number }> {
+async function runQA(
+  supabase: any,
+  imageBytes: Uint8Array,
+  transformativeTraits: string[] = [],
+): Promise<{ scores: any; notes: string[]; global_score: number }> {
   let bin = "";
   for (let i = 0; i < imageBytes.length; i++) bin += String.fromCharCode(imageBytes[i]);
   const b64 = btoa(bin);
   const { data, error } = await supabase.functions.invoke("qa-avatar", {
-    body: { image_base64: b64 },
+    body: { image_base64: b64, transformative_traits: transformativeTraits },
   });
   if (error) throw new Error(`QA invoke error: ${error.message}`);
   return data;
@@ -318,9 +323,10 @@ async function runCleanAndVerify(
 async function gateBustPreClean(
   supabase: any,
   bytes: Uint8Array,
+  transformativeTraits: string[] = [],
 ): Promise<{ ok: true; qa: any } | { ok: false; qa: any | null; reason: string }> {
   try {
-    const qa = await runQA(supabase, bytes);
+    const qa = await runQA(supabase, bytes, transformativeTraits);
     if (failsBust(qa)) {
       return { ok: false, qa, reason: "bust_incomplete_pre_clean" };
     }
