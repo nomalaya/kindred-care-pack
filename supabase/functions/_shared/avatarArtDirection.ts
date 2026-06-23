@@ -274,13 +274,12 @@ export const MODEL_QA = "google/gemini-2.5-flash";
 // EDIT-MODE PROMPT — used when a beneficiary already has an approved avatar
 // and the user changes a small subset of attributes. We send the existing
 // image as a visual reference and ask Gemini to modify ONLY the listed
-// attributes, preserving everything else (face identity, pose, framing,
-// background, lighting, style). FRAMING_BLOCK and buildBackgroundBlock are
-// intentionally NOT reused here — they would force a re-crop and a new
-// background.
+// attributes, preserving identity / pose / framing / lighting / style.
+//
+// IMPORTANT: FRAMING_BLOCK, ART_DIRECTION_INVARIANTS, buildBackgroundBlock
+// and NEGATIVE_PROMPT are reinjected here. Without them, Gemini Flash Image
+// drifts on art direction as soon as expression is touched (Léa case).
 // ---------------------------------------------------------------------------
-
-
 
 const EDIT_VALUE_LABELS: Record<string, Record<string, string>> = {
   avatar_hair_color: HAIR_COLOR_DESC,
@@ -302,16 +301,38 @@ function describeValue(key: string, value: unknown): string {
   return String(value).replace(/_/g, " ");
 }
 
-export function buildEditPrompt(diff: TraitDiff[]): string {
+// Compact identity recap — reminds the model who the subject is so it does not
+// silently invent a different person while applying the diff.
+function buildSubjectRecap(t: AvatarTraits): string {
+  const parts: string[] = [
+    `${t.avatar_age_range} year old ${t.avatar_gender}`,
+    `${HAIR_TYPE_DESC[t.avatar_hair_type] ?? t.avatar_hair_type} hair`,
+    SKIN_DESC[t.avatar_skin_tone] ?? `${t.avatar_skin_tone} skin`,
+    `${t.avatar_face_shape.replace(/_/g, " ")} face`,
+  ];
+  if (t.avatar_head_covering && t.avatar_head_covering !== "none") {
+    parts.push(`wearing ${t.avatar_head_covering.replace(/_/g, " ")}`);
+  }
+  if (t.avatar_body_type && t.avatar_body_type !== "average") {
+    parts.push(`${t.avatar_body_type.replace(/_/g, " ")} build`);
+  }
+  return parts.filter(Boolean).join(", ");
+}
+
+export function buildEditPrompt(diff: TraitDiff[], traits: AvatarTraits): string {
   const changes = diff
     .map(d => `- ${d.humanLabel}: ${describeValue(d.key, d.after)}`)
     .join("\n");
+  const subjectRecap = buildSubjectRecap(traits);
 
   return [
-    `EDIT THE PROVIDED REFERENCE IMAGE — this is a precise retouch, NOT a regeneration.`,
+    `EDIT THE PROVIDED REFERENCE IMAGE — surgical retouch, NOT regeneration.`,
+    ``,
+    `REFERENCE SUBJECT (must remain visually identical):`,
+    `${subjectRecap}.`,
     ``,
     `PRESERVE STRICTLY (non-negotiable):`,
-    `- the exact same person and facial identity (same face shape, same proportions, same gaze)`,
+    `- the exact same person and facial identity (same face shape, same proportions, same gaze, same eyes)`,
     `- the exact same pose, body angle, head tilt, shoulder position`,
     `- the exact same framing, crop, composition, camera distance and subject scale within the canvas`,
     `- the exact same background (color, texture, edges)`,
@@ -326,9 +347,18 @@ export function buildEditPrompt(diff: TraitDiff[]): string {
     `- change the cropping, the canvas margins or the subject size`,
     `- change the background or add any decoration behind the subject`,
     `- alter the face structure or identity`,
-    `- redraw clothing other than the requested change`,
+    `- redraw any feature or clothing not explicitly listed above`,
     ``,
-    `Return ONE square 1:1 image with the requested changes applied as a minimal, surgical retouch on top of the reference.`,
+    FRAMING_BLOCK,
+    ``,
+    ART_DIRECTION_INVARIANTS,
+    ``,
+    buildBackgroundBlock(String(traits.avatar_seed ?? "")),
+    ``,
+    `AVOID: ${NEGATIVE_PROMPT}.`,
+    ``,
+    `Return ONE square 1:1 image with the requested changes applied as a minimal, surgical retouch on top of the reference. Every preserved element must remain pixel-faithful to the reference.`,
   ].join("\n");
 }
+
 
