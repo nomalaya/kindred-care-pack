@@ -73,7 +73,7 @@ Return concise notes explaining any score below 80.${transformNotice}`;
 
 Dimensions (0=terrible, 100=excellent):
 - single_face: exactly ONE character face fully visible? (0 = multiple faces or no face)
-- framing: head + collarbone only, cropped just above the chest at the collarbone line; centered; NO chest, bust, breasts or torso visible (score 0 if chest/bust visible)?
+- framing: the portrait shows head + neck + shoulders + UPPER BUST with the garment fully drawn, cropped just below the upper-bust line. The upper bust IS expected to be visible — do NOT penalise that. Score 0 ONLY if: full torso visible, waist visible, mid-chest or ribcage visible, hips visible, full-length arms hanging, deep cleavage, exposed chest skin beyond a normal neckline, shoulders cropped, or subject not centered.
 - no_watermark: free of any text, watermark, logo, signature?
 - artifact_freedom: free of AI artifacts (warped features, melted shapes, extra fingers)?
 - style_match: STRICTLY a hand-drawn semi-realistic cartoon illustration in editorial storybook style (fine soft ink outlines, colored-pencil + light watercolor shading, warm desaturated palette, realistic human proportions, clearly non-photographic). Score 0 if: photograph, photorealistic, 3D/Pixar/Disney render, flat vector sticker (Storyset/unDraw/Notion style), anime, manga, chibi, comic book, oil painting, heavy saturated watercolor.
@@ -82,7 +82,7 @@ Dimensions (0=terrible, 100=excellent):
 - not_caricature: free of cultural caricature, stereotypes, exaggeration?
 - dignity: portrayed with dignity and humanity, no misery, no pathos?
 - human_warmth: emotionally credible, warm, kind (not commercial smile, not cold)?
-- bust_completeness: the lower bust is FULLY DRAWN with a clean garment line, shoulders fully visible, continuous torso outline. Score 0 if the body dissolves, fades into white, has a watercolor fade-out, is circular-cropped, vignetted, masked, or if the shoulders/clothing are cut off, unfinished, transparent at the bottom, or missing the lower bust.`;
+- bust_completeness: the UPPER bust is drawn cleanly with a complete garment line and fully visible shoulders, and the canvas crops at a clean horizontal line just below the upper bust. Score HIGH (>=80) when shoulders + upper bust are fully drawn and the bottom crop is clean. Score 0 ONLY if: the body dissolves or fades into white, watercolor fade-out at the bottom, circular crop, vignette mask over the body, shoulders cropped or unfinished, clothing transparent at the bottom, or the upper bust itself is missing/incomplete. Do NOT penalise simply because the upper bust is visible — that is the required composition.`;
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

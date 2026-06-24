@@ -70,7 +70,10 @@ const HAIR_COLOR_DESC: Record<string, string> = {
 };
 
 const HAIR_TYPE_DESC: Record<string, string> = {
-  straight: "straight", wavy: "wavy", curly: "curly", coily: "coily",
+  straight: "straight smooth hair, no waves, sleek strands",
+  wavy: "wavy hair with soft S-shaped waves, no curls",
+  curly: "clearly curly hair with defined curls, ringlets or spiral curls",
+  coily: "tightly coiled afro-textured hair, dense kinky texture with small tight coils — distinctly coily, not merely curly",
 };
 
 const NOSE_DESC: Record<string, string> = {
@@ -84,11 +87,11 @@ const NOSE_DESC: Record<string, string> = {
 };
 
 const BODY_TYPE_DESC: Record<string, string> = {
-  very_thin: "very slender, slim build, narrow shoulders and thin face",
-  thin: "slim build, lean face",
-  average: "average build",
-  chubby: "slightly heavier build, rounder face and softer features",
-  heavy: "noticeably heavier build, fuller face, rounded cheeks and broader shoulders",
+  very_thin: "clearly very slender body, narrow thin face and jawline, thin neck, narrow shoulders, slim collarbone, garment falling loose on a slim frame",
+  thin: "slim body, lean face and jawline, slender neck and shoulders, garment lightly fitted on a thin frame",
+  average: "average build, neutral proportions",
+  chubby: "clearly fuller body, rounder cheeks and softer jawline, slightly wider neck and shoulders, fuller upper bust, garment naturally following a fuller body volume",
+  heavy: "clearly large full body build, visibly fuller face with full round cheeks, softer rounded lower face and chin, wider thicker neck, broader shoulders, larger upper bust, garment naturally draping over a noticeably larger body volume — the heavier silhouette MUST be clearly visible, not subtle",
 };
 
 // Compact, focused art direction. Style + dignity + anonymity only.
@@ -103,17 +106,15 @@ DIGNITY: warm, kind, gentle. Quiet humanity. No caricature, no stereotype, no pa
 // Strict framing block. Short, repeated, capitalized — image models obey these much better than long paragraphs.
 export const FRAMING_BLOCK = `
 IMAGE FORMAT — STRICT: square 1:1 canvas. Full-bleed illustration. The white background MUST extend all the way to the four edges of the image.
-FRAMING — STRICT: the subject is composed of HEAD + NECK + COLLARBONE + VERY TOP OF SHOULDERS only. The bottom edge of the canvas crops the body at the COLLARBONE LINE, ABOVE the chest. The chest, bust, breasts and torso MUST NOT be visible. Only a thin sliver of the garment neckline may appear at the bottom edge.
-SUBJECT SIZE — TARGET: the subject occupies approximately 70% of the canvas (both height and width). Preferred range: 65%–75%. The model should aim for 70% whenever possible. AT LEAST 15% of pure white margin MUST remain visible on EACH of the four sides (top, bottom, left, right). The subject must NEVER touch any edge of the canvas.
+FRAMING — STRICT: the subject shows HEAD + NECK + SHOULDERS + UPPER BUST, with the garment fully drawn. The bottom edge of the canvas crops just BELOW the upper-bust line — clearly above the waist, clearly above the mid-torso. The upper bust IS visible (this is required), but the full torso, mid-chest, ribcage and waist MUST NOT be visible. No deep cleavage, no exposed chest skin beyond a normal neckline.
+SUBJECT SIZE — TARGET: the subject occupies approximately 70% of the canvas (both height and width). Preferred range: 65%–75%. AT LEAST 12% of pure white margin MUST remain visible on EACH of the four sides. The subject must NEVER touch any edge of the canvas.
 COMPOSITION: subject perfectly centered horizontally and vertically. The face occupies the upper-middle portion of the framed subject. Looking softly toward the camera.
-COMPLETE BUST — STRICT (NON-NEGOTIABLE):
-The portrait must show a complete, solid upper bust with visible shoulders and a continuous torso outline.
-The clothing and shoulders must remain fully drawn and fully opaque until the intended lower bust boundary.
-The lower bust must end as a CLEAN DRAWN PORTRAIT (a real garment line), NOT as a fading wash into the white background.
-Do not fade, dissolve, wash out, blur, crop, mask, vignette or watercolor-fade the lower bust.
-No white gradient over the body, no soft fade-out at the bottom, no circular crop, no cut-off torso, no disappearing body.
-Head, neck, shoulders, and upper torso must all be fully visible and fully inked.
-ABSOLUTELY FORBIDDEN: visible chest, visible bust, visible breasts, cleavage, full torso, sweater or shirt extending into the lower half of the image, edge-to-edge subject, head touching the top edge, shoulders touching the side edges, paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair.
+COMPLETE UPPER BUST — STRICT (NON-NEGOTIABLE):
+The portrait must show a complete, solid upper bust with fully visible shoulders and a continuous torso outline down to the cropping line.
+The clothing and shoulders must remain fully drawn and fully opaque until the bottom crop line.
+The lower edge of the upper bust must end as a CLEAN DRAWN PORTRAIT (a real garment line + a clean horizontal canvas crop), NOT as a fading wash into the white background.
+Do not fade, dissolve, wash out, blur, mask, vignette or watercolor-fade the bust. No circular crop, no cut-off shoulders, no disappearing body, no soft fade-out at the bottom.
+ABSOLUTELY FORBIDDEN: full torso visible, waist visible, mid-chest visible, ribcage visible, hips, arms hanging full-length, edge-to-edge subject, head touching the top edge, shoulders touching the side edges, paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair.
 `.trim();
 
 
@@ -140,8 +141,7 @@ export const NEGATIVE_PROMPT = [
   "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture",
   "no vignette", "no faded edges", "no watercolor edges", "no soft fade at bottom",
   "no head-only portrait", "no floating bust", "no drop shadow under chin",
-  "no visible chest", "no visible bust", "no breasts visible", "no cleavage", "no torso shown", "do not show below the collarbone",
-
+  "no full torso", "no waist visible", "no mid-chest visible", "no ribcage visible", "no hips", "no full-length arms", "no deep cleavage", "no exposed chest skin",
   "no ghosted edges", "no soft halo around hair",
   "no colored background", "no gradient background", "no halo behind the subject", "no glow behind the subject", "no shadow behind the subject",
   "no textured background", "no patterns", "no geometric shapes in background",
@@ -437,13 +437,12 @@ function buildSubjectRecap(t: AvatarTraits): string {
 // AND must allow the natural consequences of that attribute on the body/face.
 const TRANSFORM_BLOCKS: Record<string, string> = {
   avatar_body_type: [
-    `BODY TYPE TRANSFORMATION — SAME PERSON:`,
-    `Transform the reference person to match the requested body type while keeping them clearly recognizable as the same individual.`,
-    `For a stronger/heavier body type, subtly increase facial fullness, cheek softness, chin softness, neck width, shoulder/upper-bust volume, and garment drape.`,
-    `For a thinner body type, subtly reduce facial fullness and slim the neck, shoulders and upper bust.`,
-    `Preserve the same eyes, gaze, nose identity, mouth identity, hairstyle, hair color, age range, head tilt, pose, artistic style, framing, lighting and overall likeness.`,
-    `Do NOT create a new face. Do NOT change the person into someone else.`,
-    `The result MUST look like the same person whose body type has changed naturally.`,
+    `BODY TYPE TRANSFORMATION — SAME PERSON, CLEARLY VISIBLE CHANGE:`,
+    `Transform the reference person to match the requested body type. The morphological change MUST be clearly visible — NOT subtle.`,
+    `For a heavier/stronger body type (chubby, heavy): visibly increase facial fullness, cheek roundness, chin softness, jawline softness, neck width and thickness, shoulder breadth, upper-bust volume and garment drape over a larger body.`,
+    `For a thinner body type (thin, very_thin): visibly reduce facial fullness, slim the cheeks and jawline, narrow the neck, shoulders and upper bust, and let the garment hang loosely on a slim frame.`,
+    `Keep the SAME individual recognizable: same eye color and shape, same gaze, same nose identity, same mouth identity, same hairstyle silhouette, same hair color, same age range, same head tilt, same pose, same artistic style, same framing, same lighting.`,
+    `Do NOT create a new face. Do NOT change the person into someone else. But do NOT preserve the previous silhouette either — the body morphology MUST change to match the new value.`,
   ].join("\n"),
   avatar_age_range: [
     `AGE TRANSFORMATION — SAME PERSON:`,
@@ -454,6 +453,13 @@ const TRANSFORM_BLOCKS: Record<string, string> = {
     `EXPRESSION TRANSFORMATION — SAME PERSON:`,
     `Adjust the facial expression musculature (eyes, brows, mouth corners) while preserving the same identity.`,
     `Do not change face shape, nose, eye color/shape, hairstyle or pose.`,
+  ].join("\n"),
+  avatar_hair_type: [
+    `HAIR TYPE TRANSFORMATION — SAME PERSON, REAL TEXTURE CHANGE:`,
+    `Change ONLY the hair texture to match the requested type. The texture change MUST be clearly visible.`,
+    `straight = smooth, no waves. wavy = soft S-shaped waves, no curls. curly = defined curls / ringlets / spirals. coily = tightly coiled afro-textured hair, dense and kinky — clearly distinct from "curly", not just more curls.`,
+    `Preserve strictly: same face, same age range, same hair COLOR (unless explicitly changed), same hair LENGTH and overall hairstyle silhouette where possible, same framing, same artistic style, same lighting.`,
+    `Do not change the face, the body, the pose or the cropping.`,
   ].join("\n"),
 };
 
