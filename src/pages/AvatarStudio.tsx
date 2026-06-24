@@ -371,10 +371,31 @@ const AvatarStudio = () => {
     const effectiveMode: "preview" | "final" | "edit" | "edit_hd" = isEditCapable
       ? (mode === "preview" ? "edit" : "edit_hd")
       : mode;
+
+    // User-intent diff (edit pipeline only). Empty bag → short-circuit
+    // BEFORE any HTTP call, so no image is generated and no QA runs.
+    const bag = pendingChanges.current.get(selected.id);
+    const changedKeys = bag ? Array.from(bag.keys()) : [];
+    const requestedDiff: Record<string, { before: any; after: any }> = {};
+    if (bag) for (const [k, v] of bag.entries()) requestedDiff[k] = v;
+
+    if ((effectiveMode === "edit" || effectiveMode === "edit_hd") && changedKeys.length === 0) {
+      toast.info(
+        "Aucune modification détectée — l'avatar actuel correspond déjà aux attributs sélectionnés.",
+      );
+      return;
+    }
+
     setBusy(mode);
     try {
       const { data, error } = await supabase.functions.invoke("generate-avatar", {
-        body: { beneficiary_id: selected.id, mode: effectiveMode, force: true },
+        body: {
+          beneficiary_id: selected.id,
+          mode: effectiveMode,
+          force: true,
+          changedKeys,
+          requestedDiff,
+        },
       });
       if (error) throw error;
       // Structural change → backend refuses the silent edit and asks for an explicit
@@ -389,8 +410,10 @@ const AvatarStudio = () => {
       const skipped = (data as any)?.skipped;
       if (skipped === true) {
         const reason = (data as any)?.reason;
-        if (reason === "no_changes") {
-          toast.info("Aucune modification détectée — l'avatar reste inchangé.");
+        if (reason === "no_user_changes" || reason === "no_changes") {
+          toast.info(
+            "Aucune modification détectée — l'avatar actuel correspond déjà aux attributs sélectionnés.",
+          );
         } else {
           toast.info(`Génération ignorée (${reason ?? "raison inconnue"}).`);
         }
