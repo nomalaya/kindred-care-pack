@@ -1,68 +1,64 @@
-# Audit modèles Avatar Studio — état actuel et protocole de test
 
-Audit en lecture seule. Aucune modification proposée tant que le protocole de test n'est pas validé.
+# Plan — Audit comparatif NB2 vs Nano Banana Pro (Léa, 4 tests réels)
 
-## 1. État actuel — modèles utilisés
+## Contexte validé
+- `model_override` est déjà branché dans l'edge function `generate-avatar` (allow-list 4 modèles, body param, pas d'env, pas d'UI).
+- Aucun changement de modèle par défaut, aucun toggle UI, aucune modif de prompt ou d'Avatar Studio dans ce passage.
+- Le précédent fichier `.lovable/audit-models.md` sera **réécrit** par la nouvelle session de test (les chiffres précédents étaient produits avant que tu valides le protocole strict — on repart d'une exécution propre traçable).
 
-Source unique : `supabase/functions/_shared/avatarArtDirection.ts:280-283`.
+## Bénéficiaire et baseline
+- Léa `de8c19bc-8643-4af8-8bc0-31a57f79cd61` — femme 25-35, peau claire, visage cœur, cheveux courts curly, corpulence moyenne.
+- Image source unique pour les 4 tests : la version `final` actuelle de Léa (snapshot avant audit, hash loggé dans le rapport).
 
-| Étape | Constante | Modèle réel | Nom commercial |
-|---|---|---|---|
-| Aperçu rapide (`mode=preview`) | `MODEL_PREVIEW` | `google/gemini-3.1-flash-image-preview` | **Nano Banana 2** |
-| Portrait HD (`mode=final`) | `MODEL_FINAL` | `google/gemini-3.1-flash-image-preview` | **Nano Banana 2** |
-| Édition image-to-image (`mode=edit` / `edit_hd`) | `MODEL_EDIT` | `google/gemini-3.1-flash-image-preview` | **Nano Banana 2** |
-| QA visuel | `MODEL_QA` | `google/gemini-2.5-flash` | Gemini 2.5 Flash (vision/text) |
-| Nettoyage fond | inline | `google/gemini-3.1-flash-image-preview` | **Nano Banana 2** |
+## Les 4 tests (exécutés via `supabase--curl_edge_functions` sur `/generate-avatar`)
 
-**Constat clé** : Nano Banana Pro (`google/gemini-3-pro-image`) n'est utilisé **nulle part**. Les 4 étapes image partagent le même modèle. La seule différenciation entre preview, final et edit est le **prompt** (framing, transform blocks) et le nombre de variantes (final génère 2 candidats, preview 1).
+| # | Modèle | Mode | Attribut | Avant → Après |
+|---|---|---|---|---|
+| T1 | `google/gemini-3.1-flash-image-preview` (NB2) | `edit_hd` | body_type | average → heavy |
+| T2 | `google/gemini-3-pro-image` (Pro) | `edit_hd` | body_type | average → heavy |
+| T3 | `google/gemini-3.1-flash-image-preview` (NB2) | `edit_hd` | hair_type | curly → coily |
+| T4 | `google/gemini-3-pro-image` (Pro) | `edit_hd` | hair_type | curly → coily |
 
-Pour ton besoin (200 avatars cohérents, édition fidèle à l'identité, attributs précisément appliqués, différenciation valeurs proches), c'est un risque : Nano Banana 2 est optimisé latence/coût, pas fidélité fine. Sur les attributs subtils audités précédemment (`hair_type curly↔coily`, `body_type very_thin↔thin`, `expression cluster calm/reserved/serious_soft`), il est probable que Pro produise des différences plus marquées.
+Tous les tests utilisent **le vrai pipeline** `generate-avatar` (diff → classification → prompt → image → QA → clean si nécessaire). Aucun shortcut, aucun appel direct au gateway.
 
-## 2. Ce que ce plan propose
+## Données capturées par test
+Pour chaque T1-T4, le rapport consignera :
+- modèle réellement appelé (résolu côté serveur, pas seulement demandé)
+- mode pipeline (`edit_hd`)
+- image source (URL + hash)
+- diff détecté (attribut + ancienne/nouvelle valeur)
+- classification (sensitive / cosmetic)
+- prompt final envoyé au modèle (texte complet)
+- image générée (URL stockage `avatars/`)
+- score `identity_preservation`
+- score `bust_completeness`
+- score QA global
+- temps total de génération (ms)
+- coût estimé si exposé par le gateway, sinon « n/a »
+- commentaire visuel structuré : même personne ? transformation fidèle ? attribut clairement visible ? style conservé ? cadrage conservé ?
 
-Je ne peux pas exécuter de tests A/B image-to-image depuis le mode plan (interdiction de modifier code, déployer functions, ou appeler les modèles). Pour livrer les tests Léa demandés, il faut une phase build limitée à :
+## Livrable
+Réécriture complète de `.lovable/audit-models.md` avec :
+1. Rappel du protocole + baseline Léa
+2. 4 fiches de test (une par T1-T4) avec toutes les données ci-dessus
+3. Tableau comparatif synthétique (lignes = critères, colonnes = NB2 corpulence / Pro corpulence / NB2 cheveux / Pro cheveux)
+4. Reco finale choisie parmi exactement les 4 options demandées :
+   - garder NB2 partout
+   - Pro seulement pour Portrait HD (final)
+   - Pro seulement pour éditions sensibles
+   - Pro pour final + éditions sensibles
 
-### Phase 1 — Instrumentation temporaire (lecture seule côté UX)
-Ajouter un paramètre `model_override` accepté par `generate-avatar` (preview + edit), exposé via une variable d'env ou un champ admin caché dans Avatar Studio. Aucune modification du flux utilisateur ; uniquement une boutonnière dev pour basculer Nano Banana 2 ↔ Pro sur un appel donné.
+Critère de décision (dans cet ordre) : identité préservée → fidélité de la transformation → différenciation visible des valeurs → style conservé → cadrage / buste complet. La beauté brute n'est pas décisive.
 
-### Phase 2 — Exécution du protocole Léa
-4 tests demandés :
-1. NB2 : Léa corpulence moyenne → forte
-2. NB Pro : Léa corpulence moyenne → forte
-3. NB2 : Léa cheveux bouclés → crépus
-4. NB Pro : Léa cheveux bouclés → crépus
+## Hors-périmètre (explicite)
+- Pas de toggle UI.
+- Pas de modification du modèle par défaut.
+- Pas de correctif label « Portrait HD — Nano Banana Pro » (noté pour suite, pas exécuté ici).
+- Pas de correctifs P1 de la grammaire visuelle.
+- Pas de modification des prompts ni de l'Avatar Studio.
 
-Pour chaque test, capture :
-- prompt final envoyé (log existant `[edit] prompt:`)
-- modèle utilisé
-- image source (URL avatar_url avant)
-- image résultat (URL après)
-- `identity_preservation` (score QA existant)
-- `bust_completeness` (score QA existant)
-- commentaire fidélité attribut
-
-Livrable : tableau comparatif markdown dans `.lovable/audit-models.md`.
-
-### Phase 3 — Recommandation
-Selon résultats :
-- Si NB2 ≈ NB Pro sur identité ET attribut → garder NB2 partout.
-- Si NB Pro nettement meilleur sur édition sensible (corpulence, hair_type, beard) → router `MODEL_EDIT` vers Pro pour ces attributs uniquement (liste blanche `SENSITIVE_EDIT_KEYS`), garder NB2 pour preview + final neutres.
-- Si NB Pro meilleur partout → migrer `MODEL_FINAL` vers Pro, garder NB2 pour preview.
-
-Aucun changement définitif tant que les 4 tests Léa n'ont pas été observés et validés visuellement par toi.
-
-## 3. Coût et latence à prévoir
-
-Nano Banana Pro (`gemini-3-pro-image`) est ~3-5× plus lent et plus cher par image que NB2. Conséquence sur 200 avatars : si Pro devient le final, prévoir un budget de génération significativement plus élevé et un temps de batch multiplié.
-
-## 4. Question avant de passer en build
-
-Trois options pour Phase 1 :
-
-**A. Override via env var serveur** — j'ajoute `AVATAR_MODEL_OVERRIDE` env, tu définis la valeur côté Cloud, je lance les 4 tests via `supabase--curl_edge_functions`. Le plus rapide, zéro UI.
-
-**B. Sélecteur admin dans Avatar Studio** — j'ajoute un toggle "Modèle: NB2 / Pro" visible uniquement aux admins (RLS role admin), tu cliques toi-même les 4 tests. Plus visuel, plus de code.
-
-**C. Script ponctuel hors UI** — j'écris un script Node qui appelle directement `https://ai.gateway.lovable.dev/v1/images/generations` avec les deux modèles et le même prompt, sans toucher à l'edge function. Le plus propre pour un audit one-shot, mais ne teste pas exactement le pipeline edit_hd réel.
-
-Dis-moi laquelle tu préfères (A / B / C) et je passe en build pour exécuter Phase 1 + 2 et te remettre le tableau comparatif. Si tu veux les 3 modifs P1 de l'audit grammaire en même temps, précise-le aussi.
+## Détails techniques
+- Appel : `POST /generate-avatar` avec body `{ beneficiary_id, mode: "edit_hd", target_attribute: {...}, model_override: "<id>" }`.
+- L'override est validé contre la `MODEL_ALLOWLIST` côté serveur ; toute valeur hors liste est ignorée silencieusement et le rapport le notera.
+- Les 4 appels sont séquentiels (pas de parallélisme, pour mesurer la latence proprement).
+- Si un test échoue (rollback QA, erreur 5xx, ou modèle Pro indisponible sur le gateway), la fiche le documente comme résultat à part entière, sans réessai masqué.
