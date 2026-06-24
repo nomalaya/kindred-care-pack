@@ -79,6 +79,12 @@ const AvatarStudio = () => {
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
   const saveTimer = useRef<any>(null);
   const pendingPatch = useRef<Record<string, any>>({});
+  // User-intent tracking — per-beneficiary baseline + Set of fields the user
+  // actually changed since baseline. Drives `changedKeys` sent to the edge
+  // function so a stale `avatar_generated_traits` snapshot can never trigger
+  // a phantom 19-key full regeneration again (Léa "Forte corpulence" bug).
+  const baselineTraits = useRef<Map<string, Record<string, any>>>(new Map());
+  const pendingChanges = useRef<Map<string, Map<string, { before: any; after: any }>>>(new Map());
   const searchRef = useRef<HTMLInputElement | null>(null);
   const busyRef = useRef<string | null>(null);
   busyRef.current = busy;
