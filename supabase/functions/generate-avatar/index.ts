@@ -17,6 +17,7 @@ import {
   inferAvatarTraits,
   AvatarTraits,
   diffTraits,
+  buildTraitDiffFromKeys,
   classifyDiff,
   TraitDiff,
   TRANSFORMATIVE_TRAIT_KEYS,
@@ -347,11 +348,24 @@ serve(async (req) => {
       mode: rawMode = "preview",
       force = false,
       confirmStructural = false,
+      changedKeys,
+      requestedDiff,
     } = await req.json();
     if (!beneficiary_id) throw new Error("beneficiary_id required");
     if (!["preview", "final", "edit", "edit_hd"].includes(rawMode)) {
       throw new Error("mode must be 'preview', 'final', 'edit' or 'edit_hd'");
     }
+    const userChangedKeys: string[] | null = Array.isArray(changedKeys)
+      ? changedKeys.filter((k): k is string => typeof k === "string")
+      : null;
+    const requestedBefore: Record<string, unknown> | null =
+      requestedDiff && typeof requestedDiff === "object"
+        ? Object.fromEntries(
+            Object.entries(requestedDiff as Record<string, any>).map(
+              ([k, v]) => [k, v && typeof v === "object" ? (v as any).before ?? null : null],
+            ),
+          )
+        : null;
 
     let mode: GenMode = rawMode as GenMode;
 
@@ -421,13 +435,47 @@ serve(async (req) => {
       const previousTraits = b.avatar_generated_traits as Partial<AvatarTraits> | null;
       const currentTraits = inferAvatarTraits(b);
 
-      if (!resolvedSourceUrl || !previousTraits) {
-        // Bootstrap: no snapshot yet → cannot diff. Treat as full generation;
+      if (!resolvedSourceUrl) {
+        // Bootstrap: no source image yet → cannot edit. Full generation;
         // the snapshot will be written below so future edits work.
-        fallbackReason = !resolvedSourceUrl ? "no_source_url" : "no_snapshot";
+        fallbackReason = "no_source_url";
+        console.log(`[generate-avatar] ${beneficiary_id} edit→fallback (${fallbackReason})`);
+        mode = mode === "edit" ? "preview" : "final";
+      } else if (userChangedKeys !== null) {
+        // NEW FLOW — diff driven by explicit user intent from the frontend.
+        // Eliminates the "stale snapshot → 19 phantom diffs → wrong full regen"
+        // class of bugs. The snapshot is NEVER rewritten silently from current
+        // traits; it stays a faithful image of whatever is actually painted.
+        editDiff = buildTraitDiffFromKeys(
+          previousTraits,
+          currentTraits,
+          userChangedKeys,
+          requestedBefore,
+        );
+        console.log(
+          `[generate-avatar] ${beneficiary_id} edit diff [user-intent ${userChangedKeys.length} key(s)] (${editDiff.length}):`,
+          editDiff.map(d => `${d.key}:${d.before}→${d.after}`).join(", "),
+        );
+        console.log(`[generate-avatar] ${beneficiary_id} source_url: ${resolvedSourceUrl}`);
+        if (editDiff.length === 0) {
+          return new Response(JSON.stringify({
+            skipped: true,
+            reason: "no_user_changes",
+            source_url: resolvedSourceUrl,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else if (!previousTraits) {
+        // Legacy bootstrap path (no snapshot AND no user-intent from client).
+        fallbackReason = "no_snapshot";
         console.log(`[generate-avatar] ${beneficiary_id} edit→fallback (${fallbackReason})`);
         mode = mode === "edit" ? "preview" : "final";
       } else {
+        // LEGACY DIFF PATH — kept for backward compatibility with older
+        // clients that don't yet transmit `changedKeys`. Flagged in logs so
+        // we can spot it. Subject to the stale-snapshot caveat.
+        console.log(`[generate-avatar] ${beneficiary_id} legacy_diff_path (no changedKeys)`);
         editDiff = diffTraits(previousTraits, currentTraits);
         console.log(
           `[generate-avatar] ${beneficiary_id} edit diff (${editDiff.length}):`,
@@ -443,6 +491,9 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+      }
+
+      if (editDiff.length > 0) {
         const cls = classifyDiff(editDiff);
         console.log(
           `[generate-avatar] ${beneficiary_id} edit classification: level=${cls.level} ` +

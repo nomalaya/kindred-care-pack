@@ -641,6 +641,49 @@ export function diffTraits(
   return out;
 }
 
+/**
+ * Build a TraitDiff restricted to the keys the FRONTEND declares as
+ * user-modified during the current Avatar Studio session. This avoids the
+ * "stale snapshot" trap where `avatar_generated_traits` is older than the
+ * current inference engine and produces dozens of phantom `null → default`
+ * diffs that wrongly trigger a full regeneration.
+ *
+ * - `previous` is the snapshot (`avatar_generated_traits`) and is used as
+ *   the source of truth for the `before` value. If the snapshot is missing
+ *   the key, we fall back to the `before` value transmitted by the frontend
+ *   (`requestedBefore[key]`).
+ * - `current` is `inferAvatarTraits(beneficiary)` — the value the next
+ *   generation will actually paint.
+ * - Entries where `before === after` after normalization are dropped (user
+ *   reclicked the already-active value).
+ */
+export function buildTraitDiffFromKeys(
+  previous: Partial<AvatarTraits> | null | undefined,
+  current: AvatarTraits,
+  changedKeys: string[],
+  requestedBefore?: Record<string, unknown> | null,
+): TraitDiff[] {
+  const out: TraitDiff[] = [];
+  const seen = new Set<string>();
+  for (const key of changedKeys) {
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const rawBefore = (previous as any)?.[key] ?? requestedBefore?.[key] ?? null;
+    const rawAfter = (current as any)?.[key] ?? null;
+    const before = normalizeForCompare(rawBefore);
+    const after = normalizeForCompare(rawAfter);
+    if (before === after) continue;
+    out.push({
+      key,
+      before: rawBefore ?? null,
+      after: rawAfter ?? null,
+      structural: (STRUCTURAL_TRAIT_KEYS as string[]).includes(key),
+      humanLabel: HUMAN_LABELS[key] ?? key,
+    });
+  }
+  return out;
+}
+
 export function hasStructuralChange(diff: TraitDiff[]): boolean {
   return diff.some(d => d.structural);
 }

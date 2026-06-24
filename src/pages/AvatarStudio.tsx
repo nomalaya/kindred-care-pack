@@ -79,6 +79,12 @@ const AvatarStudio = () => {
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
   const saveTimer = useRef<any>(null);
   const pendingPatch = useRef<Record<string, any>>({});
+  // User-intent tracking — per-beneficiary baseline + Set of fields the user
+  // actually changed since baseline. Drives `changedKeys` sent to the edge
+  // function so a stale `avatar_generated_traits` snapshot can never trigger
+  // a phantom 19-key full regeneration again (Léa "Forte corpulence" bug).
+  const baselineTraits = useRef<Map<string, Record<string, any>>>(new Map());
+  const pendingChanges = useRef<Map<string, Map<string, { before: any; after: any }>>>(new Map());
   const searchRef = useRef<HTMLInputElement | null>(null);
   const busyRef = useRef<string | null>(null);
   busyRef.current = busy;
@@ -150,6 +156,24 @@ const AvatarStudio = () => {
     [beneficiaries, selectedId],
   );
 
+  // Snapshot baseline once per beneficiary load: the values displayed when the
+  // user opens the panel. Any subsequent user-driven change is tracked against
+  // this baseline. Reset only when the user actually generates successfully or
+  // switches to another beneficiary (handled in the selectedId effect above /
+  // in `generate`).
+  useEffect(() => {
+    if (!selected) return;
+    if (baselineTraits.current.has(selected.id)) return;
+    const snap: Record<string, any> = {};
+    for (const k of Object.keys(selected)) {
+      if (k.startsWith("avatar_")) snap[k] = (selected as any)[k];
+    }
+    baselineTraits.current.set(selected.id, snap);
+    if (!pendingChanges.current.has(selected.id)) {
+      pendingChanges.current.set(selected.id, new Map());
+    }
+  }, [selected]);
+
   const filtered = useMemo(() => {
     let pool = beneficiaries;
     if (search.trim()) {
@@ -201,6 +225,28 @@ const AvatarStudio = () => {
     if (isLocked) {
       toast.error("Avatar verrouillé. Déverrouillez pour modifier.");
       return;
+    }
+    // Track user intent for the edit pipeline: compare each patched avatar_*
+    // field to the baseline captured when this beneficiary was opened.
+    if (!opts.silent) {
+      const baseline = baselineTraits.current.get(selected.id);
+      if (baseline) {
+        if (!pendingChanges.current.has(selected.id)) {
+          pendingChanges.current.set(selected.id, new Map());
+        }
+        const bag = pendingChanges.current.get(selected.id)!;
+        for (const [k, v] of Object.entries(patchObj)) {
+          if (!k.startsWith("avatar_")) continue;
+          const baseVal = baseline[k] ?? null;
+          const norm = (x: any) => (x === undefined || x === "" ? null : x);
+          if (norm(baseVal) === norm(v)) {
+            bag.delete(k); // user reverted to baseline → no longer a change
+          } else {
+            const existing = bag.get(k);
+            bag.set(k, { before: existing?.before ?? baseVal, after: v });
+          }
+        }
+      }
     }
     setBeneficiaries(prev => prev.map(b =>
       b.id === selected.id ? { ...b, ...patchObj } : b,
@@ -325,10 +371,31 @@ const AvatarStudio = () => {
     const effectiveMode: "preview" | "final" | "edit" | "edit_hd" = isEditCapable
       ? (mode === "preview" ? "edit" : "edit_hd")
       : mode;
+
+    // User-intent diff (edit pipeline only). Empty bag → short-circuit
+    // BEFORE any HTTP call, so no image is generated and no QA runs.
+    const bag = pendingChanges.current.get(selected.id);
+    const changedKeys = bag ? Array.from(bag.keys()) : [];
+    const requestedDiff: Record<string, { before: any; after: any }> = {};
+    if (bag) for (const [k, v] of bag.entries()) requestedDiff[k] = v;
+
+    if ((effectiveMode === "edit" || effectiveMode === "edit_hd") && changedKeys.length === 0) {
+      toast.info(
+        "Aucune modification détectée — l'avatar actuel correspond déjà aux attributs sélectionnés.",
+      );
+      return;
+    }
+
     setBusy(mode);
     try {
       const { data, error } = await supabase.functions.invoke("generate-avatar", {
-        body: { beneficiary_id: selected.id, mode: effectiveMode, force: true },
+        body: {
+          beneficiary_id: selected.id,
+          mode: effectiveMode,
+          force: true,
+          changedKeys,
+          requestedDiff,
+        },
       });
       if (error) throw error;
       // Structural change → backend refuses the silent edit and asks for an explicit
@@ -343,8 +410,10 @@ const AvatarStudio = () => {
       const skipped = (data as any)?.skipped;
       if (skipped === true) {
         const reason = (data as any)?.reason;
-        if (reason === "no_changes") {
-          toast.info("Aucune modification détectée — l'avatar reste inchangé.");
+        if (reason === "no_user_changes" || reason === "no_changes") {
+          toast.info(
+            "Aucune modification détectée — l'avatar actuel correspond déjà aux attributs sélectionnés.",
+          );
         } else {
           toast.info(`Génération ignorée (${reason ?? "raison inconnue"}).`);
         }
@@ -359,6 +428,15 @@ const AvatarStudio = () => {
         : (mode === "preview" ? "Aperçu en génération…" : "Portrait HD en génération…");
       toast.success(baseMsg);
       void wasEdited;
+      // Generation accepted — the current trait values are now what the next
+      // image will paint. Reset the baseline + clear pending change tracking
+      // so a follow-up click doesn't re-send already-consumed changedKeys.
+      const newBaseline: Record<string, any> = {};
+      for (const k of Object.keys(selected)) {
+        if (k.startsWith("avatar_")) newBaseline[k] = (selected as any)[k];
+      }
+      baselineTraits.current.set(selected.id, newBaseline);
+      pendingChanges.current.set(selected.id, new Map());
       setBeneficiaries(prev => prev.map(b =>
         b.id === selected.id ? { ...b, avatar_status: "pending" } : b,
       ));

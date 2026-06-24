@@ -10,6 +10,9 @@ export function failureReasonToMessage(
   report?: { error?: string; scores?: any; notes?: string[] } | null,
 ): string {
   switch (reason) {
+    case "no_user_changes":
+    case "no_changes":
+      return "Aucune modification détectée — l'avatar actuel correspond déjà aux attributs sélectionnés.";
     case "no_credits":
       return "Crédits Lovable AI insuffisants. Rechargez le workspace.";
     case "rate_limited":
