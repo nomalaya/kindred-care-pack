@@ -1,7 +1,4 @@
 // audit-model-compare — JETABLE, conservée jusqu'à validation du rapport audit.
-// Exécute un test isolé : snapshot → mutation → appel generate-avatar (mode edit_hd, model_override)
-// → capture résultat → cleanup version + fichier bucket → restauration snapshot complet.
-//
 // POST body: { beneficiary_id, model_override, target_attribute: { key, before, after } }
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -31,11 +28,10 @@ const AVATAR_FIELDS = [
 ];
 
 async function sha256(bytes: Uint8Array): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+  const d = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(d)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
-
-async function hashUrl(url: string): Promise<{ hash: string; size: number } | null> {
+async function hashUrl(url: string) {
   try {
     const r = await fetch(url);
     if (!r.ok) return null;
@@ -43,55 +39,42 @@ async function hashUrl(url: string): Promise<{ hash: string; size: number } | nu
     return { hash: await sha256(buf), size: buf.byteLength };
   } catch { return null; }
 }
-
-function bucketPathFromPublicUrl(url: string): string | null {
+function bucketPath(url: string): string | null {
   const m = url.match(/\/storage\/v1\/object\/public\/avatars\/(.+?)(?:\?|$)/);
   return m ? m[1] : null;
 }
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
   const t0 = Date.now();
   try {
     const { beneficiary_id, model_override, target_attribute } = await req.json();
-    if (!beneficiary_id) throw new Error("beneficiary_id required");
-    if (!model_override) throw new Error("model_override required");
-    if (!target_attribute?.key || target_attribute.after === undefined) {
-      throw new Error("target_attribute.{key, after} required");
+    if (!beneficiary_id || !model_override || !target_attribute?.key) {
+      throw new Error("beneficiary_id, model_override, target_attribute.key required");
     }
-    const key: string = target_attribute.key;
-    const before = target_attribute.before;
-    const after = target_attribute.after;
-
+    const { key, before, after } = target_attribute;
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // ---------- 1. SNAPSHOT ----------
+    // 1. SNAPSHOT
     const { data: bRow, error: bErr } = await supabase
       .from("beneficiaries").select("*").eq("id", beneficiary_id).single();
     if (bErr || !bRow) throw new Error("beneficiary not found");
-
     const snapshot: Record<string, unknown> = {};
     for (const f of AVATAR_FIELDS) snapshot[f] = (bRow as any)[f];
 
-    const { data: versionsT0 } = await supabase
-      .from("avatar_versions").select("id, image_url, created_at")
-      .eq("beneficiary_id", beneficiary_id);
-    const t0Ids = new Set((versionsT0 ?? []).map(v => v.id));
+    const callStartIso = new Date().toISOString();
 
-    // ---------- 2. HASH SOURCE ----------
+    // 2. HASH SOURCE
     const sourceUrl = bRow.avatar_source_url ?? bRow.avatar_url;
     const sourceHash = sourceUrl ? await hashUrl(sourceUrl) : null;
 
-    // ---------- 3. MUTATION CIBLÉE ----------
-    if ((bRow as any)[key] !== before) {
-      // If current value already differs from declared "before", we still proceed but flag it.
-    }
+    // 3. MUTATION
     const { error: mutErr } = await supabase
       .from("beneficiaries").update({ [key]: after }).eq("id", beneficiary_id);
-    if (mutErr) throw new Error(`mutation failed: ${mutErr.message}`);
+    if (mutErr) throw new Error(`mutation: ${mutErr.message}`);
 
-    // ---------- 4. APPEL PIPELINE ----------
+    // 4. APPEL PIPELINE
     const callStart = Date.now();
     const pipelineResp = await fetch(`${SUPABASE_URL}/functions/v1/generate-avatar`, {
       method: "POST",
@@ -110,102 +93,92 @@ serve(async (req) => {
     });
     const pipelineAck = await pipelineResp.json().catch(() => ({}));
 
-    // ---------- POLL ----------
-    const POLL_TIMEOUT_MS = 180_000;
-    const POLL_INTERVAL_MS = 3000;
-    let newVersion: any = null;
-    let finalRow: any = null;
-    const pollDeadline = Date.now() + POLL_TIMEOUT_MS;
-    while (Date.now() < pollDeadline) {
-      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+    // POLL: wait for edit_hd version with our model, then wait for clean-bg or 30s grace
+    const expectedEditModel = `edit_hd/${model_override}`;
+    const POLL_TIMEOUT = 240_000;
+    const deadline = Date.now() + POLL_TIMEOUT;
+    let editVersion: any = null;
+    let cleanVersion: any = null;
+    let lastFresh: any[] = [];
+    let sawEditAt = 0;
+
+    while (Date.now() < deadline) {
+      await sleep(3000);
       const { data: vs } = await supabase
         .from("avatar_versions")
         .select("id, image_url, model_used, qa_score, qa_report, prompt, seed, created_at")
         .eq("beneficiary_id", beneficiary_id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      const fresh = (vs ?? []).filter(v => !t0Ids.has(v.id));
+        .gt("created_at", callStartIso)
+        .order("created_at", { ascending: true });
+      lastFresh = vs ?? [];
+      editVersion = lastFresh.find(v => v.model_used === expectedEditModel) ?? null;
+      cleanVersion = lastFresh.find(v => (v.model_used ?? "").startsWith("clean-bg/")) ?? null;
       const { data: cur } = await supabase
-        .from("beneficiaries").select("avatar_status, avatar_qa_report, avatar_qa_score, avatar_model_used, avatar_url")
+        .from("beneficiaries").select("avatar_status, avatar_qa_score, avatar_qa_report, avatar_model_used")
         .eq("id", beneficiary_id).single();
 
-      // edit_hd writes either an `edit_hd/...` version (pass) or stays preview (fail)
-      // plus a clean-bg version after. We wait until status is no longer "pending".
-      if (cur && cur.avatar_status !== "pending") {
-        // Wait one more cycle to let clean-bg version (if any) land
-        await new Promise(r => setTimeout(r, 2500));
-        const { data: vs2 } = await supabase
-          .from("avatar_versions")
-          .select("id, image_url, model_used, qa_score, qa_report, prompt, seed, created_at")
-          .eq("beneficiary_id", beneficiary_id)
-          .order("created_at", { ascending: false })
-          .limit(20);
-        const fresh2 = (vs2 ?? []).filter(v => !t0Ids.has(v.id));
-        // Pick the version whose model_used matches edit_hd (the meaningful one for the audit)
-        newVersion = fresh2.find(v => (v.model_used ?? "").startsWith("edit_hd/")) ?? fresh2[0] ?? null;
-        finalRow = cur;
-        // capture all fresh versions for cleanup
-        (globalThis as any).__freshAll = fresh2;
-        break;
-      }
-      if (fresh.length > 0 && fresh.some(v => (v.model_used ?? "").startsWith("edit_hd/"))) {
-        // Have at least one edit_hd version, continue a bit for clean-bg
-      }
+      if (editVersion && !sawEditAt) sawEditAt = Date.now();
+      // Exit conditions:
+      //  a) we have both edit + clean → done
+      //  b) we have edit, no clean yet, and 30s elapsed since edit → done (clean step skipped or failed)
+      //  c) avatar_status went to "failed" → done
+      //  d) we have edit and status is preview/validated and >= 20s since edit → done
+      if (editVersion && cleanVersion) break;
+      if (editVersion && Date.now() - sawEditAt > 30000) break;
+      if (cur?.avatar_status === "failed") break;
     }
 
-    const freshAll: any[] = (globalThis as any).__freshAll ?? [];
-    (globalThis as any).__freshAll = undefined;
+    // Capture latest beneficiary state after pipeline
+    const { data: finalRow } = await supabase
+      .from("beneficiaries").select("avatar_status, avatar_url, avatar_preview_url, avatar_qa_score, avatar_qa_report, avatar_model_used, avatar_body_type, avatar_hair_type")
+      .eq("id", beneficiary_id).single();
 
-    // ---------- 5. CAPTURE RÉSULTAT ----------
-    const resultImageHash = newVersion?.image_url ? await hashUrl(newVersion.image_url) : null;
+    // 5. CAPTURE RESULT (hash final & edit images)
+    const editImageHash = editVersion?.image_url ? await hashUrl(editVersion.image_url) : null;
+    const cleanImageHash = cleanVersion?.image_url ? await hashUrl(cleanVersion.image_url) : null;
 
-    // ---------- 6. CLEANUP ----------
+    // 6. CLEANUP — delete all fresh versions + their bucket files + canonical files
     const deletedVersions: string[] = [];
     const deletedFiles: string[] = [];
     const cleanupErrors: string[] = [];
 
-    // Delete bucket files for ALL fresh versions
-    for (const v of freshAll) {
-      const path = bucketPathFromPublicUrl(v.image_url ?? "");
-      if (path) {
-        const { error: rmErr } = await supabase.storage.from("avatars").remove([path]);
-        if (rmErr) cleanupErrors.push(`storage:${path}:${rmErr.message}`);
-        else deletedFiles.push(path);
+    for (const v of lastFresh) {
+      const p = bucketPath(v.image_url ?? "");
+      if (p) {
+        const { error: rmE } = await supabase.storage.from("avatars").remove([p]);
+        if (rmE) cleanupErrors.push(`storage:${p}:${rmE.message}`);
+        else deletedFiles.push(p);
       }
     }
-    // Also delete the canonical avatars/{beneficiary_id}.png produced by edit_hd promote
-    // (we'll restore avatar_url to baseline so this file isn't needed)
-    const canonicalPath = `${beneficiary_id}.png`;
-    const { error: rmCanErr } = await supabase.storage.from("avatars").remove([canonicalPath]);
-    if (rmCanErr) cleanupErrors.push(`storage:${canonicalPath}:${rmCanErr.message}`);
-    else deletedFiles.push(canonicalPath);
-
-    // Delete avatar_versions rows
-    if (freshAll.length > 0) {
-      const ids = freshAll.map(v => v.id);
-      const { error: delErr } = await supabase
-        .from("avatar_versions").delete().in("id", ids);
-      if (delErr) cleanupErrors.push(`versions:${delErr.message}`);
+    // Canonical files possibly rewritten by pipeline
+    for (const cp of [`${beneficiary_id}.png`, `preview/${beneficiary_id}.png`]) {
+      const { error: rmE } = await supabase.storage.from("avatars").remove([cp]);
+      if (rmE && !rmE.message.toLowerCase().includes("not found")) {
+        cleanupErrors.push(`storage:${cp}:${rmE.message}`);
+      } else if (!rmE) {
+        deletedFiles.push(cp);
+      }
+    }
+    if (lastFresh.length > 0) {
+      const ids = lastFresh.map(v => v.id);
+      const { error: delE } = await supabase.from("avatar_versions").delete().in("id", ids);
+      if (delE) cleanupErrors.push(`versions:${delE.message}`);
       else deletedVersions.push(...ids);
     }
 
-    // ---------- 7. RESTAURATION ----------
+    // 7. RESTAURATION
     const restorePatch: Record<string, unknown> = {};
     for (const f of AVATAR_FIELDS) restorePatch[f] = snapshot[f];
-    const { error: resErr } = await supabase
+    const { error: resE } = await supabase
       .from("beneficiaries").update(restorePatch).eq("id", beneficiary_id);
-    if (resErr) throw new Error(`restore failed: ${resErr.message}`);
+    if (resE) throw new Error(`restore: ${resE.message}`);
 
-    // Verify restoration
     const { data: restored } = await supabase
       .from("beneficiaries").select("*").eq("id", beneficiary_id).single();
     const restoreDiff: Record<string, { expected: unknown; actual: unknown }> = {};
     for (const f of AVATAR_FIELDS) {
-      const exp = snapshot[f];
-      const act = (restored as any)?.[f];
-      if (JSON.stringify(exp) !== JSON.stringify(act)) {
-        restoreDiff[f] = { expected: exp, actual: act };
-      }
+      const e = snapshot[f]; const a = (restored as any)?.[f];
+      if (JSON.stringify(e) !== JSON.stringify(a)) restoreDiff[f] = { expected: e, actual: a };
     }
 
     return new Response(JSON.stringify({
@@ -216,27 +189,19 @@ serve(async (req) => {
       source: { url: sourceUrl, hash: sourceHash },
       mutation: { key, before, after, current_before_mutation: (bRow as any)[key] },
       result: {
-        new_version: newVersion,
-        all_fresh_versions: freshAll,
-        image_hash: resultImageHash,
+        edit_version: editVersion,
+        edit_image_hash: editImageHash,
+        clean_version: cleanVersion,
+        clean_image_hash: cleanImageHash,
+        all_fresh_versions: lastFresh,
         beneficiary_after_pipeline: finalRow,
       },
-      cleanup: {
-        deleted_versions: deletedVersions,
-        deleted_files: deletedFiles,
-        errors: cleanupErrors,
-      },
-      restoration: {
-        ok: Object.keys(restoreDiff).length === 0,
-        diff: restoreDiff,
-      },
-    }, null, 2), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      cleanup: { deleted_versions: deletedVersions, deleted_files: deletedFiles, errors: cleanupErrors },
+      restoration: { ok: Object.keys(restoreDiff).length === 0, diff: restoreDiff },
+    }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     return new Response(JSON.stringify({ ok: false, error: e.message ?? String(e) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
