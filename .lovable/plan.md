@@ -1,64 +1,83 @@
 
-# Plan — Audit comparatif NB2 vs Nano Banana Pro (Léa, 4 tests réels)
+# Plan — Audit NB2 vs Pro sur Léa, 4 tests isolés (v2)
 
-## Contexte validé
-- `model_override` est déjà branché dans l'edge function `generate-avatar` (allow-list 4 modèles, body param, pas d'env, pas d'UI).
-- Aucun changement de modèle par défaut, aucun toggle UI, aucune modif de prompt ou d'Avatar Studio dans ce passage.
-- Le précédent fichier `.lovable/audit-models.md` sera **réécrit** par la nouvelle session de test (les chiffres précédents étaient produits avant que tu valides le protocole strict — on repart d'une exécution propre traçable).
+## Garantie d'isolation
+4 tests partant strictement de la même image source baseline. Cycle par test : snapshot → mutation → exécution pipeline réel → capture résultat → restauration.
 
-## Bénéficiaire et baseline
-- Léa `de8c19bc-8643-4af8-8bc0-31a57f79cd61` — femme 25-35, peau claire, visage cœur, cheveux courts curly, corpulence moyenne.
-- Image source unique pour les 4 tests : la version `final` actuelle de Léa (snapshot avant audit, hash loggé dans le rapport).
+## Edge function `audit-model-compare` (jetable, conservée jusqu'à validation)
+`supabase/functions/audit-model-compare/index.ts`, service-role, hors UI. **Non supprimée à la fin de l'audit** — conservée jusqu'à ta validation explicite du rapport. Listée dans la section finale du livrable comme « fonction temporaire encore présente, en attente de ton OK pour suppression ».
 
-## Les 4 tests (exécutés via `supabase--curl_edge_functions` sur `/generate-avatar`)
+Entrée :
+```json
+{
+  "beneficiary_id": "de8c19bc-8643-4af8-8bc0-31a57f79cd61",
+  "model_override": "google/gemini-3.1-flash-image-preview" | "google/gemini-3-pro-image",
+  "target_attribute": { "key": "avatar_body_type", "before": "average", "after": "heavy" }
+}
+```
 
-| # | Modèle | Mode | Attribut | Avant → Après |
-|---|---|---|---|---|
-| T1 | `google/gemini-3.1-flash-image-preview` (NB2) | `edit_hd` | body_type | average → heavy |
-| T2 | `google/gemini-3-pro-image` (Pro) | `edit_hd` | body_type | average → heavy |
-| T3 | `google/gemini-3.1-flash-image-preview` (NB2) | `edit_hd` | hair_type | curly → coily |
-| T4 | `google/gemini-3-pro-image` (Pro) | `edit_hd` | hair_type | curly → coily |
+Séquence par appel :
+1. **SNAPSHOT** Léa : tous champs `avatar_*` sensibles + le trait cible + liste des IDs `avatar_versions` existants au moment T0 (pour pouvoir identifier ensuite les lignes créées par le test).
+2. **HASH SOURCE** : sha256 de `avatar_source_url`, vérifié == baseline. Loggé.
+3. **MUTATION CIBLÉE** : UPDATE Léa positionnant uniquement le trait cible à `after`.
+4. **APPEL PIPELINE RÉEL** `generate-avatar` (HTTP service-role) : `mode: "edit_hd"`, `changedKeys`, `requestedDiff`, `model_override`. Attente complétion réelle (poll, timeout 120 s).
+5. **CAPTURE RÉSULTAT** : relit Léa + nouvelles lignes `avatar_versions` (IDs absents du snapshot T0), récupère leurs `image_url`, `prompt`, `qa_report`, `qa_score`, `model_used`. Hash de l'image générée. Tout est stocké dans la réponse JSON.
+6. **NETTOYAGE DES VERSIONS DE TEST** (point ajouté) :
+   - DELETE des lignes `avatar_versions` créées par ce test (IDs identifiés à l'étape 5).
+   - Suppression des fichiers correspondants du bucket `avatars/`, OU déplacement vers `avatars/audit/<beneficiary_id>/<timestamp>-<model>.png` si l'API storage le permet sans re-upload. Préférence : **suppression** puisque le rapport conserve déjà URL+hash+capture.
+   - Si la suppression échoue (race, permission), fallback : déplacement dans dossier `audit/` et note explicite dans le rapport.
+7. **RESTAURATION** : UPDATE Léa avec snapshot complet de l'étape 1. Re-lecture + diff vs snapshot, abort de la suite si écart.
 
-Tous les tests utilisent **le vrai pipeline** `generate-avatar` (diff → classification → prompt → image → QA → clean si nécessaire). Aucun shortcut, aucun appel direct au gateway.
+## Pollution du panneau Versions
+Schéma `avatar_versions` (9 colonnes) → pas de champ `kind`/`tag` natif pour marquer « audit ». Donc on choisit l'**option préférée** : **DELETE** des lignes de test après capture dans le rapport. Le rapport garde toutes les preuves (URL signée snapshot avant suppression, hash, prompt, scores, image téléchargée et archivée localement si nécessaire).
 
-## Données capturées par test
-Pour chaque T1-T4, le rapport consignera :
-- modèle réellement appelé (résolu côté serveur, pas seulement demandé)
-- mode pipeline (`edit_hd`)
-- image source (URL + hash)
-- diff détecté (attribut + ancienne/nouvelle valeur)
-- classification (sensitive / cosmetic)
-- prompt final envoyé au modèle (texte complet)
-- image générée (URL stockage `avatars/`)
-- score `identity_preservation`
-- score `bust_completeness`
-- score QA global
-- temps total de génération (ms)
-- coût estimé si exposé par le gateway, sinon « n/a »
-- commentaire visuel structuré : même personne ? transformation fidèle ? attribut clairement visible ? style conservé ? cadrage conservé ?
+→ Conséquence : aucun ajout durable dans le panneau Versions de Léa.
 
-## Livrable
-Réécriture complète de `.lovable/audit-models.md` avec :
-1. Rappel du protocole + baseline Léa
-2. 4 fiches de test (une par T1-T4) avec toutes les données ci-dessus
-3. Tableau comparatif synthétique (lignes = critères, colonnes = NB2 corpulence / Pro corpulence / NB2 cheveux / Pro cheveux)
-4. Reco finale choisie parmi exactement les 4 options demandées :
-   - garder NB2 partout
-   - Pro seulement pour Portrait HD (final)
-   - Pro seulement pour éditions sensibles
-   - Pro pour final + éditions sensibles
+## Capture des preuves dans le rapport (avant suppression)
+Pour chaque T1-T4, **avant** le DELETE de l'étape 6, on stocke dans `.lovable/audit-models.md` :
+- URL publique de l'image de test (utile uniquement le temps de la review humaine, elle sera morte après cleanup)
+- hash sha256 de l'image
+- prompt complet
+- qa_report JSON intégral
+- scores `identity_preservation`, `bust_completeness`, QA global
+- modèle réellement appelé, durée ms
 
-Critère de décision (dans cet ordre) : identité préservée → fidélité de la transformation → différenciation visible des valeurs → style conservé → cadrage / buste complet. La beauté brute n'est pas décisive.
+Optionnellement : téléchargement des 4 images dans `.lovable/audit-assets/T{1..4}.png` pour archivage local persistant après cleanup bucket. À confirmer si tu veux ce miroir local — sinon on garde uniquement les hashes + scores + prompts.
 
-## Hors-périmètre (explicite)
-- Pas de toggle UI.
-- Pas de modification du modèle par défaut.
-- Pas de correctif label « Portrait HD — Nano Banana Pro » (noté pour suite, pas exécuté ici).
-- Pas de correctifs P1 de la grammaire visuelle.
-- Pas de modification des prompts ni de l'Avatar Studio.
+## Exécution
 
-## Détails techniques
-- Appel : `POST /generate-avatar` avec body `{ beneficiary_id, mode: "edit_hd", target_attribute: {...}, model_override: "<id>" }`.
-- L'override est validé contre la `MODEL_ALLOWLIST` côté serveur ; toute valeur hors liste est ignorée silencieusement et le rapport le notera.
-- Les 4 appels sont séquentiels (pas de parallélisme, pour mesurer la latence proprement).
-- Si un test échoue (rollback QA, erreur 5xx, ou modèle Pro indisponible sur le gateway), la fiche le documente comme résultat à part entière, sans réessai masqué.
+Baseline : hash sha256 de l'`avatar_source_url` actuel de Léa, calculé une fois avant T1, référence partagée.
+
+| # | model_override | target_attribute |
+|---|---|---|
+| T1 | NB2 `google/gemini-3.1-flash-image-preview` | `{avatar_body_type, average→heavy}` |
+| T2 | Pro `google/gemini-3-pro-image` | `{avatar_body_type, average→heavy}` |
+| T3 | NB2 | `{avatar_hair_type, curly→coily}` |
+| T4 | Pro | `{avatar_hair_type, curly→coily}` |
+
+Entre chaque test : relecture Léa + diff vs snapshot baseline initial + re-hash `avatar_source_url`. Abort si écart.
+
+## Livrable `.lovable/audit-models.md` (réécrit)
+1. Protocole + ID Léa + URL baseline + **hash sha256 baseline**.
+2. Tableau d'isolation : hash source observé avant chaque test == baseline ; état DB restauré OK/écarts ; lignes `avatar_versions` supprimées (IDs) ; fichiers bucket supprimés (chemins).
+3. 4 fiches de test : modèle réellement appelé, mode, image source (URL+hash), diff, classification, prompt final, image générée (URL+hash, valide jusqu'au cleanup), scores QA, durée, commentaire visuel structuré.
+4. Tableau comparatif (critères × T1..T4).
+5. **État final de Léa** : diff champ par champ vs snapshot initial. Doit être vide.
+6. **Confirmation panneau Versions non pollué** : SELECT final des IDs `avatar_versions` de Léa == liste T0.
+7. **Liste des éléments temporaires encore présents** :
+   - edge function `audit-model-compare` (en attente de ton OK pour suppression)
+   - éventuels fichiers `.lovable/audit-assets/T*.png` si archivage local activé
+8. Recommandation finale parmi : NB2 partout / Pro uniquement Portrait HD / Pro uniquement éditions sensibles / Pro pour final + éditions sensibles. Critères ordonnés : identité → fidélité transformation → différenciation valeurs → style → cadrage/buste.
+
+## Suppression différée
+Après ta lecture et ta validation du rapport, je proposerai dans un message séparé la suppression de :
+- l'edge function `audit-model-compare`
+- les éventuels assets locaux d'archivage
+
+Aucune suppression de la fonction tant que tu n'as pas validé.
+
+## Hors-périmètre (rappel)
+Pas de toggle UI, pas de modif modèle par défaut, pas de correctif label « Portrait HD — Nano Banana Pro », pas de P1 grammaire, pas de modif prompts ni Avatar Studio.
+
+## Question avant exécution
+Veux-tu que les 4 images générées soient archivées localement dans `.lovable/audit-assets/` (PNG, ~quelques Mo) pour rester visualisables après cleanup bucket ? Sinon le rapport ne gardera que hashes + scores + prompts (les URLs bucket seront mortes après l'audit).
