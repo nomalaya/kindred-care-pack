@@ -507,19 +507,16 @@ export const STRUCTURAL_TRAIT_KEYS: Array<keyof AvatarTraits> = [
   "avatar_face_shape",
   "avatar_nose",
   "avatar_eye_shape",
+  "avatar_hair_type",
   "avatar_head_covering",
 ];
 
 // "Medium" traits — image-editable as a "same person transformed" retouch,
 // but with a dedicated identity-preserving prompt block (see buildEditPrompt).
-// `avatar_body_type` and `avatar_hair_type`: changing them must transform the
-// SAME person (facial fullness, neck/shoulder volume, hair texture) without
-// inventing a new face. Audit T5/T6 (24/06/2026) confirmed NB2 handles this
-// reliably in edit_hd mode given the renforced TRANSFORM_BLOCKS — no full
-// regeneration is needed, no force_edit_mode either.
+// `avatar_body_type` belongs here: changing the body type must transform the
+// SAME person (facial fullness, neck/shoulder volume) without inventing a new face.
 export const MEDIUM_TRAIT_KEYS: Array<keyof AvatarTraits> = [
   "avatar_body_type",
-  "avatar_hair_type",
   "avatar_hair_length",
   "avatar_hair_style",
   "avatar_hair_volume",
@@ -533,18 +530,16 @@ export const MEDIUM_TRAIT_KEYS: Array<keyof AvatarTraits> = [
 ];
 
 // Subset of attributes that, when changed, naturally transform the face/body
-// of the SAME person (facial fullness, age signs, expression musculature, hair
-// texture, etc.). Used by qa-avatar to relax pixel-identical face checks and
-// by buildEditPrompt to inject "same person transformed" guidance.
+// of the SAME person (facial fullness, age signs, expression musculature, etc.).
+// Used by qa-avatar to relax pixel-identical face checks and by buildEditPrompt
+// to inject "same person transformed" guidance.
 export const TRANSFORMATIVE_TRAIT_KEYS: Array<keyof AvatarTraits> = [
   "avatar_body_type",
-  "avatar_hair_type",
   "avatar_age_range",
   "avatar_expression",
   "avatar_fatigue_level",
   "avatar_tired_level",
 ];
-
 
 // All other trait keys are considered "soft / light" — safe to mutate via image edit.
 export const SOFT_TRAIT_KEYS: Array<keyof AvatarTraits> = [

@@ -352,8 +352,9 @@ serve(async (req) => {
       changedKeys,
       requestedDiff,
       model_override,
+      force_edit_mode = false,
+      audit_capture = false,
     } = await req.json();
-
     if (!beneficiary_id) throw new Error("beneficiary_id required");
     if (!["preview", "final", "edit", "edit_hd"].includes(rawMode)) {
       throw new Error("mode must be 'preview', 'final', 'edit' or 'edit_hd'");
@@ -520,7 +521,7 @@ serve(async (req) => {
 
         // Structural change requires explicit operator confirmation.
         // No silent fallback to full regeneration anymore.
-        if (cls.level === "structural" && !confirmStructural) {
+        if (cls.level === "structural" && !confirmStructural && !force_edit_mode) {
           const structuralLabels = editDiff
             .filter(d => cls.structuralKeys.includes(d.key))
             .map(d => d.humanLabel);
@@ -541,16 +542,15 @@ serve(async (req) => {
 
         // Confirmed structural change → full regeneration (text→image).
         // Otherwise (light or medium) → image edit.
-        if (cls.level === "structural" && confirmStructural) {
+        if (cls.level === "structural" && confirmStructural && !force_edit_mode) {
           fallbackReason = "structural_change_confirmed";
           console.log(`[generate-avatar] ${beneficiary_id} structural change confirmed → full regen`);
           mode = mode === "edit" ? "preview" : "final";
-        } else if (editDiff.length > MAX_EDIT_DIFF) {
+        } else if (editDiff.length > MAX_EDIT_DIFF && !force_edit_mode) {
           fallbackReason = "too_many_changes";
           console.log(`[generate-avatar] ${beneficiary_id} too many changes (${editDiff.length}) → full regen`);
           mode = mode === "edit" ? "preview" : "final";
         }
-
 
       }
     }
@@ -636,6 +636,20 @@ serve(async (req) => {
               `[generate-avatar] EDIT pre-clean bust gate FAILED ${beneficiary_id} ` +
               `bust=${preGate.qa?.scores?.bust_completeness} reason=${reason} attempts=${attempts}`,
             );
+            // AUDIT CAPTURE — JETABLE: stash failed bytes so the audit caller can archive them.
+            let auditCaptureUrl: string | null = null;
+            if (audit_capture) {
+              const auditPath = `audit-failed/${beneficiary_id}-${Date.now()}.png`;
+              const { error: auErr } = await supabase.storage.from("avatars").upload(
+                auditPath, bytes, { contentType: "image/png", upsert: true },
+              );
+              if (!auErr) {
+                const { data: pu } = supabase.storage.from("avatars").getPublicUrl(auditPath);
+                auditCaptureUrl = pu.publicUrl;
+              } else {
+                console.error(`[generate-avatar] audit_capture upload failed:`, auErr.message);
+              }
+            }
             await supabase.from("beneficiaries").update({
               avatar_status: "failed",
               avatar_qa_report: {
@@ -646,9 +660,10 @@ serve(async (req) => {
                 attempts,
                 edited: true,
                 transforms: transformsInDiff,
+                audit_capture_url: auditCaptureUrl,
+                audit_capture_path: auditCaptureUrl ? `audit-failed/${beneficiary_id}-${Date.now()}.png` : null,
               },
             }).eq("id", beneficiary_id);
-
             return;
           }
 
