@@ -226,6 +226,28 @@ const AvatarStudio = () => {
       toast.error("Avatar verrouillé. Déverrouillez pour modifier.");
       return;
     }
+    // Track user intent for the edit pipeline: compare each patched avatar_*
+    // field to the baseline captured when this beneficiary was opened.
+    if (!opts.silent) {
+      const baseline = baselineTraits.current.get(selected.id);
+      if (baseline) {
+        if (!pendingChanges.current.has(selected.id)) {
+          pendingChanges.current.set(selected.id, new Map());
+        }
+        const bag = pendingChanges.current.get(selected.id)!;
+        for (const [k, v] of Object.entries(patchObj)) {
+          if (!k.startsWith("avatar_")) continue;
+          const baseVal = baseline[k] ?? null;
+          const norm = (x: any) => (x === undefined || x === "" ? null : x);
+          if (norm(baseVal) === norm(v)) {
+            bag.delete(k); // user reverted to baseline → no longer a change
+          } else {
+            const existing = bag.get(k);
+            bag.set(k, { before: existing?.before ?? baseVal, after: v });
+          }
+        }
+      }
+    }
     setBeneficiaries(prev => prev.map(b =>
       b.id === selected.id ? { ...b, ...patchObj } : b,
     ));
