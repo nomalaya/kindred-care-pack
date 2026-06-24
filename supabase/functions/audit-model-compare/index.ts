@@ -58,7 +58,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { beneficiary_id, model_override, target_attribute, archive_label } = body;
+    const { beneficiary_id, model_override, target_attribute, archive_label, force_edit_mode } = body;
     if (!beneficiary_id || !model_override || !target_attribute?.key) {
       throw new Error("beneficiary_id, model_override, target_attribute.key required");
     }
@@ -99,6 +99,7 @@ serve(async (req) => {
         changedKeys: [key],
         requestedDiff: { [key]: { before, after } },
         model_override,
+        force_edit_mode: !!force_edit_mode,
       }),
     });
     const pipelineAck = await pipelineResp.json().catch(() => ({}));
@@ -142,27 +143,34 @@ serve(async (req) => {
       .from("beneficiaries").select("avatar_status, avatar_url, avatar_preview_url, avatar_qa_score, avatar_qa_report, avatar_model_used, avatar_body_type, avatar_hair_type")
       .eq("id", beneficiary_id).single();
 
-    // 5. CAPTURE RESULT (hash final & edit images, archive copy to audit-results/)
+    // 5. CAPTURE RESULT (hash + base64 of edit image for local archive)
     const editImageHash = editVersion?.image_url ? await hashUrl(editVersion.image_url) : null;
     const cleanImageHash = cleanVersion?.image_url ? await hashUrl(cleanVersion.image_url) : null;
 
+    let editImageBase64: string | null = null;
     let archivedUrl: string | null = null;
-    if (editVersion?.image_url && archive_label) {
+    if (editVersion?.image_url) {
       try {
         const r = await fetch(editVersion.image_url);
         if (r.ok) {
           const bytes = new Uint8Array(await r.arrayBuffer());
-          const archivePath = `audit-results/${archive_label}.png`;
-          const { error: upE } = await supabase.storage.from("avatars").upload(
-            archivePath, bytes, { contentType: "image/png", upsert: true },
-          );
-          if (!upE) {
-            const { data: pu } = supabase.storage.from("avatars").getPublicUrl(archivePath);
-            archivedUrl = pu.publicUrl;
+          // base64 encode for local archive on caller side
+          let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
+          editImageBase64 = btoa(bin);
+          if (archive_label) {
+            const archivePath = `audit-results/${archive_label}.png`;
+            const { error: upE } = await supabase.storage.from("avatars").upload(
+              archivePath, bytes, { contentType: "image/png", upsert: true },
+            );
+            if (!upE) {
+              const { data: pu } = supabase.storage.from("avatars").getPublicUrl(archivePath);
+              archivedUrl = pu.publicUrl;
+            }
           }
         }
-      } catch (_) { /* archive best-effort */ }
+      } catch (_) { /* best-effort */ }
     }
+
 
 
     // 6. CLEANUP — delete all fresh versions + their bucket files + canonical files
@@ -219,6 +227,7 @@ serve(async (req) => {
       result: {
         edit_version: editVersion,
         edit_image_hash: editImageHash,
+        edit_image_base64: editImageBase64,
         archived_url: archivedUrl,
         clean_version: cleanVersion,
 
