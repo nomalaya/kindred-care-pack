@@ -348,11 +348,24 @@ serve(async (req) => {
       mode: rawMode = "preview",
       force = false,
       confirmStructural = false,
+      changedKeys,
+      requestedDiff,
     } = await req.json();
     if (!beneficiary_id) throw new Error("beneficiary_id required");
     if (!["preview", "final", "edit", "edit_hd"].includes(rawMode)) {
       throw new Error("mode must be 'preview', 'final', 'edit' or 'edit_hd'");
     }
+    const userChangedKeys: string[] | null = Array.isArray(changedKeys)
+      ? changedKeys.filter((k): k is string => typeof k === "string")
+      : null;
+    const requestedBefore: Record<string, unknown> | null =
+      requestedDiff && typeof requestedDiff === "object"
+        ? Object.fromEntries(
+            Object.entries(requestedDiff as Record<string, any>).map(
+              ([k, v]) => [k, v && typeof v === "object" ? (v as any).before ?? null : null],
+            ),
+          )
+        : null;
 
     let mode: GenMode = rawMode as GenMode;
 
