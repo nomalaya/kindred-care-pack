@@ -636,20 +636,6 @@ serve(async (req) => {
               `[generate-avatar] EDIT pre-clean bust gate FAILED ${beneficiary_id} ` +
               `bust=${preGate.qa?.scores?.bust_completeness} reason=${reason} attempts=${attempts}`,
             );
-            // AUDIT CAPTURE — JETABLE: stash failed bytes so the audit caller can archive them.
-            let auditCaptureUrl: string | null = null;
-            if (audit_capture) {
-              const auditPath = `audit-failed/${beneficiary_id}-${Date.now()}.png`;
-              const { error: auErr } = await supabase.storage.from("avatars").upload(
-                auditPath, bytes, { contentType: "image/png", upsert: true },
-              );
-              if (!auErr) {
-                const { data: pu } = supabase.storage.from("avatars").getPublicUrl(auditPath);
-                auditCaptureUrl = pu.publicUrl;
-              } else {
-                console.error(`[generate-avatar] audit_capture upload failed:`, auErr.message);
-              }
-            }
             await supabase.from("beneficiaries").update({
               avatar_status: "failed",
               avatar_qa_report: {
@@ -660,10 +646,9 @@ serve(async (req) => {
                 attempts,
                 edited: true,
                 transforms: transformsInDiff,
-                audit_capture_url: auditCaptureUrl,
-                audit_capture_path: auditCaptureUrl ? `audit-failed/${beneficiary_id}-${Date.now()}.png` : null,
               },
             }).eq("id", beneficiary_id);
+
             return;
           }
 
