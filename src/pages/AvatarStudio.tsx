@@ -428,6 +428,15 @@ const AvatarStudio = () => {
         : (mode === "preview" ? "Aperçu en génération…" : "Portrait HD en génération…");
       toast.success(baseMsg);
       void wasEdited;
+      // Generation accepted — the current trait values are now what the next
+      // image will paint. Reset the baseline + clear pending change tracking
+      // so a follow-up click doesn't re-send already-consumed changedKeys.
+      const newBaseline: Record<string, any> = {};
+      for (const k of Object.keys(selected)) {
+        if (k.startsWith("avatar_")) newBaseline[k] = (selected as any)[k];
+      }
+      baselineTraits.current.set(selected.id, newBaseline);
+      pendingChanges.current.set(selected.id, new Map());
       setBeneficiaries(prev => prev.map(b =>
         b.id === selected.id ? { ...b, avatar_status: "pending" } : b,
       ));
