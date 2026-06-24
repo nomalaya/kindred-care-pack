@@ -58,11 +58,12 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { beneficiary_id, model_override, target_attribute } = body;
+    const { beneficiary_id, model_override, target_attribute, archive_label } = body;
     if (!beneficiary_id || !model_override || !target_attribute?.key) {
       throw new Error("beneficiary_id, model_override, target_attribute.key required");
     }
     const { key, before, after } = target_attribute;
+
 
 
     // 1. SNAPSHOT
@@ -142,9 +143,28 @@ serve(async (req) => {
       .from("beneficiaries").select("avatar_status, avatar_url, avatar_preview_url, avatar_qa_score, avatar_qa_report, avatar_model_used, avatar_body_type, avatar_hair_type")
       .eq("id", beneficiary_id).single();
 
-    // 5. CAPTURE RESULT (hash final & edit images)
+    // 5. CAPTURE RESULT (hash final & edit images, archive copy to audit-results/)
     const editImageHash = editVersion?.image_url ? await hashUrl(editVersion.image_url) : null;
     const cleanImageHash = cleanVersion?.image_url ? await hashUrl(cleanVersion.image_url) : null;
+
+    let archivedUrl: string | null = null;
+    if (editVersion?.image_url && archive_label) {
+      try {
+        const r = await fetch(editVersion.image_url);
+        if (r.ok) {
+          const bytes = new Uint8Array(await r.arrayBuffer());
+          const archivePath = `audit-results/${archive_label}.png`;
+          const { error: upE } = await supabase.storage.from("avatars").upload(
+            archivePath, bytes, { contentType: "image/png", upsert: true },
+          );
+          if (!upE) {
+            const { data: pu } = supabase.storage.from("avatars").getPublicUrl(archivePath);
+            archivedUrl = pu.publicUrl;
+          }
+        }
+      } catch (_) { /* archive best-effort */ }
+    }
+
 
     // 6. CLEANUP — delete all fresh versions + their bucket files + canonical files
     const deletedVersions: string[] = [];
@@ -200,7 +220,9 @@ serve(async (req) => {
       result: {
         edit_version: editVersion,
         edit_image_hash: editImageHash,
+        archived_url: archivedUrl,
         clean_version: cleanVersion,
+
         clean_image_hash: cleanImageHash,
         all_fresh_versions: lastFresh,
         beneficiary_after_pipeline: finalRow,
