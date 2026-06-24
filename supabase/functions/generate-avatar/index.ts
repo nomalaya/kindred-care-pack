@@ -17,6 +17,7 @@ import {
   inferAvatarTraits,
   AvatarTraits,
   diffTraits,
+  buildTraitDiffFromKeys,
   classifyDiff,
   TraitDiff,
   TRANSFORMATIVE_TRAIT_KEYS,
