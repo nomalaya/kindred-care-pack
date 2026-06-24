@@ -103,9 +103,8 @@ serve(async (req) => {
     });
     const pipelineAck = await pipelineResp.json().catch(() => ({}));
 
-    // POLL: wait for edit_hd version with our model, then wait for clean-bg or 30s grace
-    const expectedEditModel = `edit_hd/${model_override}`;
-    const POLL_TIMEOUT = 240_000;
+    // POLL: wait for ANY fresh version containing model_override, then wait for clean-bg or grace
+    const POLL_TIMEOUT = 230_000;
     const deadline = Date.now() + POLL_TIMEOUT;
     let editVersion: any = null;
     let cleanVersion: any = null;
@@ -121,22 +120,22 @@ serve(async (req) => {
         .gt("created_at", callStartIso)
         .order("created_at", { ascending: true });
       lastFresh = vs ?? [];
-      editVersion = lastFresh.find(v => v.model_used === expectedEditModel) ?? null;
+      // primary version = any non-clean-bg row whose model_used mentions our model_override
+      editVersion = lastFresh.find(v =>
+        !((v.model_used ?? "").startsWith("clean-bg/"))
+        && (v.model_used ?? "").includes(model_override)
+      ) ?? null;
       cleanVersion = lastFresh.find(v => (v.model_used ?? "").startsWith("clean-bg/")) ?? null;
       const { data: cur } = await supabase
         .from("beneficiaries").select("avatar_status, avatar_qa_score, avatar_qa_report, avatar_model_used")
         .eq("id", beneficiary_id).single();
 
       if (editVersion && !sawEditAt) sawEditAt = Date.now();
-      // Exit conditions:
-      //  a) we have both edit + clean → done
-      //  b) we have edit, no clean yet, and 30s elapsed since edit → done (clean step skipped or failed)
-      //  c) avatar_status went to "failed" → done
-      //  d) we have edit and status is preview/validated and >= 20s since edit → done
       if (editVersion && cleanVersion) break;
-      if (editVersion && Date.now() - sawEditAt > 30000) break;
+      if (editVersion && Date.now() - sawEditAt > 25000) break;
       if (cur?.avatar_status === "failed") break;
     }
+
 
     // Capture latest beneficiary state after pipeline
     const { data: finalRow } = await supabase
