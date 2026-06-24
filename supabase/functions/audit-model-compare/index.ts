@@ -49,12 +49,21 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const t0 = Date.now();
   try {
-    const { beneficiary_id, model_override, target_attribute } = await req.json();
+    const body = await req.json();
+    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+    // Helper mode: cleanup orphan bucket files
+    if (Array.isArray(body.cleanup_paths)) {
+      const { data, error } = await supabase.storage.from("avatars").remove(body.cleanup_paths);
+      return new Response(JSON.stringify({ ok: !error, data, error: error?.message }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { beneficiary_id, model_override, target_attribute } = body;
     if (!beneficiary_id || !model_override || !target_attribute?.key) {
       throw new Error("beneficiary_id, model_override, target_attribute.key required");
     }
     const { key, before, after } = target_attribute;
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+
 
     // 1. SNAPSHOT
     const { data: bRow, error: bErr } = await supabase
