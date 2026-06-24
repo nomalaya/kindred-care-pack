@@ -352,9 +352,8 @@ serve(async (req) => {
       changedKeys,
       requestedDiff,
       model_override,
-      force_edit_mode = false,
-      audit_capture = false,
     } = await req.json();
+
     if (!beneficiary_id) throw new Error("beneficiary_id required");
     if (!["preview", "final", "edit", "edit_hd"].includes(rawMode)) {
       throw new Error("mode must be 'preview', 'final', 'edit' or 'edit_hd'");
