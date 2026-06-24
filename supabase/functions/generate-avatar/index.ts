@@ -352,6 +352,7 @@ serve(async (req) => {
       changedKeys,
       requestedDiff,
       model_override,
+      force_edit_mode = false,
     } = await req.json();
     if (!beneficiary_id) throw new Error("beneficiary_id required");
     if (!["preview", "final", "edit", "edit_hd"].includes(rawMode)) {
@@ -519,7 +520,7 @@ serve(async (req) => {
 
         // Structural change requires explicit operator confirmation.
         // No silent fallback to full regeneration anymore.
-        if (cls.level === "structural" && !confirmStructural) {
+        if (cls.level === "structural" && !confirmStructural && !force_edit_mode) {
           const structuralLabels = editDiff
             .filter(d => cls.structuralKeys.includes(d.key))
             .map(d => d.humanLabel);
@@ -540,11 +541,11 @@ serve(async (req) => {
 
         // Confirmed structural change → full regeneration (text→image).
         // Otherwise (light or medium) → image edit.
-        if (cls.level === "structural" && confirmStructural) {
+        if (cls.level === "structural" && confirmStructural && !force_edit_mode) {
           fallbackReason = "structural_change_confirmed";
           console.log(`[generate-avatar] ${beneficiary_id} structural change confirmed → full regen`);
           mode = mode === "edit" ? "preview" : "final";
-        } else if (editDiff.length > MAX_EDIT_DIFF) {
+        } else if (editDiff.length > MAX_EDIT_DIFF && !force_edit_mode) {
           fallbackReason = "too_many_changes";
           console.log(`[generate-avatar] ${beneficiary_id} too many changes (${editDiff.length}) → full regen`);
           mode = mode === "edit" ? "preview" : "final";
