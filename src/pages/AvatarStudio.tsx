@@ -156,6 +156,24 @@ const AvatarStudio = () => {
     [beneficiaries, selectedId],
   );
 
+  // Snapshot baseline once per beneficiary load: the values displayed when the
+  // user opens the panel. Any subsequent user-driven change is tracked against
+  // this baseline. Reset only when the user actually generates successfully or
+  // switches to another beneficiary (handled in the selectedId effect above /
+  // in `generate`).
+  useEffect(() => {
+    if (!selected) return;
+    if (baselineTraits.current.has(selected.id)) return;
+    const snap: Record<string, any> = {};
+    for (const k of Object.keys(selected)) {
+      if (k.startsWith("avatar_")) snap[k] = (selected as any)[k];
+    }
+    baselineTraits.current.set(selected.id, snap);
+    if (!pendingChanges.current.has(selected.id)) {
+      pendingChanges.current.set(selected.id, new Map());
+    }
+  }, [selected]);
+
   const filtered = useMemo(() => {
     let pool = beneficiaries;
     if (search.trim()) {
