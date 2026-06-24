@@ -155,14 +155,15 @@ interface RunResult {
 async function runFinalPipeline(
   supabase: any,
   prompt: string,
+  modelFinal: string = MODEL_FINAL,
 ): Promise<{ best: RunResult; attempts: RunResult[] }> {
   const attempts: RunResult[] = [];
-  const bytes1 = await generateImage(prompt, MODEL_FINAL);
+  const bytes1 = await generateImage(prompt, modelFinal);
   const qa1 = await runQA(supabase, bytes1);
   attempts.push({ bytes: bytes1, qa: qa1 });
   if (qa1.global_score >= QA_PASS) return { best: attempts[0], attempts };
   if (qa1.global_score >= QA_BORDERLINE) {
-    const bytes2 = await generateImage(prompt + "\n[seed-shift-2]", MODEL_FINAL);
+    const bytes2 = await generateImage(prompt + "\n[seed-shift-2]", modelFinal);
     const qa2 = await runQA(supabase, bytes2);
     attempts.push({ bytes: bytes2, qa: qa2 });
     const best = qa2.global_score > qa1.global_score ? attempts[1] : attempts[0];
@@ -350,10 +351,26 @@ serve(async (req) => {
       confirmStructural = false,
       changedKeys,
       requestedDiff,
+      model_override,
     } = await req.json();
     if (!beneficiary_id) throw new Error("beneficiary_id required");
     if (!["preview", "final", "edit", "edit_hd"].includes(rawMode)) {
       throw new Error("mode must be 'preview', 'final', 'edit' or 'edit_hd'");
+    }
+    // Admin / audit override: force a specific image model for this single call.
+    // Allow-list only the gateway image models we currently support.
+    const MODEL_ALLOWLIST = new Set([
+      "google/gemini-3.1-flash-image-preview", // Nano Banana 2 (default)
+      "google/gemini-3-pro-image",             // Nano Banana Pro
+      "google/gemini-3.1-flash-image",         // Nano Banana 2 stable alias
+      "google/gemini-2.5-flash-image",         // Nano Banana 1
+    ]);
+    const modelOverride: string | null =
+      typeof model_override === "string" && MODEL_ALLOWLIST.has(model_override)
+        ? model_override
+        : null;
+    if (model_override && !modelOverride) {
+      console.warn(`[generate-avatar] ignored model_override (not in allowlist): ${model_override}`);
     }
     const userChangedKeys: string[] | null = Array.isArray(changedKeys)
       ? changedKeys.filter((k): k is string => typeof k === "string")
@@ -545,6 +562,13 @@ serve(async (req) => {
     // Fire-and-forget heavy work
     const work = (async () => {
       try {
+        // Effective models for this call: override wins, else defaults.
+        const M_PREVIEW = modelOverride ?? MODEL_PREVIEW;
+        const M_FINAL = modelOverride ?? MODEL_FINAL;
+        const M_EDIT = modelOverride ?? MODEL_EDIT;
+        if (modelOverride) {
+          console.log(`[generate-avatar] model_override active: ${modelOverride}`);
+        }
         const traits = inferAvatarTraits(b);
         const basePrompt = buildAvatarPrompt(traits);
         // Seed-stable render token: same seed → same identity across regenerations.
@@ -583,7 +607,7 @@ serve(async (req) => {
           const isBodyTypeEdit = transformsInDiff.includes("avatar_body_type");
 
           // First attempt
-          let bytes = await generateEditedImage(editPrompt, sourceUrl, MODEL_EDIT);
+          let bytes = await generateEditedImage(editPrompt, sourceUrl, M_EDIT);
           let ts = Date.now();
           let preGate = await gateBustPreClean(supabase, bytes, transformsInDiff);
           let attempts = 1;
@@ -597,7 +621,7 @@ serve(async (req) => {
               `(${preGate.qa?.scores?.bust_completeness}) — retrying with seed-shift`,
             );
             const retryPrompt = `${editPrompt}\n[seed-shift-body-${Date.now()}]`;
-            bytes = await generateEditedImage(retryPrompt, sourceUrl, MODEL_EDIT);
+            bytes = await generateEditedImage(retryPrompt, sourceUrl, M_EDIT);
             ts = Date.now();
             preGate = await gateBustPreClean(supabase, bytes, transformsInDiff);
             attempts = 2;
@@ -643,12 +667,12 @@ serve(async (req) => {
               ...traitsUpdate,
               avatar_preview_url: url,
               avatar_status: "preview",
-              avatar_model_used: `edit/${MODEL_EDIT}`,
+              avatar_model_used: `edit/${M_EDIT}`,
             }).eq("id", beneficiary_id);
             await supabase.from("avatar_versions").insert({
               beneficiary_id,
               image_url: vu.publicUrl,
-              model_used: `edit/${MODEL_EDIT}`,
+              model_used: `edit/${M_EDIT}`,
               seed: traits.avatar_seed,
               prompt: editPrompt,
             });
@@ -685,14 +709,14 @@ serve(async (req) => {
               avatar_source_url: url,
               avatar_status: "validated",
               avatar_workflow_status: nextWorkflow,
-              avatar_model_used: `edit_hd/${MODEL_EDIT}`,
+              avatar_model_used: `edit_hd/${M_EDIT}`,
               avatar_qa_report: { scores: qa.scores, notes: qa.notes, attempts: 1, edited: true },
               avatar_qa_score: qa.global_score,
             }).eq("id", beneficiary_id);
             await supabase.from("avatar_versions").insert({
               beneficiary_id,
               image_url: vu.publicUrl,
-              model_used: `edit_hd/${MODEL_EDIT}`,
+              model_used: `edit_hd/${M_EDIT}`,
               qa_score: qa.global_score,
               qa_report: { scores: qa.scores, notes: qa.notes },
               seed: traits.avatar_seed,
@@ -715,7 +739,7 @@ serve(async (req) => {
               ...traitsUpdate,
               avatar_preview_url: url,
               avatar_status: "preview",
-              avatar_model_used: `edit_hd/${MODEL_EDIT}`,
+              avatar_model_used: `edit_hd/${M_EDIT}`,
               avatar_qa_report: { scores: qa.scores, notes: qa.notes, edited: true, reason: "edit_qa_below_pass" },
               avatar_qa_score: qa.global_score,
             }).eq("id", beneficiary_id);
@@ -731,7 +755,7 @@ serve(async (req) => {
         traitsUpdate.avatar_prompt = prompt;
 
         if (mode === "preview") {
-          const bytes = await generateImage(prompt, MODEL_PREVIEW);
+          const bytes = await generateImage(prompt, M_PREVIEW);
 
           // -------- PRE-CLEAN BUST GATE --------
           const preGate = await gateBustPreClean(supabase, bytes);
@@ -770,12 +794,12 @@ serve(async (req) => {
             ...traitsUpdate,
             avatar_preview_url: url,
             avatar_status: "preview",
-            avatar_model_used: MODEL_PREVIEW,
+            avatar_model_used: M_PREVIEW,
           }).eq("id", beneficiary_id);
           await supabase.from("avatar_versions").insert({
             beneficiary_id,
             image_url: vu.publicUrl,
-            model_used: MODEL_PREVIEW,
+            model_used: M_PREVIEW,
             seed: traits.avatar_seed,
             prompt,
           });
@@ -786,7 +810,7 @@ serve(async (req) => {
         }
 
         // FINAL mode: Pro + QA scoring (runFinalPipeline already calls QA with bust_completeness)
-        const { best, attempts } = await runFinalPipeline(supabase, prompt);
+        const { best, attempts } = await runFinalPipeline(supabase, prompt, M_FINAL);
         const qa = best.qa!;
 
         // Pre-clean bust gate is implicit here: runFinalPipeline runs runQA which
@@ -818,14 +842,14 @@ serve(async (req) => {
             avatar_source_url: url,
             avatar_status: "validated",
             avatar_workflow_status: nextWorkflow,
-            avatar_model_used: MODEL_FINAL,
+            avatar_model_used: M_FINAL,
             avatar_qa_report: { scores: qa.scores, notes: qa.notes, attempts: attempts.length },
             avatar_qa_score: qa.global_score,
           }).eq("id", beneficiary_id);
           await supabase.from("avatar_versions").insert({
             beneficiary_id,
             image_url: vu.publicUrl,
-            model_used: MODEL_FINAL,
+            model_used: M_FINAL,
             qa_score: qa.global_score,
             qa_report: { scores: qa.scores, notes: qa.notes },
             seed: traits.avatar_seed,
@@ -843,7 +867,7 @@ serve(async (req) => {
           await supabase.from("beneficiaries").update({
             ...traitsUpdate,
             avatar_status: "failed",
-            avatar_model_used: MODEL_FINAL,
+            avatar_model_used: M_FINAL,
             avatar_qa_report: {
               scores: qa.scores,
               notes: qa.notes,
