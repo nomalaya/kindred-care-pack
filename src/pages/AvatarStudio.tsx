@@ -1164,7 +1164,7 @@ const AvatarStudio = () => {
                           <Sparkles className="h-3.5 w-3.5 mr-2" />
                           <div className="flex-1">
                             <div>Portrait HD</div>
-                            <div className="text-[10px] text-muted-foreground">Nano Banana Pro · qualité finale</div>
+                            <div className="text-[10px] text-muted-foreground">Nano Banana 2 · qualité finale</div>
                           </div>
                           <kbd className="ml-2 text-[10px] opacity-60">G</kbd>
                         </DropdownMenuItem>

@@ -100,6 +100,7 @@ serve(async (req) => {
         requestedDiff: { [key]: { before, after } },
         model_override,
         force_edit_mode: !!force_edit_mode,
+        audit_capture: true,
       }),
     });
     const pipelineAck = await pipelineResp.json().catch(() => ({}));
@@ -148,13 +149,14 @@ serve(async (req) => {
     const cleanImageHash = cleanVersion?.image_url ? await hashUrl(cleanVersion.image_url) : null;
 
     let editImageBase64: string | null = null;
+    let failedImageBase64: string | null = null;
+    let failedCapturePath: string | null = null;
     let archivedUrl: string | null = null;
     if (editVersion?.image_url) {
       try {
         const r = await fetch(editVersion.image_url);
         if (r.ok) {
           const bytes = new Uint8Array(await r.arrayBuffer());
-          // base64 encode for local archive on caller side
           let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
           editImageBase64 = btoa(bin);
           if (archive_label) {
@@ -170,6 +172,22 @@ serve(async (req) => {
         }
       } catch (_) { /* best-effort */ }
     }
+    // AUDIT — capture rejected image from audit_capture_url stashed in qa_report
+    const auditCaptureUrl = (finalRow as any)?.avatar_qa_report?.audit_capture_url ?? null;
+    if (!editImageBase64 && auditCaptureUrl) {
+      try {
+        const r = await fetch(auditCaptureUrl);
+        if (r.ok) {
+          const bytes = new Uint8Array(await r.arrayBuffer());
+          let bin = ""; for (const b of bytes) bin += String.fromCharCode(b);
+          failedImageBase64 = btoa(bin);
+          // Extract path for cleanup
+          const m = auditCaptureUrl.match(/\/storage\/v1\/object\/public\/avatars\/(.+?)(?:\?|$)/);
+          if (m) failedCapturePath = m[1];
+        }
+      } catch (_) { /* best-effort */ }
+    }
+
 
 
 
@@ -193,6 +211,15 @@ serve(async (req) => {
         cleanupErrors.push(`storage:${cp}:${rmE.message}`);
       } else if (!rmE) {
         deletedFiles.push(cp);
+      }
+    }
+    // Audit-failed capture file
+    if (failedCapturePath) {
+      const { error: rmE } = await supabase.storage.from("avatars").remove([failedCapturePath]);
+      if (rmE && !rmE.message.toLowerCase().includes("not found")) {
+        cleanupErrors.push(`storage:${failedCapturePath}:${rmE.message}`);
+      } else if (!rmE) {
+        deletedFiles.push(failedCapturePath);
       }
     }
     if (lastFresh.length > 0) {
@@ -228,6 +255,8 @@ serve(async (req) => {
         edit_version: editVersion,
         edit_image_hash: editImageHash,
         edit_image_base64: editImageBase64,
+        failed_image_base64: failedImageBase64,
+        failed_capture_path: failedCapturePath,
         archived_url: archivedUrl,
         clean_version: cleanVersion,
 
