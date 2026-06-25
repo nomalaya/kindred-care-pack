@@ -9,8 +9,8 @@ verify_jwt = false
 [functions.clean-avatar-background]
 verify_jwt = false
 
-[functions.audit-model-compare]
-verify_jwt = false
+
+
 
 
 
