@@ -348,35 +348,55 @@ const diffSims: DiffSim[] = SIMULATIONS.map(([key, before, after]) => {
   return { key, before, after, level: cls.level, expectedMode: m.mode, fullRegen: m.fullRegen, imageEditable: m.editable };
 });
 
-// ---------- Issues ----------
-const issues: string[] = [];
+// ---------- Issues (prioritized P0/P1/P2) ----------
+type Priority = "P0" | "P1" | "P2";
+const issuesByPrio: Record<Priority, string[]> = { P0: [], P1: [], P2: [] };
+const push = (p: Priority, msg: string) => issuesByPrio[p].push(msg);
 
 for (const c of cells) {
   if (c.status === "OK") continue;
-  issues.push(`- **${c.vocab}.${c.value}** — ${c.status}`);
+  // P0 = visible UI mais cassé côté pipeline
+  if (c.ui && !c.comparedByDiff) push("P0", `**${c.vocab}.${c.value}** — visible UI mais non comparé par diffTraits (changement silencieux)`);
+  if (c.ui && !c.inEditLabels) push("P0", `**${c.vocab}.${c.value}** — visible UI mais absent du prompt d'édition (EDIT_VALUE_LABELS manquant)`);
+  if (c.ui && !c.inCreatePrompt && c.value !== "none" && c.value !== "average") push("P0", `**${c.vocab}.${c.value}** — visible UI mais absent du prompt de création`);
+  if (!c.grammar) push("P1", `**${c.vocab}.${c.value}** — grammaire visuelle absente (pas d'entrée *_DESC)`);
+  if (!c.labelFR) push("P2", `**${c.vocab}.${c.value}** — label FR manquant`);
 }
 
-// Attributes in EDIT_VALUE_LABELS but missing from diff lists
 for (const k of EDIT_VALUE_LABELS_KEYS) {
-  if (!ALL_DIFF_KEYS.has(k)) issues.push(`- **${k}** : présent dans EDIT_VALUE_LABELS mais non comparé par diffTraits (édition aveugle)`);
+  if (!ALL_DIFF_KEYS.has(k)) push("P0", `**${k}** — listé dans EDIT_VALUE_LABELS mais non comparé par diffTraits (édition aveugle)`);
 }
-
-// Attributes compared by diff but no edit labels
 for (const k of ALL_DIFF_KEYS) {
   if (!EDIT_VALUE_LABELS_KEYS.includes(k) && !k.endsWith("_level") && k !== "avatar_cultural_style" && k !== "avatar_facial_features") {
-    issues.push(`- **${k}** : comparé par diffTraits mais sans entrée EDIT_VALUE_LABELS`);
+    push("P1", `**${k}** — comparé par diffTraits mais sans entrée EDIT_VALUE_LABELS`);
   }
 }
 
-// Sliders absent from diff
 const SLIDERS = ["avatar_tired_level", "avatar_emotional_brightness", "avatar_bald_level", "avatar_resilience_level", "avatar_fatigue_level", "avatar_dignity_level"];
 for (const s of SLIDERS) {
-  if (!ALL_DIFF_KEYS.has(s)) issues.push(`- **${s}** : slider non comparé par diffTraits (changement silencieux)`);
+  if (!ALL_DIFF_KEYS.has(s)) push("P0", `**${s}** — slider exposé en UI mais non comparé par diffTraits (changement silencieux)`);
 }
 
-// Hardcoded near-duplicates flagged for human review
-const NEAR_DUPLICATES = [
-  ["hair_type", "curly", "coily", "Texture très proche en sortie image — à vérifier avec test réel"],
+// Classification reality-check (lit le code réel, pas une hypothèse)
+const hairTypeClass = classifyKey("avatar_hair_type");
+if (hairTypeClass === "structural") {
+  push("P1", `**avatar_hair_type** — classé \`structural\` dans le code actuel (STRUCTURAL_TRAIT_KEYS). Le reclassement medium+transformative annoncé dans le plan production-ready N'EST PAS APPLIQUÉ. Tout changement (ex: curly→coily) déclenche \`requires_confirmation\` + full regen au lieu d'edit_hd image-to-image.`);
+} else {
+  push("P2", `**avatar_hair_type** — reclassement effectif: classé \`${hairTypeClass}\` dans le code actuel.`);
+}
+const bodyTypeClass = classifyKey("avatar_body_type");
+if (bodyTypeClass !== "medium") {
+  push("P1", `**avatar_body_type** — classé \`${bodyTypeClass}\` (attendu: medium pour transformation same-person).`);
+}
+
+for (const sim of diffSims) {
+  if (sim.key === "avatar_clothing_style" && sim.level === "light") {
+    push("P2", `**avatar_clothing_style** — classé \`soft\`. OK pour édition légère; vérifier que la palette est aussi diffée.`);
+  }
+}
+
+const NEAR_DUPLICATES: Array<[string, string, string, string]> = [
+  ["hair_type", "curly", "coily", "Texture proche en sortie image — vérifier la grammaire (curly = boucles définies, coily = kinky dense)"],
   ["body_type", "chubby", "heavy", "Volumes proches, vérifier que la grammaire heavy reste lisible vs chubby"],
   ["hair_length", "medium", "shoulder", "Différence subtile, risque de no_changes visuel"],
   ["hair_style", "tousled", "loose", "Sémantique proche, possible doublon"],
@@ -384,35 +404,31 @@ const NEAR_DUPLICATES = [
   ["expression", "discreet_smile", "gentle_smile", "Sourires proches"],
 ];
 for (const [v, a, b, note] of NEAR_DUPLICATES) {
-  issues.push(`- **${v}.${a} ↔ ${v}.${b}** : ${note}`);
-}
-
-// classifyDiff incoherences for the key simulations
-for (const sim of diffSims) {
-  if (sim.key === "avatar_hair_type" && sim.level === "structural") {
-    issues.push(`- **avatar_hair_type** : classé \`structural\` → un simple curly→coily déclenche \`requires_confirmation\` + full regen. Reclassement medium proposé.`);
-  }
-  if (sim.key === "avatar_clothing_style" && sim.level === "light") {
-    issues.push(`- **avatar_clothing_style** : classé \`soft\` — OK pour édition légère, vérifier que la palette est aussi diffée.`);
-  }
+  push("P1", `**${v}.${a} ↔ ${v}.${b}** — valeurs trop proches : ${note}`);
 }
 
 // ---------- Render reports ----------
 await Deno.mkdir(".lovable/audit-coverage", { recursive: true });
+
+const DRY_RUN_BANNER = `> **Mode dry-run — strictement lecture seule.**
+> Aucun appel à Nano Banana · aucun appel à Gemini · aucun appel au gateway image ·
+> aucun appel à \`generate-avatar\` · aucun appel à \`qa-avatar\` ·
+> aucune lecture DB · aucune écriture DB · aucune génération d'image.
+> Analyse statique du code source uniquement.\n`;
 
 function renderMatrix(): string {
   const head = "| Vocab | Valeur | UI | Label FR | Grammaire | Création | Édition | Diff | Classe | Statut |\n|---|---|:-:|:-:|:-:|:-:|:-:|:-:|---|---|";
   const rows = cells.map(c =>
     `| ${c.vocab} | \`${c.value}\` | ${c.ui ? "✓" : "✗"} | ${c.labelFR ? "✓" : "✗"} | ${c.grammar ? "✓" : "✗"} | ${c.inCreatePrompt ? "✓" : "✗"} | ${c.inEditLabels ? "✓" : "✗"} | ${c.comparedByDiff ? "✓" : "✗"} | ${c.classification} | ${c.status} |`
   );
-  return `# Avatar Studio — Matrice de couverture\n\nGénéré sans appel IA. ${cells.length} valeurs auditées.\n\n${head}\n${rows.join("\n")}\n`;
+  return `# Avatar Studio — Matrice de couverture\n\n${DRY_RUN_BANNER}\n${cells.length} valeurs auditées.\n\n${head}\n${rows.join("\n")}\n`;
 }
 
 function renderPrompts(): string {
   const blocks = promptSamples.map(p =>
     `### ${p.vocab}.${p.value}\n- **Création** : ${p.createFragment}\n- **Édition** : ${p.editFragment}\n- **Bloc « same person transformed »** : ${p.hasTransformBlock ? "oui" : "non"}\n- **Niveau classifyDiff** : ${p.level}\n`
   );
-  return `# Avatar Studio — Dry-run prompts\n\nFragments création + édition par valeur. Aucun appel IA.\n\n${blocks.join("\n")}\n`;
+  return `# Avatar Studio — Dry-run prompts\n\n${DRY_RUN_BANNER}\nFragments création + édition par valeur, extraits sans envoi au modèle.\n\n${blocks.join("\n")}\n`;
 }
 
 function renderDiffs(): string {
@@ -420,12 +436,17 @@ function renderDiffs(): string {
   const rows = diffSims.map(s =>
     `| \`${s.key}\` | \`${s.before}\` | \`${s.after}\` | ${s.level} | ${s.expectedMode} | ${s.fullRegen ? "oui" : "non"} | ${s.imageEditable ? "oui" : "non"} |`
   );
-  return `# Avatar Studio — Simulations de diff\n\n15 scénarios, simulation pure (\`buildTraitDiffFromKeys\` + \`classifyDiff\`). Aucun appel IA.\n\n${head}\n${rows.join("\n")}\n`;
+  const note = `\n## État réel des classifications (lu depuis \`avatarTraits.ts\`)\n\n- \`avatar_hair_type\` → **${hairTypeClass}**\n- \`avatar_body_type\` → **${bodyTypeClass}**\n`;
+  return `# Avatar Studio — Simulations de diff\n\n${DRY_RUN_BANNER}\n15 scénarios, simulation pure (\`buildTraitDiffFromKeys\` + \`classifyDiff\`).\n\n${head}\n${rows.join("\n")}\n${note}`;
 }
 
 function renderIssues(): string {
-  const dedup = Array.from(new Set(issues));
-  return `# Avatar Studio — Problèmes détectés\n\n${dedup.length} entrées (avant dédoublonnage humain).\n\n${dedup.join("\n")}\n`;
+  const sec = (p: Priority, title: string) => {
+    const list = Array.from(new Set(issuesByPrio[p]));
+    return `## ${p} — ${title}\n\n${list.length === 0 ? "_aucun_" : list.map(s => `- ${s}`).join("\n")}\n`;
+  };
+  const total = issuesByPrio.P0.length + issuesByPrio.P1.length + issuesByPrio.P2.length;
+  return `# Avatar Studio — Problèmes détectés (priorisés)\n\n${DRY_RUN_BANNER}\n${total} entrées (P0=${issuesByPrio.P0.length} · P1=${issuesByPrio.P1.length} · P2=${issuesByPrio.P2.length}).\n\n${sec("P0", "Bloquants — attributs visibles non fonctionnels")}\n${sec("P1", "Cohérence — grammaire, classification, doublons")}\n${sec("P2", "Confort — labels, sliders fins")}\n`;
 }
 
 await Deno.writeTextFile(".lovable/audit-coverage/coverage-matrix.md", renderMatrix());
@@ -435,7 +456,9 @@ await Deno.writeTextFile(".lovable/audit-coverage/issues.md", renderIssues());
 
 // Summary
 const koCells = cells.filter(c => c.status !== "OK");
+const totalIssues = issuesByPrio.P0.length + issuesByPrio.P1.length + issuesByPrio.P2.length;
 console.log(`[audit] ${cells.length} valeurs auditées, ${koCells.length} avec au moins un défaut.`);
 console.log(`[audit] ${diffSims.length} simulations de diff.`);
-console.log(`[audit] ${new Set(issues).size} problèmes uniques détectés.`);
+console.log(`[audit] ${totalIssues} problèmes (P0=${issuesByPrio.P0.length} P1=${issuesByPrio.P1.length} P2=${issuesByPrio.P2.length}).`);
+console.log(`[audit] hair_type=${hairTypeClass} body_type=${bodyTypeClass}`);
 console.log(`[audit] Rapports : .lovable/audit-coverage/{coverage-matrix,dry-run-prompts,diff-simulations,issues}.md`);

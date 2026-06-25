@@ -1,6 +1,12 @@
 # Avatar Studio — Dry-run prompts
 
-Fragments création + édition par valeur. Aucun appel IA.
+> **Mode dry-run — strictement lecture seule.**
+> Aucun appel à Nano Banana · aucun appel à Gemini · aucun appel au gateway image ·
+> aucun appel à `generate-avatar` · aucun appel à `qa-avatar` ·
+> aucune lecture DB · aucune écriture DB · aucune génération d'image.
+> Analyse statique du code source uniquement.
+
+Fragments création + édition par valeur, extraits sans envoi au modèle.
 
 ### gender.woman
 - **Création** : a 25-35 year old woman, with medium clearly curly hair with defined curls, ringlets or spiral curls dark brown hair (loose style, natural volume), light skin, oval face shape, a straight, balanced nose, almond brown eyes.
