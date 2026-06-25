@@ -1,0 +1,68 @@
+# Avatar Studio — Problèmes détectés
+
+64 entrées (avant dédoublonnage humain).
+
+- **gender.woman** — grammaire absente · absent édition
+- **gender.man** — grammaire absente · absent édition
+- **gender.person** — grammaire absente · absent édition
+- **age_range.18-25** — grammaire absente · absent édition
+- **age_range.25-35** — grammaire absente · absent édition
+- **age_range.35-45** — grammaire absente · absent édition
+- **age_range.45-55** — grammaire absente · absent édition
+- **age_range.55-65** — grammaire absente · absent édition
+- **age_range.65-75** — grammaire absente · absent édition
+- **age_range.75-85** — grammaire absente · absent édition
+- **face_shape.oval** — grammaire absente · absent édition
+- **face_shape.round** — absent édition
+- **face_shape.square_soft** — grammaire absente · absent édition
+- **face_shape.heart** — grammaire absente · absent édition
+- **face_shape.long** — absent édition
+- **clothing_style.casual_modest** — absent création
+- **clothing_color_palette.sand_ivory** — absent création
+- **expression.gentle_smile** — absent création
+- **expression.discreet_smile** — absent création
+- **expression.tired_but_warm** — absent création
+- **expression.serious_soft** — absent création
+- **posture.upright_calm** — absent création
+- **posture.seated_dignified** — absent création
+- **parent_energy.practical_parent** — absent création
+- **parent_energy.tired_but_warm_parent** — absent création
+- **cultural_style.neutral_european** — absent UI · absent création · absent édition
+- **cultural_style.soft_modern** — absent UI · absent création · absent édition
+- **cultural_style.subtle_mediterranean** — absent UI · absent édition
+- **cultural_style.subtle_west_african** — absent UI · absent édition
+- **cultural_style.subtle_central_african** — absent UI · absent édition
+- **beard.grey** — absent création
+- **beard.religious_long** — absent création
+- **hair_recession.none** — absent édition
+- **hair_recession.light** — absent édition
+- **hair_recession.moderate** — grammaire absente · absent création · absent édition
+- **hair_recession.strong** — grammaire absente · absent création · absent édition
+- **head_covering.hijab_full** — absent création
+- **forehead_mark.bindi_red** — absent création
+- **forehead_mark.bindi_black** — absent création
+- **forehead_mark.bindi_decorative** — absent création
+- **mobility_aid.wheelchair_manual** — absent création
+- **mobility_aid.wheelchair_electric** — absent création
+- **mobility_aid.crutches** — absent création
+- **mobility_aid.walker** — absent création
+- **mobility_aid.visible_bandage** — absent création
+- **mobility_aid.arm_sling** — absent création
+- **body_type.very_thin** — absent création
+- **body_type.chubby** — absent création
+- **body_type.heavy** — absent création
+- **avatar_gender** : comparé par diffTraits mais sans entrée EDIT_VALUE_LABELS
+- **avatar_age_range** : comparé par diffTraits mais sans entrée EDIT_VALUE_LABELS
+- **avatar_face_shape** : comparé par diffTraits mais sans entrée EDIT_VALUE_LABELS
+- **avatar_hair_recession** : comparé par diffTraits mais sans entrée EDIT_VALUE_LABELS
+- **avatar_cultural_style_override** : comparé par diffTraits mais sans entrée EDIT_VALUE_LABELS
+- **avatar_emotional_brightness** : comparé par diffTraits mais sans entrée EDIT_VALUE_LABELS
+- **avatar_dignity_level** : slider non comparé par diffTraits (changement silencieux)
+- **hair_type.curly ↔ hair_type.coily** : Texture très proche en sortie image — à vérifier avec test réel
+- **body_type.chubby ↔ body_type.heavy** : Volumes proches, vérifier que la grammaire heavy reste lisible vs chubby
+- **hair_length.medium ↔ hair_length.shoulder** : Différence subtile, risque de no_changes visuel
+- **hair_style.tousled ↔ hair_style.loose** : Sémantique proche, possible doublon
+- **expression.calm ↔ expression.reserved** : Expressions très proches
+- **expression.discreet_smile ↔ expression.gentle_smile** : Sourires proches
+- **avatar_hair_type** : classé `structural` → un simple curly→coily déclenche `requires_confirmation` + full regen. Reclassement medium proposé.
+- **avatar_clothing_style** : classé `soft` — OK pour édition légère, vérifier que la palette est aussi diffée.

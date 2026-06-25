@@ -1,83 +1,106 @@
+## Objectif
 
-# Plan — Audit NB2 vs Pro sur Léa, 4 tests isolés (v2)
+Vérifier la couverture complète de tous les attributs Avatar Studio sans consommer un seul crédit IA. Aucun appel à Nano Banana, Gemini ou au gateway image. Tout est statique ou simulé en TypeScript.
 
-## Garantie d'isolation
-4 tests partant strictement de la même image source baseline. Cycle par test : snapshot → mutation → exécution pipeline réel → capture résultat → restauration.
+## Livrables
 
-## Edge function `audit-model-compare` (jetable, conservée jusqu'à validation)
-`supabase/functions/audit-model-compare/index.ts`, service-role, hors UI. **Non supprimée à la fin de l'audit** — conservée jusqu'à ta validation explicite du rapport. Listée dans la section finale du livrable comme « fonction temporaire encore présente, en attente de ton OK pour suppression ».
+1. Un script Deno autonome `scripts/audit-avatar-coverage.ts` qui :
+   - importe `AVATAR_VOCAB`, `buildAvatarPrompt`, `buildEditPrompt`, `diffTraits`, `classifyDiff`, `inferAvatarTraits`, les dictionnaires de grammaire
+   - n'invoque AUCUNE fonction edge, AUCUN modèle, ne lit pas la DB
+   - produit deux fichiers dans `.lovable/audit-coverage/` :
+     - `coverage-matrix.md` — tableau attribut × valeur × statut
+     - `dry-run-prompts.md` — fragments de prompt création + édition par valeur
+     - `diff-simulations.md` — simulations de diff (avant/après)
+     - `issues.md` — problèmes auto-détectés
 
-Entrée :
-```json
-{
-  "beneficiary_id": "de8c19bc-8643-4af8-8bc0-31a57f79cd61",
-  "model_override": "google/gemini-3.1-flash-image-preview" | "google/gemini-3-pro-image",
-  "target_attribute": { "key": "avatar_body_type", "before": "average", "after": "heavy" }
-}
+2. Aucun changement au pipeline runtime. Aucune modification de `generate-avatar`, `qa-avatar`, `avatarTraits.ts`, `avatarArtDirection.ts`, des RPC, SQL, panier, matching, fonds, cadrage, panneau Versions.
+
+## Détail technique
+
+### Audit 1 — Couverture statique
+
+Pour chaque clé de `AVATAR_VOCAB` (face, eyes, hair, beard/moustache, head_covering, forehead_mark, clothing, posture, body_type, mobility_aid, expression, parent_energy, cultural_style, etc.) et chaque valeur :
+
+| Vérification | Source |
+|---|---|
+| Présent UI | `TAB_FIELDS` + `FIELD_LABELS` dans `src/features/avatar-studio/fields.tsx` |
+| Label FR | `VOCAB_LABELS` dans `src/lib/avatarVocabLabels.ts` |
+| Grammaire visuelle | dictionnaires `*_DESC` dans `avatarArtDirection.ts` |
+| Utilisée en création | recherche dans `buildAvatarPrompt` (extras, HEAD_COVERING, MOBILITY, FOREHEAD_MARK, PARENT_ENERGY locaux) |
+| Utilisée en édition | présence dans `EDIT_VALUE_LABELS` |
+| Comparée par diffTraits | présence dans `STRUCTURAL_TRAIT_KEYS ∪ MEDIUM_TRAIT_KEYS ∪ SOFT_TRAIT_KEYS` |
+| Classée par classifyDiff | dérivé du précédent |
+| Label éditable lisible | présence d'une entrée non-fallback dans `EDIT_VALUE_LABELS[key][value]` |
+
+Statut par cellule : `OK` / `valeur absente UI` / `label FR manquant` / `grammaire absente` / `absente création` / `absente édition` / `non comparé` / `classification incohérente`.
+
+### Audit 2 — Prompt dry-run
+
+Pour chaque attribut et chaque valeur :
+
+- Construire un `AvatarTraits` baseline (Léa) puis surcharger l'attribut audité
+- Appeler `buildAvatarPrompt(traits)` → capter l'extrait pertinent (regex sur la valeur ou la phrase de grammaire)
+- Construire un `TraitDiff` synthétique baseline→valeur et appeler `buildEditPrompt(diff, traits)` → capter le bloc CHANGES + éventuel `TRANSFORM_BLOCKS[key]`
+- Logguer : fragment création / fragment édition / présence d'un bloc « same person transformed » / niveau retourné par `classifyDiff`
+
+Zéro appel réseau, zéro génération.
+
+### Audit 3 — Diff dry-run
+
+Pour ~15 simulations clés (couvrant tous les niveaux) :
+
+```
+body_type      average → heavy        (medium / edit_hd)
+hair_type      curly   → coily        (structural ← à signaler)
+hair_color     white   → dark_brown   (light  / edit)
+hair_length    medium  → short        (medium / edit_hd)
+hair_style     loose   → bun          (light)
+expression     reserved→ gentle_smile (light)
+posture        upright_calm → leaning_slightly (light)
+beard          none    → full         (medium)
+mobility_aid   none    → cane         (medium)
+head_covering  none    → hijab_full   (structural)
+skin_tone      light   → dark         (structural)
+nose           straight→ aquiline     (structural)
+forehead_mark  none    → bindi_red    (light)
+clothing_style casual_modest → soft_cardigan (light)
+parent_energy  none    → protective_parent   (light)
 ```
 
-Séquence par appel :
-1. **SNAPSHOT** Léa : tous champs `avatar_*` sensibles + le trait cible + liste des IDs `avatar_versions` existants au moment T0 (pour pouvoir identifier ensuite les lignes créées par le test).
-2. **HASH SOURCE** : sha256 de `avatar_source_url`, vérifié == baseline. Loggé.
-3. **MUTATION CIBLÉE** : UPDATE Léa positionnant uniquement le trait cible à `after`.
-4. **APPEL PIPELINE RÉEL** `generate-avatar` (HTTP service-role) : `mode: "edit_hd"`, `changedKeys`, `requestedDiff`, `model_override`. Attente complétion réelle (poll, timeout 120 s).
-5. **CAPTURE RÉSULTAT** : relit Léa + nouvelles lignes `avatar_versions` (IDs absents du snapshot T0), récupère leurs `image_url`, `prompt`, `qa_report`, `qa_score`, `model_used`. Hash de l'image générée. Tout est stocké dans la réponse JSON.
-6. **NETTOYAGE DES VERSIONS DE TEST** (point ajouté) :
-   - DELETE des lignes `avatar_versions` créées par ce test (IDs identifiés à l'étape 5).
-   - Suppression des fichiers correspondants du bucket `avatars/`, OU déplacement vers `avatars/audit/<beneficiary_id>/<timestamp>-<model>.png` si l'API storage le permet sans re-upload. Préférence : **suppression** puisque le rapport conserve déjà URL+hash+capture.
-   - Si la suppression échoue (race, permission), fallback : déplacement dans dossier `audit/` et note explicite dans le rapport.
-7. **RESTAURATION** : UPDATE Léa avec snapshot complet de l'étape 1. Re-lecture + diff vs snapshot, abort de la suite si écart.
+Pour chacune : diff retourné par `buildTraitDiffFromKeys`, classification, mode attendu (`edit` light, `edit_hd` medium, `requires_confirmation` structural, `no_changes` si vide), full-regen oui/non, éditable image-to-image oui/non.
 
-## Pollution du panneau Versions
-Schéma `avatar_versions` (9 colonnes) → pas de champ `kind`/`tag` natif pour marquer « audit ». Donc on choisit l'**option préférée** : **DELETE** des lignes de test après capture dans le rapport. Le rapport garde toutes les preuves (URL signée snapshot avant suppression, hash, prompt, scores, image téléchargée et archivée localement si nécessaire).
+### Détection automatique
 
-→ Conséquence : aucun ajout durable dans le panneau Versions de Léa.
+Le script génère un `issues.md` listant :
 
-## Capture des preuves dans le rapport (avant suppression)
-Pour chaque T1-T4, **avant** le DELETE de l'étape 6, on stocke dans `.lovable/audit-models.md` :
-- URL publique de l'image de test (utile uniquement le temps de la review humaine, elle sera morte après cleanup)
-- hash sha256 de l'image
-- prompt complet
-- qa_report JSON intégral
-- scores `identity_preservation`, `bust_completeness`, QA global
-- modèle réellement appelé, durée ms
+- valeurs présentes dans `AVATAR_VOCAB` absentes de `VOCAB_LABELS`
+- valeurs sans entrée dans le `*_DESC` correspondant
+- attributs présents dans `EDIT_VALUE_LABELS` mais absents de `STRUCTURAL/MEDIUM/SOFT`
+- attributs comparés par `diffTraits` mais sans `EDIT_VALUE_LABELS` (édition aveugle)
+- doublons sémantiques détectables (paires hard-codées : `curly`/`coily`, `chubby`/`heavy`, `medium`/`shoulder`, `tousled`/`loose`) avec note humaine
+- attributs `_level` numériques absents des trois listes (slider non diffé)
 
-Optionnellement : téléchargement des 4 images dans `.lovable/audit-assets/T{1..4}.png` pour archivage local persistant après cleanup bucket. À confirmer si tu veux ce miroir local — sinon on garde uniquement les hashes + scores + prompts.
+### Exécution
 
-## Exécution
+```
+deno run -A scripts/audit-avatar-coverage.ts
+```
 
-Baseline : hash sha256 de l'`avatar_source_url` actuel de Léa, calculé une fois avant T1, référence partagée.
+Reads `src/lib/avatarTraits.ts`, `src/lib/avatarVocabLabels.ts`, `src/features/avatar-studio/fields.tsx`, `supabase/functions/_shared/avatarTraits.ts`, `supabase/functions/_shared/avatarArtDirection.ts`. Pas de DB, pas de gateway, pas d'image. Coût : 0 crédit.
 
-| # | model_override | target_attribute |
-|---|---|---|
-| T1 | NB2 `google/gemini-3.1-flash-image-preview` | `{avatar_body_type, average→heavy}` |
-| T2 | Pro `google/gemini-3-pro-image` | `{avatar_body_type, average→heavy}` |
-| T3 | NB2 | `{avatar_hair_type, curly→coily}` |
-| T4 | Pro | `{avatar_hair_type, curly→coily}` |
+## Hors périmètre
 
-Entre chaque test : relecture Léa + diff vs snapshot baseline initial + re-hash `avatar_source_url`. Abort si écart.
+- Pas de génération d'image, pas de test prod, pas d'appel `generate-avatar`/`qa-avatar`
+- Pas de modification fonds, cadrage, panneau Versions, SQL, RPC, panier, matching
+- Pas de nettoyage de `audit-model-compare`, `force_edit_mode`, `audit_capture` (différé)
+- Les 6 tests réels listés (corpulence, cheveux, barbe, mobilité, expression) ne seront proposés qu'APRÈS lecture du rapport, sur ta validation explicite
 
-## Livrable `.lovable/audit-models.md` (réécrit)
-1. Protocole + ID Léa + URL baseline + **hash sha256 baseline**.
-2. Tableau d'isolation : hash source observé avant chaque test == baseline ; état DB restauré OK/écarts ; lignes `avatar_versions` supprimées (IDs) ; fichiers bucket supprimés (chemins).
-3. 4 fiches de test : modèle réellement appelé, mode, image source (URL+hash), diff, classification, prompt final, image générée (URL+hash, valide jusqu'au cleanup), scores QA, durée, commentaire visuel structuré.
-4. Tableau comparatif (critères × T1..T4).
-5. **État final de Léa** : diff champ par champ vs snapshot initial. Doit être vide.
-6. **Confirmation panneau Versions non pollué** : SELECT final des IDs `avatar_versions` de Léa == liste T0.
-7. **Liste des éléments temporaires encore présents** :
-   - edge function `audit-model-compare` (en attente de ton OK pour suppression)
-   - éventuels fichiers `.lovable/audit-assets/T*.png` si archivage local activé
-8. Recommandation finale parmi : NB2 partout / Pro uniquement Portrait HD / Pro uniquement éditions sensibles / Pro pour final + éditions sensibles. Critères ordonnés : identité → fidélité transformation → différenciation valeurs → style → cadrage/buste.
+## Ce que tu obtiendras après exécution
 
-## Suppression différée
-Après ta lecture et ta validation du rapport, je proposerai dans un message séparé la suppression de :
-- l'edge function `audit-model-compare`
-- les éventuels assets locaux d'archivage
+1. `.lovable/audit-coverage/coverage-matrix.md` — tableau exhaustif
+2. `.lovable/audit-coverage/dry-run-prompts.md` — fragments création/édition pour chaque valeur
+3. `.lovable/audit-coverage/diff-simulations.md` — 15 simulations avec mode attendu
+4. `.lovable/audit-coverage/issues.md` — liste priorisée des trous détectés
+5. Un résumé court en chat avec les 3-5 problèmes les plus critiques
 
-Aucune suppression de la fonction tant que tu n'as pas validé.
-
-## Hors-périmètre (rappel)
-Pas de toggle UI, pas de modif modèle par défaut, pas de correctif label « Portrait HD — Nano Banana Pro », pas de P1 grammaire, pas de modif prompts ni Avatar Studio.
-
-## Question avant exécution
-Veux-tu que les 4 images générées soient archivées localement dans `.lovable/audit-assets/` (PNG, ~quelques Mo) pour rester visualisables après cleanup bucket ? Sinon le rapport ne gardera que hashes + scores + prompts (les URLs bucket seront mortes après l'audit).
+Puis tu décides quelles corrections prioriser et lesquels (max 6) des tests réels lancer.
