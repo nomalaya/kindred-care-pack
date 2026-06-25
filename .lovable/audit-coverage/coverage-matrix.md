@@ -1,6 +1,12 @@
 # Avatar Studio — Matrice de couverture
 
-Généré sans appel IA. 149 valeurs auditées.
+> **Mode dry-run — strictement lecture seule.**
+> Aucun appel à Nano Banana · aucun appel à Gemini · aucun appel au gateway image ·
+> aucun appel à `generate-avatar` · aucun appel à `qa-avatar` ·
+> aucune lecture DB · aucune écriture DB · aucune génération d'image.
+> Analyse statique du code source uniquement.
+
+149 valeurs auditées.
 
 | Vocab | Valeur | UI | Label FR | Grammaire | Création | Édition | Diff | Classe | Statut |
 |---|---|:-:|:-:|:-:|:-:|:-:|:-:|---|---|

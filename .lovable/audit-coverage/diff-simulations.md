@@ -1,6 +1,12 @@
 # Avatar Studio — Simulations de diff
 
-15 scénarios, simulation pure (`buildTraitDiffFromKeys` + `classifyDiff`). Aucun appel IA.
+> **Mode dry-run — strictement lecture seule.**
+> Aucun appel à Nano Banana · aucun appel à Gemini · aucun appel au gateway image ·
+> aucun appel à `generate-avatar` · aucun appel à `qa-avatar` ·
+> aucune lecture DB · aucune écriture DB · aucune génération d'image.
+> Analyse statique du code source uniquement.
+
+15 scénarios, simulation pure (`buildTraitDiffFromKeys` + `classifyDiff`).
 
 | Attribut | Avant | Après | Niveau | Mode attendu | Full regen | Image-to-image |
 |---|---|---|---|---|:-:|:-:|
@@ -19,3 +25,8 @@
 | `avatar_forehead_mark` | `none` | `bindi_red` | light | edit | non | oui |
 | `avatar_clothing_style` | `casual_modest` | `soft_cardigan` | light | edit | non | oui |
 | `avatar_parent_energy` | `none` | `protective_parent` | light | edit | non | oui |
+
+## État réel des classifications (lu depuis `avatarTraits.ts`)
+
+- `avatar_hair_type` → **structural**
+- `avatar_body_type` → **medium**
