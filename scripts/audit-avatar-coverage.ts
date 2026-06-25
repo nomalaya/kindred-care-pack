@@ -456,7 +456,10 @@ await Deno.writeTextFile(".lovable/audit-coverage/issues.md", renderIssues());
 
 // Summary
 const koCells = cells.filter(c => c.status !== "OK");
+const koCells = cells.filter(c => c.status !== "OK");
+const totalIssues = issuesByPrio.P0.length + issuesByPrio.P1.length + issuesByPrio.P2.length;
 console.log(`[audit] ${cells.length} valeurs auditées, ${koCells.length} avec au moins un défaut.`);
 console.log(`[audit] ${diffSims.length} simulations de diff.`);
-console.log(`[audit] ${new Set(issues).size} problèmes uniques détectés.`);
+console.log(`[audit] ${totalIssues} problèmes (P0=${issuesByPrio.P0.length} P1=${issuesByPrio.P1.length} P2=${issuesByPrio.P2.length}).`);
+console.log(`[audit] hair_type=${hairTypeClass} body_type=${bodyTypeClass}`);
 console.log(`[audit] Rapports : .lovable/audit-coverage/{coverage-matrix,dry-run-prompts,diff-simulations,issues}.md`);
