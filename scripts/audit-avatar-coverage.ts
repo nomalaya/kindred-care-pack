@@ -456,7 +456,6 @@ await Deno.writeTextFile(".lovable/audit-coverage/issues.md", renderIssues());
 
 // Summary
 const koCells = cells.filter(c => c.status !== "OK");
-const koCells = cells.filter(c => c.status !== "OK");
 const totalIssues = issuesByPrio.P0.length + issuesByPrio.P1.length + issuesByPrio.P2.length;
 console.log(`[audit] ${cells.length} valeurs auditées, ${koCells.length} avec au moins un défaut.`);
 console.log(`[audit] ${diffSims.length} simulations de diff.`);
