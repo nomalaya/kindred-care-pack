@@ -231,7 +231,7 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
   if (t.avatar_forehead_mark && t.avatar_forehead_mark !== "none" && FOREHEAD_MARK[t.avatar_forehead_mark]) {
     extras.push(FOREHEAD_MARK[t.avatar_forehead_mark]);
   }
-  if ((t.avatar_fatigue_level ?? 0) >= 3) extras.push("visible but dignified fatigue in the face");
+  if ((t.avatar_fatigue_level ?? 0) >= 3) extras.push("visible but dignified fatigue in the face — never sick, miserable, theatrical, or exaggerated; quiet humanity preserved");
   if ((t.avatar_resilience_level ?? 3) >= 4) extras.push("quiet inner strength conveyed in the posture");
 
   const PARENT_ENERGY: Record<string, string> = {
