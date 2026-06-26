@@ -31,6 +31,10 @@ import { SectionAccordion, type SectionDef } from "@/features/avatar-studio/Sect
 import {
   FIELD_LABELS, FIELD_ICONS, FIELD_ACCENT, SelectField, SliderField,
 } from "@/features/avatar-studio/fields";
+import {
+  FATIGUE_VISIBLE_OPTIONS, FATIGUE_VISIBLE_LABELS, readFatigueVisible, fatigueVisibleToPatch,
+  EMOTIONAL_TONE_OPTIONS, EMOTIONAL_TONE_LABELS, readEmotionalTone, emotionalToneToPatch,
+} from "@/features/avatar-studio/simplifiedFields";
 import { labelFor } from "@/lib/avatarVocabLabels";
 
 import {
