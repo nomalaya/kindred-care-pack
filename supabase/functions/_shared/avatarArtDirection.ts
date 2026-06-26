@@ -104,7 +104,7 @@ const BODY_TYPE_DESC: Record<string, string> = {
 // Compact, focused art direction. Style + dignity + anonymity only.
 // Framing is enforced separately right after the subject for maximum weight.
 export const ART_DIRECTION_INVARIANTS = `
-STYLE: clean modern editorial illustration. Fine soft ink linework with subtle organic outlines. Soft colored-pencil shading with a light digital wash. Realistic human proportions, clearly non-photographic, gently stylized.
+STYLE: clean modern editorial illustration. Smooth soft shading with simple, restrained outlines — no heavy ink strokes, no cross-hatching, no pencil scribbles, no visible brush texture, no painterly wash bleeding into the background. Hair drawn as soft uniform masses (not as many individual dark inked strands), facial details kept smooth and clean (no scribbled marks around eyes, no signature-like strokes). Realistic human proportions, clearly non-photographic, gently stylized.
 COLOR: warm, slightly desaturated, harmonious. Muted earth and warm pastel tones. No neon, no oversaturation.
 ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure or celebrity. Fictional respectful stand-in only.
 DIGNITY (GLOBAL, NON-NEGOTIABLE): Always portray the person with dignity, respect, and humanity. Never make the portrait humiliating, miserable, grotesque, exaggerated, caricatural, or stereotyped. Quiet humanity, no pathos.
