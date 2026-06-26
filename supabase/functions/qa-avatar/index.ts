@@ -27,7 +27,7 @@ const WEIGHTS: Record<string, number> = {
 const HARD_FAIL_THRESHOLDS: Record<string, number> = {
   style_match: 70,
   anonymity: 70,
-  bust_completeness: 75,
+  bust_completeness: 55,
 };
 
 function weightedScore(scores: Record<string, number>): number {
