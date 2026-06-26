@@ -119,9 +119,9 @@ COMPOSITION: subject perfectly centered horizontally and vertically. The face oc
 COMPLETE UPPER BUST — STRICT (NON-NEGOTIABLE):
 The portrait must show a complete, solid upper bust with fully visible shoulders and a continuous torso outline down to the cropping line.
 The clothing and shoulders must remain fully drawn and fully opaque until the bottom crop line.
-The lower edge of the upper bust must end as a CLEAN DRAWN PORTRAIT (a real garment line + a clean horizontal canvas crop), NOT as a fading wash into the white background.
+The lower edge of the upper bust must simply leave the canvas naturally at the bottom crop, with the garment fully drawn and opaque up to that crop. Do NOT add a thick horizontal line, ruler line, underline, dark band, table edge or any visible drawn border under the bust. The crop is just the canvas edge — not a drawn line.
 Do not fade, dissolve, wash out, blur, mask, vignette or watercolor-fade the bust. No circular crop, no cut-off shoulders, no disappearing body, no soft fade-out at the bottom.
-ABSOLUTELY FORBIDDEN: full torso visible, waist visible, mid-chest visible, ribcage visible, hips, arms hanging full-length, edge-to-edge subject, head touching the top edge, shoulders touching the side edges, paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair.
+ABSOLUTELY FORBIDDEN: full torso visible, waist visible, mid-chest visible, ribcage visible, hips, arms hanging full-length, edge-to-edge subject, head touching the top edge, shoulders touching the side edges, paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair, thick dark line under the bust, horizontal bar under the shoulders, table or shelf under the subject.
 `.trim();
 
 
