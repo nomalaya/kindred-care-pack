@@ -110,15 +110,22 @@ export const FIELD_ACCENT: Record<string, string> = {
   avatar_resilience_level: "--field-dignity",
 };
 
+// NOTE — Avatar Studio UI simplification:
+//   * `avatar_tired_level` + `avatar_fatigue_level` are replaced by a single
+//     "Fatigue visible" control (rendered in the eyes section).
+//   * `avatar_expression` + `avatar_emotional_brightness` + `avatar_resilience_level`
+//     are replaced by a single "Tonalité émotionnelle" control (face section).
+//   * `avatar_dignity_level` is no longer user-controllable (global rule only).
+// Underlying base fields are still patched by the new controls.
 export const TAB_FIELDS: Record<string, string[]> = {
   face: ["avatar_gender", "avatar_age_range", "avatar_face_shape", "avatar_nose", "avatar_skin_tone", "avatar_expression"],
-  eyes: ["avatar_eye_shape", "avatar_eye_color", "avatar_tired_level", "avatar_emotional_brightness"],
+  eyes: ["avatar_eye_shape", "avatar_eye_color", "avatar_tired_level"],
   hair: ["avatar_hair_type", "avatar_hair_color", "avatar_hair_length", "avatar_hair_volume", "avatar_hair_style"],
   male: ["avatar_beard", "avatar_moustache", "avatar_bald_level", "avatar_hair_recession"],
   cultural: ["avatar_head_covering", "avatar_forehead_mark", "avatar_cultural_style_override"],
   clothing: ["avatar_clothing_style", "avatar_clothing_color_palette"],
-  posture: ["avatar_posture", "avatar_mobility_aid", "avatar_resilience_level"],
-  social: ["avatar_parent_energy", "avatar_fatigue_level", "avatar_dignity_level"],
+  posture: ["avatar_posture", "avatar_mobility_aid"],
+  social: ["avatar_parent_energy"],
 };
 
 export function InferredPastille({ reasons }: { reasons?: FieldReason[] }) {
