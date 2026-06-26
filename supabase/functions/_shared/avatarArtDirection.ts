@@ -3,17 +3,24 @@
 
 import { AvatarTraits, TraitDiff } from "./avatarTraits.ts";
 
+// EXPRESSION_DESCRIPTIONS — fragments aligned with the 4 user-facing tonalities
+// of the simplified Avatar Studio (Réservée / Chaleureuse / Fatiguée / Inquiète).
+// The other historic keys are kept and rétro-mappés vers la tonalité la plus proche.
 const EXPRESSION_DESCRIPTIONS: Record<string, string> = {
-  gentle_smile: "a gentle, sincere smile, warm eyes",
-  hopeful: "a hopeful, soft expression, eyes looking slightly upward",
-  calm: "a calm, peaceful expression, relaxed mouth",
-  discreet_smile: "a discreet, almost imperceptible smile, kind eyes",
-  tired_but_warm: "subtle fatigue around the eyes but warmth and humanity preserved",
-  resilient: "a resilient, composed expression, quiet strength",
-  serious_soft: "a serious but soft expression, gentle gaze, no harshness",
-  thoughtful: "a thoughtful, contemplative expression, eyes slightly downward",
-  pensive: "a pensive expression, looking slightly away, introspective",
-  reserved: "a reserved, modest expression, soft gaze",
+  // warm
+  gentle_smile: "Emotional tone: warm. Add a gentle natural smile, softer eyes, and a welcoming human presence. The expression should feel kind and approachable, never forced or exaggerated.",
+  discreet_smile: "Emotional tone: warm. A discreet, almost imperceptible smile with kind eyes; welcoming presence, never forced.",
+  hopeful: "Emotional tone: warm. A hopeful, soft expression with a gentle gaze; kind and approachable, never theatrical.",
+  // reserved
+  reserved: "Emotional tone: reserved. Keep the expression calm, composed, understated, with a neutral mouth and steady gaze. No strong smile, no visible distress.",
+  calm: "Emotional tone: reserved. A calm, composed expression with a relaxed mouth and steady gaze; no strong smile, no distress.",
+  serious_soft: "Emotional tone: reserved. A serious but soft expression, gentle gaze, no harshness; composed and understated.",
+  thoughtful: "Emotional tone: reserved. A thoughtful, composed expression, steady gaze; understated, no distress.",
+  resilient: "Emotional tone: reserved. A composed expression conveying quiet strength; steady gaze, no theatricality.",
+  // tired
+  tired_but_warm: "Emotional tone: tired. Add subtle visible fatigue around the eyes and a slightly heavier gaze while preserving dignity, humanity, and warmth. Avoid despair, illness, misery, or exaggerated suffering.",
+  // worried
+  pensive: "Emotional tone: worried. Show a subtly concerned expression with a slightly tense gaze and a calm, restrained face. Keep the emotion discreet and human. Avoid panic, despair, theatrical sadness, or exaggerated distress.",
 };
 
 const POSTURE_DESCRIPTIONS: Record<string, string> = {
@@ -100,7 +107,7 @@ export const ART_DIRECTION_INVARIANTS = `
 STYLE: clean modern editorial illustration. Fine soft ink linework with subtle organic outlines. Soft colored-pencil shading with a light digital wash. Realistic human proportions, clearly non-photographic, gently stylized.
 COLOR: warm, slightly desaturated, harmonious. Muted earth and warm pastel tones. No neon, no oversaturation.
 ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure or celebrity. Fictional respectful stand-in only.
-DIGNITY: warm, kind, gentle. Quiet humanity. No caricature, no stereotype, no pathos, no misery.
+DIGNITY (GLOBAL, NON-NEGOTIABLE): Always portray the person with dignity, respect, and humanity. Never make the portrait humiliating, miserable, grotesque, exaggerated, caricatural, or stereotyped. Quiet humanity, no pathos.
 `.trim();
 
 // Strict framing block. Short, repeated, capitalized — image models obey these much better than long paragraphs.
@@ -224,7 +231,7 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
   if (t.avatar_forehead_mark && t.avatar_forehead_mark !== "none" && FOREHEAD_MARK[t.avatar_forehead_mark]) {
     extras.push(FOREHEAD_MARK[t.avatar_forehead_mark]);
   }
-  if ((t.avatar_fatigue_level ?? 0) >= 3) extras.push("visible but dignified fatigue in the face");
+  if ((t.avatar_fatigue_level ?? 0) >= 3) extras.push("visible but dignified fatigue in the face — never sick, miserable, theatrical, or exaggerated; quiet humanity preserved");
   if ((t.avatar_resilience_level ?? 3) >= 4) extras.push("quiet inner strength conveyed in the posture");
 
   const PARENT_ENERGY: Record<string, string> = {

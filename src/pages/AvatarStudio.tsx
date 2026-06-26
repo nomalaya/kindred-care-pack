@@ -31,6 +31,10 @@ import { SectionAccordion, type SectionDef } from "@/features/avatar-studio/Sect
 import {
   FIELD_LABELS, FIELD_ICONS, FIELD_ACCENT, SelectField, SliderField,
 } from "@/features/avatar-studio/fields";
+import {
+  FATIGUE_VISIBLE_OPTIONS, FATIGUE_VISIBLE_LABELS, readFatigueVisible, fatigueVisibleToPatch,
+  EMOTIONAL_TONE_OPTIONS, EMOTIONAL_TONE_LABELS, readEmotionalTone, emotionalToneToPatch,
+} from "@/features/avatar-studio/simplifiedFields";
 import { labelFor } from "@/lib/avatarVocabLabels";
 
 import {
@@ -1237,12 +1241,6 @@ const AvatarStudio = () => {
                     </Button>
                   )}
 
-                  {dignityBlocked && (
-                    <div className="text-xs rounded-md border border-[hsl(var(--status-failed-border))] bg-[hsl(var(--status-failed-bg))] text-[hsl(var(--status-failed-fg))] px-2 py-1.5 flex items-start gap-1.5">
-                      <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                      <div>Dignité {selected.avatar_dignity_level}/5 — génération bloquée. Augmentez le niveau dans la section Social.</div>
-                    </div>
-                  )}
 
                   {/* Versions carousel */}
                   <div className="mt-2">
@@ -1581,7 +1579,7 @@ const AvatarStudio = () => {
                                 <SelectField icon={FIELD_ICONS.avatar_nose} label={FIELD_LABELS.avatar_nose} value={(selected as any).avatar_nose} options={AVATAR_VOCAB.nose} onChange={v => patch({ avatar_nose: v } as any)} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_nose} labelFor={labelFor("nose")} />
                                 <SelectField icon={FIELD_ICONS.avatar_skin_tone} label={FIELD_LABELS.avatar_skin_tone} value={selected.avatar_skin_tone} options={AVATAR_VOCAB.skin_tone} onChange={v => patch({ avatar_skin_tone: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_skin_tone} labelFor={labelFor("skin_tone")} />
                                 <SelectField icon={FIELD_ICONS.avatar_body_type} label={FIELD_LABELS.avatar_body_type} value={(selected as any).avatar_body_type} options={AVATAR_VOCAB.body_type} onChange={v => patch({ avatar_body_type: v } as any)} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_body_type} labelFor={labelFor("body_type")} />
-                                <SelectField icon={FIELD_ICONS.avatar_expression} label={FIELD_LABELS.avatar_expression} value={selected.avatar_expression} options={AVATAR_VOCAB.expression} onChange={v => patch({ avatar_expression: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_expression} labelFor={labelFor("expression")} />
+                                <SelectField icon={FIELD_ICONS.avatar_expression} label="Tonalité émotionnelle" value={readEmotionalTone(selected)} options={EMOTIONAL_TONE_OPTIONS} onChange={v => patch(emotionalToneToPatch(v as any))} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_expression} labelFor={(v) => EMOTIONAL_TONE_LABELS[v as keyof typeof EMOTIONAL_TONE_LABELS] ?? v} />
                               </div>
                               <RuleList warnings={sectionWarnings("face")} onApply={applySuggestion} />
                             </div>
@@ -1591,8 +1589,7 @@ const AvatarStudio = () => {
                               <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                                 <SelectField icon={FIELD_ICONS.avatar_eye_shape} label={FIELD_LABELS.avatar_eye_shape} value={selected.avatar_eye_shape} options={AVATAR_VOCAB.eye_shape} onChange={v => patch({ avatar_eye_shape: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_eye_shape} labelFor={labelFor("eye_shape")} />
                                 <SelectField icon={FIELD_ICONS.avatar_eye_color} label={FIELD_LABELS.avatar_eye_color} value={selected.avatar_eye_color} options={AVATAR_VOCAB.eye_color} onChange={v => patch({ avatar_eye_color: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_eye_color} labelFor={labelFor("eye_color")} />
-                                <SliderField icon={BatteryLow} label="Fatigue oculaire (0-5)" value={selected.avatar_tired_level ?? 0} onChange={v => patch({ avatar_tired_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_tired_level} />
-                                <SliderField icon={Sun} label="Luminosité émotionnelle (0-5)" value={selected.avatar_emotional_brightness ?? 3} onChange={v => patch({ avatar_emotional_brightness: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_emotional_brightness} />
+                                <SelectField icon={BatteryLow} label="Fatigue visible" value={readFatigueVisible(selected)} options={FATIGUE_VISIBLE_OPTIONS} onChange={v => patch(fatigueVisibleToPatch(v as any))} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_tired_level} labelFor={(v) => FATIGUE_VISIBLE_LABELS[v as keyof typeof FATIGUE_VISIBLE_LABELS] ?? v} />
                               </div>
                               <RuleList warnings={sectionWarnings("eyes")} onApply={applySuggestion} />
                             </div>
@@ -1686,7 +1683,7 @@ const AvatarStudio = () => {
                                 <SelectField icon={FIELD_ICONS.avatar_posture} label={FIELD_LABELS.avatar_posture} value={selected.avatar_posture} options={AVATAR_VOCAB.posture} onChange={v => patch({ avatar_posture: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_posture} labelFor={labelFor("posture")} />
                                 <SelectField icon={FIELD_ICONS.avatar_mobility_aid} label={FIELD_LABELS.avatar_mobility_aid} value={selected.avatar_mobility_aid ?? "none"} options={AVATAR_VOCAB.mobility_aid} onChange={v => patch({ avatar_mobility_aid: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_mobility_aid} labelFor={labelFor("mobility_aid")} />
 
-                                <SliderField icon={Sparkles} label="Résilience (0-5)" value={selected.avatar_resilience_level ?? 3} onChange={v => patch({ avatar_resilience_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_resilience_level} />
+                                
                               </div>
                               <RuleList warnings={sectionWarnings("posture")} onApply={applySuggestion} />
                             </div>
@@ -1705,8 +1702,6 @@ const AvatarStudio = () => {
                           <div className="space-y-3">
                             <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                               <SelectField icon={FIELD_ICONS.avatar_parent_energy} label={FIELD_LABELS.avatar_parent_energy} value={selected.avatar_parent_energy} options={AVATAR_VOCAB.parent_energy} onChange={v => patch({ avatar_parent_energy: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_parent_energy} labelFor={labelFor("parent_energy")} />
-                              <SliderField icon={BatteryLow} label="Fatigue (0-5)" value={selected.avatar_fatigue_level ?? 0} onChange={v => patch({ avatar_fatigue_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_fatigue_level} />
-                              <SliderField icon={ShieldCheck} label="Dignité (0-5)" value={selected.avatar_dignity_level ?? 5} onChange={v => patch({ avatar_dignity_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_dignity_level} />
                             </div>
                             <RuleList warnings={sectionWarnings("social")} onApply={applySuggestion} />
                           </div>
