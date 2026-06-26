@@ -1704,8 +1704,6 @@ const AvatarStudio = () => {
                           <div className="space-y-3">
                             <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                               <SelectField icon={FIELD_ICONS.avatar_parent_energy} label={FIELD_LABELS.avatar_parent_energy} value={selected.avatar_parent_energy} options={AVATAR_VOCAB.parent_energy} onChange={v => patch({ avatar_parent_energy: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_parent_energy} labelFor={labelFor("parent_energy")} />
-                              <SliderField icon={BatteryLow} label="Fatigue (0-5)" value={selected.avatar_fatigue_level ?? 0} onChange={v => patch({ avatar_fatigue_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_fatigue_level} />
-                              <SliderField icon={ShieldCheck} label="Dignité (0-5)" value={selected.avatar_dignity_level ?? 5} onChange={v => patch({ avatar_dignity_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_dignity_level} />
                             </div>
                             <RuleList warnings={sectionWarnings("social")} onApply={applySuggestion} />
                           </div>
