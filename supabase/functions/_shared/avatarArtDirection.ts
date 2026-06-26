@@ -3,17 +3,24 @@
 
 import { AvatarTraits, TraitDiff } from "./avatarTraits.ts";
 
+// EXPRESSION_DESCRIPTIONS — fragments aligned with the 4 user-facing tonalities
+// of the simplified Avatar Studio (Réservée / Chaleureuse / Fatiguée / Inquiète).
+// The other historic keys are kept and rétro-mappés vers la tonalité la plus proche.
 const EXPRESSION_DESCRIPTIONS: Record<string, string> = {
-  gentle_smile: "a gentle, sincere smile, warm eyes",
-  hopeful: "a hopeful, soft expression, eyes looking slightly upward",
-  calm: "a calm, peaceful expression, relaxed mouth",
-  discreet_smile: "a discreet, almost imperceptible smile, kind eyes",
-  tired_but_warm: "subtle fatigue around the eyes but warmth and humanity preserved",
-  resilient: "a resilient, composed expression, quiet strength",
-  serious_soft: "a serious but soft expression, gentle gaze, no harshness",
-  thoughtful: "a thoughtful, contemplative expression, eyes slightly downward",
-  pensive: "a pensive expression, looking slightly away, introspective",
-  reserved: "a reserved, modest expression, soft gaze",
+  // warm
+  gentle_smile: "Emotional tone: warm. Add a gentle natural smile, softer eyes, and a welcoming human presence. The expression should feel kind and approachable, never forced or exaggerated.",
+  discreet_smile: "Emotional tone: warm. A discreet, almost imperceptible smile with kind eyes; welcoming presence, never forced.",
+  hopeful: "Emotional tone: warm. A hopeful, soft expression with a gentle gaze; kind and approachable, never theatrical.",
+  // reserved
+  reserved: "Emotional tone: reserved. Keep the expression calm, composed, understated, with a neutral mouth and steady gaze. No strong smile, no visible distress.",
+  calm: "Emotional tone: reserved. A calm, composed expression with a relaxed mouth and steady gaze; no strong smile, no distress.",
+  serious_soft: "Emotional tone: reserved. A serious but soft expression, gentle gaze, no harshness; composed and understated.",
+  thoughtful: "Emotional tone: reserved. A thoughtful, composed expression, steady gaze; understated, no distress.",
+  resilient: "Emotional tone: reserved. A composed expression conveying quiet strength; steady gaze, no theatricality.",
+  // tired
+  tired_but_warm: "Emotional tone: tired. Add subtle visible fatigue around the eyes and a slightly heavier gaze while preserving dignity, humanity, and warmth. Avoid despair, illness, misery, or exaggerated suffering.",
+  // worried
+  pensive: "Emotional tone: worried. Show a subtly concerned expression with a slightly tense gaze and a calm, restrained face. Keep the emotion discreet and human. Avoid panic, despair, theatrical sadness, or exaggerated distress.",
 };
 
 const POSTURE_DESCRIPTIONS: Record<string, string> = {
