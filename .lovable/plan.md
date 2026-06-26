@@ -1,106 +1,69 @@
-## Objectif
+# Simplification UI Avatar Studio — Fatigue / Tonalité / Dignité (zéro-crédit)
 
-Vérifier la couverture complète de tous les attributs Avatar Studio sans consommer un seul crédit IA. Aucun appel à Nano Banana, Gemini ou au gateway image. Tout est statique ou simulé en TypeScript.
+Aucune génération d'image, aucun appel IA, aucune migration SQL, aucune écriture DB automatique.
 
-## Livrables
+## Périmètre
+Uniquement : fatigue, tonalité émotionnelle, dignité. Aucun autre attribut touché.
 
-1. Un script Deno autonome `scripts/audit-avatar-coverage.ts` qui :
-   - importe `AVATAR_VOCAB`, `buildAvatarPrompt`, `buildEditPrompt`, `diffTraits`, `classifyDiff`, `inferAvatarTraits`, les dictionnaires de grammaire
-   - n'invoque AUCUNE fonction edge, AUCUN modèle, ne lit pas la DB
-   - produit deux fichiers dans `.lovable/audit-coverage/` :
-     - `coverage-matrix.md` — tableau attribut × valeur × statut
-     - `dry-run-prompts.md` — fragments de prompt création + édition par valeur
-     - `diff-simulations.md` — simulations de diff (avant/après)
-     - `issues.md` — problèmes auto-détectés
+## Fichiers modifiés (4)
+1. `src/features/avatar-studio/simplifiedFields.ts` — **nouveau** : helpers purs (mappings + lecture inverse).
+2. `src/pages/AvatarStudio.tsx` — remplace les sliders concernés, retire le bandeau Dignité.
+3. `src/features/avatar-studio/fields.tsx` — labels + sections (retire les clés masquées).
+4. `supabase/functions/_shared/avatarArtDirection.ts` — fragments prompts (4 tonalités, fatigue marquée, dignité globale).
 
-2. Aucun changement au pipeline runtime. Aucune modification de `generate-avatar`, `qa-avatar`, `avatarTraits.ts`, `avatarArtDirection.ts`, des RPC, SQL, panier, matching, fonds, cadrage, panneau Versions.
+## 1. Fatigue visible (4 valeurs)
+Remplace les sliders `avatar_tired_level` et `avatar_fatigue_level` par un seul `SelectField` dans la section *Eyes*.
 
-## Détail technique
+| UI | tired | fatigue |
+|---|---|---|
+| none — Aucune | 0 | 0 |
+| light — Légère | 1 | 1 |
+| moderate — Modérée | 3 | 3 |
+| marked — Marquée | 5 | 5 |
 
-### Audit 1 — Couverture statique
+Lecture inverse : `max(tired, fatigue)` → 0=none, 1-2=light, 3-4=moderate, 5=marked.
 
-Pour chaque clé de `AVATAR_VOCAB` (face, eyes, hair, beard/moustache, head_covering, forehead_mark, clothing, posture, body_type, mobility_aid, expression, parent_energy, cultural_style, etc.) et chaque valeur :
+## 2. Tonalité émotionnelle (exactement 4 valeurs)
+Remplace le `SelectField` Expression + les sliders `emotional_brightness` et `resilience_level` par un seul `SelectField`.
 
-| Vérification | Source |
-|---|---|
-| Présent UI | `TAB_FIELDS` + `FIELD_LABELS` dans `src/features/avatar-studio/fields.tsx` |
-| Label FR | `VOCAB_LABELS` dans `src/lib/avatarVocabLabels.ts` |
-| Grammaire visuelle | dictionnaires `*_DESC` dans `avatarArtDirection.ts` |
-| Utilisée en création | recherche dans `buildAvatarPrompt` (extras, HEAD_COVERING, MOBILITY, FOREHEAD_MARK, PARENT_ENERGY locaux) |
-| Utilisée en édition | présence dans `EDIT_VALUE_LABELS` |
-| Comparée par diffTraits | présence dans `STRUCTURAL_TRAIT_KEYS ∪ MEDIUM_TRAIT_KEYS ∪ SOFT_TRAIT_KEYS` |
-| Classée par classifyDiff | dérivé du précédent |
-| Label éditable lisible | présence d'une entrée non-fallback dans `EDIT_VALUE_LABELS[key][value]` |
+Mapping (utilise uniquement des valeurs `avatar_expression` déjà présentes dans `AVATAR_VOCAB.expression` : `gentle_smile, hopeful, calm, discreet_smile, tired_but_warm, resilient, serious_soft, thoughtful, pensive, reserved`) :
 
-Statut par cellule : `OK` / `valeur absente UI` / `label FR manquant` / `grammaire absente` / `absente création` / `absente édition` / `non comparé` / `classification incohérente`.
+| UI | expression | brightness | resilience |
+|---|---|---|---|
+| reserved — Réservée | `reserved` | 2 | 3 |
+| warm — Chaleureuse | `gentle_smile` | 5 | 3 |
+| tired — Fatiguée | `tired_but_warm` | 2 | 3 |
+| worried — Inquiète | `pensive` | 2 | 3 |
 
-### Audit 2 — Prompt dry-run
+Lecture inverse : match exact sur `avatar_expression` selon la table ; sinon best-effort par proximité (`hopeful`→warm, `calm/serious_soft/thoughtful`→reserved, `resilient`→reserved). Aucune nouvelle valeur d'enum créée.
 
-Pour chaque attribut et chaque valeur :
+## 3. Dignité
+- Retire le slider `avatar_dignity_level` (section Social).
+- Retire le bandeau « Dignité … bloquée » (AvatarStudio.tsx ~ligne 1243).
+- **Aucun patch automatique** au montage. Champ + gate backend conservés tels quels.
+- Phrase globale ajoutée systématiquement dans `buildAvatarPrompt` (`avatarArtDirection.ts`) :
+  `"Always portray the person with dignity, respect, and humanity. Never humiliating, miserable, grotesque, exaggerated, caricatural, or stereotyped."`
 
-- Construire un `AvatarTraits` baseline (Léa) puis surcharger l'attribut audité
-- Appeler `buildAvatarPrompt(traits)` → capter l'extrait pertinent (regex sur la valeur ou la phrase de grammaire)
-- Construire un `TraitDiff` synthétique baseline→valeur et appeler `buildEditPrompt(diff, traits)` → capter le bloc CHANGES + éventuel `TRANSFORM_BLOCKS[key]`
-- Logguer : fragment création / fragment édition / présence d'un bloc « same person transformed » / niveau retourné par `classifyDiff`
+## 4. Prompts (`avatarArtDirection.ts`)
+- Bloc fatigue marquée renforcé : ajoute « visible but dignified; never sick, miserable, or theatrical ».
+- 4 fragments tonalité ajoutés à `EXPRESSION_DESCRIPTIONS` (réutilisent les clés existantes), avec garde-fous anti-misérabilisme / anti-dramatisation.
+- Phrase dignité globale toujours rendue.
 
-Zéro appel réseau, zéro génération.
+## 5. Impact logique
+- `inferAvatarTraits` : inchangé.
+- `buildAvatarPrompt` / `buildEditPrompt` : alimentés par les mêmes champs base, aucun changement de signature.
+- `diffTraits` : inchangé ; un changement de tonalité produit potentiellement 3 entrées de diff dans un même `patch()` (déjà supporté).
 
-### Audit 3 — Diff dry-run
+## 6. Tests zéro-crédit (post-impl)
+- UI : sliders fatigue / luminosité / résilience / dignité masqués ; Fatigue visible et Tonalité émotionnelle présents ; Tonalité = 4 items exactement.
+- State : simuler patch en local — Fatigue visible écrit les 2 champs ; Tonalité écrit les 3 champs ; aucun patch dignité au montage (lecture DB inchangée).
+- Dry-run prompts : relance `deno run -A scripts/audit-avatar-coverage.ts`, vérifie fragments fatigue marquée + 4 tonalités + phrase dignité globale.
+- Audit : `avatar_dignity_level` ne doit plus apparaître comme P0 « visible utilisateur ».
 
-Pour ~15 simulations clés (couvrant tous les niveaux) :
+## 7. Risques
+- Combinaisons hors mapping (ex : tired=4, fatigue=0) : lecture tolérante par palier le plus proche, pas d'écriture forcée.
+- Si une ligne existante a `avatar_expression` hors des 4 valeurs (ex `calm`), lecture inverse rétro-mappe vers `reserved`. Aucun patch tant que l'utilisateur ne touche pas le contrôle.
+- Aucun impact runtime sur la génération réelle (mêmes champs base alimentés).
 
-```
-body_type      average → heavy        (medium / edit_hd)
-hair_type      curly   → coily        (structural ← à signaler)
-hair_color     white   → dark_brown   (light  / edit)
-hair_length    medium  → short        (medium / edit_hd)
-hair_style     loose   → bun          (light)
-expression     reserved→ gentle_smile (light)
-posture        upright_calm → leaning_slightly (light)
-beard          none    → full         (medium)
-mobility_aid   none    → cane         (medium)
-head_covering  none    → hijab_full   (structural)
-skin_tone      light   → dark         (structural)
-nose           straight→ aquiline     (structural)
-forehead_mark  none    → bindi_red    (light)
-clothing_style casual_modest → soft_cardigan (light)
-parent_energy  none    → protective_parent   (light)
-```
-
-Pour chacune : diff retourné par `buildTraitDiffFromKeys`, classification, mode attendu (`edit` light, `edit_hd` medium, `requires_confirmation` structural, `no_changes` si vide), full-regen oui/non, éditable image-to-image oui/non.
-
-### Détection automatique
-
-Le script génère un `issues.md` listant :
-
-- valeurs présentes dans `AVATAR_VOCAB` absentes de `VOCAB_LABELS`
-- valeurs sans entrée dans le `*_DESC` correspondant
-- attributs présents dans `EDIT_VALUE_LABELS` mais absents de `STRUCTURAL/MEDIUM/SOFT`
-- attributs comparés par `diffTraits` mais sans `EDIT_VALUE_LABELS` (édition aveugle)
-- doublons sémantiques détectables (paires hard-codées : `curly`/`coily`, `chubby`/`heavy`, `medium`/`shoulder`, `tousled`/`loose`) avec note humaine
-- attributs `_level` numériques absents des trois listes (slider non diffé)
-
-### Exécution
-
-```
-deno run -A scripts/audit-avatar-coverage.ts
-```
-
-Reads `src/lib/avatarTraits.ts`, `src/lib/avatarVocabLabels.ts`, `src/features/avatar-studio/fields.tsx`, `supabase/functions/_shared/avatarTraits.ts`, `supabase/functions/_shared/avatarArtDirection.ts`. Pas de DB, pas de gateway, pas d'image. Coût : 0 crédit.
-
-## Hors périmètre
-
-- Pas de génération d'image, pas de test prod, pas d'appel `generate-avatar`/`qa-avatar`
-- Pas de modification fonds, cadrage, panneau Versions, SQL, RPC, panier, matching
-- Pas de nettoyage de `audit-model-compare`, `force_edit_mode`, `audit_capture` (différé)
-- Les 6 tests réels listés (corpulence, cheveux, barbe, mobilité, expression) ne seront proposés qu'APRÈS lecture du rapport, sur ta validation explicite
-
-## Ce que tu obtiendras après exécution
-
-1. `.lovable/audit-coverage/coverage-matrix.md` — tableau exhaustif
-2. `.lovable/audit-coverage/dry-run-prompts.md` — fragments création/édition pour chaque valeur
-3. `.lovable/audit-coverage/diff-simulations.md` — 15 simulations avec mode attendu
-4. `.lovable/audit-coverage/issues.md` — liste priorisée des trous détectés
-5. Un résumé court en chat avec les 3-5 problèmes les plus critiques
-
-Puis tu décides quelles corrections prioriser et lesquels (max 6) des tests réels lancer.
+## 8. Livrable final
+Liste : fichiers modifiés, mapping final, valeurs `avatar_expression` utilisées (`reserved`, `gentle_smile`, `tired_but_warm`, `pensive`), confirmation 4 valeurs UI, zéro image / IA / SQL, résultats dry-run, P0 restants.
