@@ -1237,12 +1237,6 @@ const AvatarStudio = () => {
                     </Button>
                   )}
 
-                  {dignityBlocked && (
-                    <div className="text-xs rounded-md border border-[hsl(var(--status-failed-border))] bg-[hsl(var(--status-failed-bg))] text-[hsl(var(--status-failed-fg))] px-2 py-1.5 flex items-start gap-1.5">
-                      <ShieldCheck className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                      <div>Dignité {selected.avatar_dignity_level}/5 — génération bloquée. Augmentez le niveau dans la section Social.</div>
-                    </div>
-                  )}
 
                   {/* Versions carousel */}
                   <div className="mt-2">
