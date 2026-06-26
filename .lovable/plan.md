@@ -1,69 +1,104 @@
-# Simplification UI Avatar Studio — Fatigue / Tonalité / Dignité (zéro-crédit)
+# Diagnostic — Avatar Studio (lecture seule, aucun crédit IA)
 
-Aucune génération d'image, aucun appel IA, aucune migration SQL, aucune écriture DB automatique.
+Pas de modification de code dans ce plan. Objectif : expliquer **d'où viennent** les 3 défauts visibles sur Léa, et où la chaîne s'est complexifiée par rapport au besoin simple (avatar propre, détouré, fond aléatoire).
 
-## Périmètre
-Uniquement : fatigue, tonalité émotionnelle, dignité. Aucun autre attribut touché.
+---
 
-## Fichiers modifiés (4)
-1. `src/features/avatar-studio/simplifiedFields.ts` — **nouveau** : helpers purs (mappings + lecture inverse).
-2. `src/pages/AvatarStudio.tsx` — remplace les sliders concernés, retire le bandeau Dignité.
-3. `src/features/avatar-studio/fields.tsx` — labels + sections (retire les clés masquées).
-4. `supabase/functions/_shared/avatarArtDirection.ts` — fragments prompts (4 tonalités, fatigue marquée, dignité globale).
+## 1. Pourquoi le fond blanc n'est plus supprimé sur les versions HD
 
-## 1. Fatigue visible (4 valeurs)
-Remplace les sliders `avatar_tired_level` et `avatar_fatigue_level` par un seul `SelectField` dans la section *Eyes*.
+**Cause racine : le style des prompts a changé, donc le détourage automatique ne fonctionne plus.**
 
-| UI | tired | fatigue |
+Le pipeline de détourage est en 2 étapes (`supabase/functions/clean-avatar-background/index.ts`) :
+1. Gemini reçoit l'image et doit la renvoyer avec un **fond pur #FFFFFF**.
+2. Un chroma-key serveur convertit les pixels **quasi-blancs** (`minC ≥ 248`, `chroma ≤ 6`) en alpha = 0.
+
+Or le style imposé dans `avatarArtDirection.ts` ligne 107 est désormais :
+> "clean modern editorial illustration. Fine soft ink linework… **soft colored-pencil shading with a light digital wash**."
+
+Le **"light digital wash"** + la texture aquarelle/crayon débordent autour du sujet et **ne sont plus du blanc pur**. Le chroma-key les laisse opaques. Conséquence visible : un halo / rectangle gris pâle reste dans le cercle de l'avatar.
+
+Confirmation côté logs : la dernière exécution de `clean-avatar-background` sur Léa renvoie `transparent_ratio = 0.439` (43,9% transparent seulement). Le seuil d'échec est `< 0.05`, donc le pipeline considère que c'est OK et publie l'image — mais visuellement le fond reste sale.
+
+**Ce n'est pas un bug du code de détourage — c'est le prompt qui ne produit plus un fond exploitable.**
+
+---
+
+## 2. Pourquoi un trait / rectangle apparaît sous l'avatar de Léa
+
+**Cause racine : c'est une instruction explicite du prompt, écrite pendant le travail anti-fondu.**
+
+`FRAMING_BLOCK` (ligne 114-124 de `avatarArtDirection.ts`) impose maintenant :
+> "The lower edge of the upper bust must end as a **CLEAN DRAWN PORTRAIT (a real garment line + a clean horizontal canvas crop)**, NOT as a fading wash…"
+
+Le modèle dessine donc **une ligne horizontale franche** au bas du buste pour ne pas se faire rejeter par la QA `bust_completeness`. Dans le cercle de l'avatar (qui rogne le bas du buste), cette ligne devient le "trait/rectangle" sous le menton.
+
+C'est l'effet collatéral direct du correctif Plan v4 (anti-fade-out). On a remplacé "fondu aquarelle" par "trait net" — visuellement gênant dans un cercle Instagram-like.
+
+---
+
+## 3. Pourquoi cheveux blancs avec mèches noires + yeux "comme une écriture"
+
+**Cause racine : le style "fine ink linework" appliqué partout sur des éléments fins.**
+
+Ligne 107 du même fichier :
+> "**Fine soft ink linework** with subtle organic outlines."
+
+Et les valeurs `curly` / `coily` du dictionnaire (lignes 82-83) décrivent des boucles **denses et marquées**.
+
+Conjugaison :
+- Sur des **cheveux blancs/gris**, le modèle trace chaque boucle au trait d'encre noir → impression de "mèches noires aquarelle/fusain" sur fond blanc.
+- Sur les **yeux** (zone détaillée), le même trait d'encre fin crée des micro-traits parasites qui ressemblent à de l'écriture / une signature.
+
+Aucune consigne ne dit "ne pas surligner chaque mèche au trait noir" ni "garder les détails du visage lisses". Le `STYLE` lui-même produit ces artefacts.
+
+---
+
+## 4. Les prompts sont-ils dysfonctionnels / trop complexes ?
+
+**Oui, surtout `FRAMING_BLOCK` + `STYLE`** — ils combinent des objectifs contradictoires accumulés au fil des itérations :
+
+| Objectif demandé | Instruction ajoutée | Effet de bord visible |
 |---|---|---|
-| none — Aucune | 0 | 0 |
-| light — Légère | 1 | 1 |
-| moderate — Modérée | 3 | 3 |
-| marked — Marquée | 5 | 5 |
+| Pas de fondu en bas | "clean horizontal canvas crop" | Ligne / rectangle sous le buste |
+| Style éditorial chaleureux | "soft digital wash" | Fond pas blanc pur → détourage cassé |
+| Cheveux crépus reconnaissables | "tightly coiled, dense kinky texture" | Boucles tracées à l'encre noire sur cheveux blancs |
+| Anti-fade-out garantie | 14 tokens négatifs + 3 blocs CAPS | Le modèle bétonne les contours = trait visible |
+| Bust complet | QA `bust_completeness ≥ 75` + retry | Le modèle dessine un buste fermé "à la règle" |
 
-Lecture inverse : `max(tired, fatigue)` → 0=none, 1-2=light, 3-4=moderate, 5=marked.
+Désaccord avec ChatGPT : très probable, parce que la chaîne Lovable empile aujourd'hui **3 couches de garde-fou** (prompt STYLE + FRAMING_BLOCK + QA `bust_completeness` + clean-bg + post-clean QA + rollback) qui se renforcent mutuellement vers un rendu "dessin technique fermé", alors qu'à l'origine vous vouliez un **rendu illustratif simple + fond transparent**.
 
-## 2. Tonalité émotionnelle (exactement 4 valeurs)
-Remplace le `SelectField` Expression + les sliders `emotional_brightness` et `resilience_level` par un seul `SelectField`.
+---
 
-Mapping (utilise uniquement des valeurs `avatar_expression` déjà présentes dans `AVATAR_VOCAB.expression` : `gentle_smile, hopeful, calm, discreet_smile, tired_but_warm, resilient, serious_soft, thoughtful, pensive, reserved`) :
+## 5. Synthèse — ce que la chaîne actuelle fait vs ce que vous demandez
 
-| UI | expression | brightness | resilience |
-|---|---|---|---|
-| reserved — Réservée | `reserved` | 2 | 3 |
-| warm — Chaleureuse | `gentle_smile` | 5 | 3 |
-| tired — Fatiguée | `tired_but_warm` | 2 | 3 |
-| worried — Inquiète | `pensive` | 2 | 3 |
+Ce que vous voulez (rappel) :
+- avatar propre, détouré, sans artefact, fond aléatoire derrière.
 
-Lecture inverse : match exact sur `avatar_expression` selon la table ; sinon best-effort par proximité (`hopeful`→warm, `calm/serious_soft/thoughtful`→reserved, `resilient`→reserved). Aucune nouvelle valeur d'enum créée.
+Ce que la chaîne fait aujourd'hui :
+```text
+generate-avatar (edit_hd)
+  └─ prompt STYLE "light digital wash"           ← casse le fond blanc pur
+  └─ FRAMING_BLOCK "clean horizontal crop"       ← dessine le trait sous le buste
+  └─ ink linework + coily dense                  ← mèches noires + yeux parasités
+  └─ QA pre-clean (bust ≥ 75) + retry seed
+  └─ clean-avatar-background (Gemini + chroma)   ← ne capte plus le wash → fond gris
+  └─ QA post-clean (bust ≥ 75) + rollback
+```
 
-## 3. Dignité
-- Retire le slider `avatar_dignity_level` (section Social).
-- Retire le bandeau « Dignité … bloquée » (AvatarStudio.tsx ~ligne 1243).
-- **Aucun patch automatique** au montage. Champ + gate backend conservés tels quels.
-- Phrase globale ajoutée systématiquement dans `buildAvatarPrompt` (`avatarArtDirection.ts`) :
-  `"Always portray the person with dignity, respect, and humanity. Never humiliating, miserable, grotesque, exaggerated, caricatural, or stereotyped."`
+**Conclusion** : aucun bug isolé. Trois défauts = trois ajouts de prompt validés successivement qui, mis bout à bout, contredisent le besoin produit initial.
 
-## 4. Prompts (`avatarArtDirection.ts`)
-- Bloc fatigue marquée renforcé : ajoute « visible but dignified; never sick, miserable, or theatrical ».
-- 4 fragments tonalité ajoutés à `EXPRESSION_DESCRIPTIONS` (réutilisent les clés existantes), avec garde-fous anti-misérabilisme / anti-dramatisation.
-- Phrase dignité globale toujours rendue.
+---
 
-## 5. Impact logique
-- `inferAvatarTraits` : inchangé.
-- `buildAvatarPrompt` / `buildEditPrompt` : alimentés par les mêmes champs base, aucun changement de signature.
-- `diffTraits` : inchangé ; un changement de tonalité produit potentiellement 3 entrées de diff dans un même `patch()` (déjà supporté).
+## 6. Pistes de correction (à valider avant tout build)
 
-## 6. Tests zéro-crédit (post-impl)
-- UI : sliders fatigue / luminosité / résilience / dignité masqués ; Fatigue visible et Tonalité émotionnelle présents ; Tonalité = 4 items exactement.
-- State : simuler patch en local — Fatigue visible écrit les 2 champs ; Tonalité écrit les 3 champs ; aucun patch dignité au montage (lecture DB inchangée).
-- Dry-run prompts : relance `deno run -A scripts/audit-avatar-coverage.ts`, vérifie fragments fatigue marquée + 4 tonalités + phrase dignité globale.
-- Audit : `avatar_dignity_level` ne doit plus apparaître comme P0 « visible utilisateur ».
+Aucune action n'est prise tant que vous n'avez pas choisi. Options possibles, classées de la plus simple à la plus large :
 
-## 7. Risques
-- Combinaisons hors mapping (ex : tired=4, fatigue=0) : lecture tolérante par palier le plus proche, pas d'écriture forcée.
-- Si une ligne existante a `avatar_expression` hors des 4 valeurs (ex `calm`), lecture inverse rétro-mappe vers `reserved`. Aucun patch tant que l'utilisateur ne touche pas le contrôle.
-- Aucun impact runtime sur la génération réelle (mêmes champs base alimentés).
+A. **Retour au style simple** — supprimer "light digital wash" + adoucir "fine ink linework" dans `STYLE`. Restaure la possibilité d'un vrai fond blanc → détourage redevient propre. Supprime aussi les mèches noires et les artefacts oculaires.
 
-## 8. Livrable final
-Liste : fichiers modifiés, mapping final, valeurs `avatar_expression` utilisées (`reserved`, `gentle_smile`, `tired_but_warm`, `pensive`), confirmation 4 valeurs UI, zéro image / IA / SQL, résultats dry-run, P0 restants.
+B. **Supprimer la ligne franche sous le buste** — remplacer "clean horizontal canvas crop + garment line" par une consigne neutre. Garde la protection anti-fade mais sans trait visible.
+
+C. **Réduire la QA `bust_completeness`** — abaisser le poids/seuil, qui force le modèle à "fermer" le buste à tout prix.
+
+D. **Restaurer l'image source antérieure de Léa** (avant édits HD) sans relancer de génération, si une version d'avant ces ajouts est conservée dans `avatar_versions`.
+
+Dites-moi laquelle (ou quelle combinaison) vous voulez que je planifie en détail. Je ne touche à rien avant.
