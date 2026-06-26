@@ -107,7 +107,7 @@ export const ART_DIRECTION_INVARIANTS = `
 STYLE: clean modern editorial illustration. Fine soft ink linework with subtle organic outlines. Soft colored-pencil shading with a light digital wash. Realistic human proportions, clearly non-photographic, gently stylized.
 COLOR: warm, slightly desaturated, harmonious. Muted earth and warm pastel tones. No neon, no oversaturation.
 ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure or celebrity. Fictional respectful stand-in only.
-DIGNITY: warm, kind, gentle. Quiet humanity. No caricature, no stereotype, no pathos, no misery.
+DIGNITY (GLOBAL, NON-NEGOTIABLE): Always portray the person with dignity, respect, and humanity. Never make the portrait humiliating, miserable, grotesque, exaggerated, caricatural, or stereotyped. Quiet humanity, no pathos.
 `.trim();
 
 // Strict framing block. Short, repeated, capitalized — image models obey these much better than long paragraphs.
