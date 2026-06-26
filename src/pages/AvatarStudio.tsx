@@ -1591,8 +1591,7 @@ const AvatarStudio = () => {
                               <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                                 <SelectField icon={FIELD_ICONS.avatar_eye_shape} label={FIELD_LABELS.avatar_eye_shape} value={selected.avatar_eye_shape} options={AVATAR_VOCAB.eye_shape} onChange={v => patch({ avatar_eye_shape: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_eye_shape} labelFor={labelFor("eye_shape")} />
                                 <SelectField icon={FIELD_ICONS.avatar_eye_color} label={FIELD_LABELS.avatar_eye_color} value={selected.avatar_eye_color} options={AVATAR_VOCAB.eye_color} onChange={v => patch({ avatar_eye_color: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_eye_color} labelFor={labelFor("eye_color")} />
-                                <SliderField icon={BatteryLow} label="Fatigue oculaire (0-5)" value={selected.avatar_tired_level ?? 0} onChange={v => patch({ avatar_tired_level: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_tired_level} />
-                                <SliderField icon={Sun} label="Luminosité émotionnelle (0-5)" value={selected.avatar_emotional_brightness ?? 3} onChange={v => patch({ avatar_emotional_brightness: v })} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_emotional_brightness} />
+                                <SelectField icon={BatteryLow} label="Fatigue visible" value={readFatigueVisible(selected)} options={FATIGUE_VISIBLE_OPTIONS} onChange={v => patch(fatigueVisibleToPatch(v as any))} disabled={isLocked} accentToken={FIELD_ACCENT.avatar_tired_level} labelFor={(v) => FATIGUE_VISIBLE_LABELS[v as keyof typeof FATIGUE_VISIBLE_LABELS] ?? v} />
                               </div>
                               <RuleList warnings={sectionWarnings("eyes")} onApply={applySuggestion} />
                             </div>
