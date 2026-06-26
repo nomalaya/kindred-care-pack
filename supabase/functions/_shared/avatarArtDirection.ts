@@ -146,7 +146,7 @@ export const NEGATIVE_PROMPT = [
   "no photograph", "no photorealism", "no 3D render", "no CGI", "no Pixar style",
   "no flat vector sticker", "no anime", "no manga", "no oil painting", "no saturated watercolor",
   "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture",
-  "no vignette", "no faded edges", "no watercolor edges", "no soft fade at bottom",
+  "no vignette", "no faded edges", "no watercolor edges", "no soft fade at bottom", "no thick line under the bust", "no horizontal bar under the shoulders", "no table edge under the subject", "no heavy ink strokes", "no cross-hatching", "no pencil scribbles", "no scribbled marks on the face", "no signature-like strokes",
   "no head-only portrait", "no floating bust", "no drop shadow under chin",
   "no full torso", "no waist visible", "no mid-chest visible", "no ribcage visible", "no hips", "no full-length arms", "no deep cleavage", "no exposed chest skin",
   "no ghosted edges", "no soft halo around hair",
