@@ -19,7 +19,7 @@ const WEIGHTS: Record<string, number> = {
   not_caricature: 1.5,
   dignity: 1.5,
   human_warmth: 1.0,
-  bust_completeness: 1.5, // no fade-out / dissolved / cropped bust — hard requirement
+  bust_completeness: 0.8, // lowered: was forcing the model to draw a hard closing line under the bust
 };
 
 // Hard fail (force rejection) if any of these dimensions falls below threshold,
@@ -27,7 +27,7 @@ const WEIGHTS: Record<string, number> = {
 const HARD_FAIL_THRESHOLDS: Record<string, number> = {
   style_match: 70,
   anonymity: 70,
-  bust_completeness: 75,
+  bust_completeness: 55,
 };
 
 function weightedScore(scores: Record<string, number>): number {
