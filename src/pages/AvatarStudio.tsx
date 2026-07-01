@@ -1344,7 +1344,7 @@ const AvatarStudio = () => {
                           </div>
                         ) : null;
                       })()}
-                      <div className="flex gap-1.5 overflow-x-auto pb-2 snap-x scroll-pl-1 -mx-1 px-1">
+                      <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 overflow-y-auto auto-rows-max content-start pr-1 pb-1">
                         {orderedVersions.map(v => {
                           const activeUrl = selected.avatar_url ?? null;
                           const rawSource = (selected as any).avatar_source_url ?? null;
