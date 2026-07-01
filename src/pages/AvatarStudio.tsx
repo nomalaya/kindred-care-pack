@@ -1169,40 +1169,8 @@ const AvatarStudio = () => {
                       <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
                         <History className="h-3 w-3" />Versions ({versions.length})
                       </h3>
-                      <div className="flex items-center gap-1">
-                        {selectedVersionIds.size > 0 ? (
-                          <>
-                            <span className="text-xs text-muted-foreground">{selectedVersionIds.size} sél.</span>
-                            <Button
-                              size="sm" variant="ghost" className="h-6 text-xs"
-                              onClick={() => setSelectedVersionIds(new Set())}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                            {selectedVersionIds.size === 2 && (
-                              <Button
-                                size="sm" variant="ghost" className="h-6 text-xs"
-                                onClick={() => {
-                                  const [a, b] = Array.from(selectedVersionIds);
-                                  setCompareIds([a, b]);
-                                  setCompareOpen(true);
-                                }}
-                              >
-                                Comparer
-                              </Button>
-                            )}
-                            <Button
-                              size="sm" variant="destructive" className="h-6 text-xs"
-                              onClick={() => setBulkDeleteOpen(true)}
-                              disabled={!!busy || bulkDeletableIds.length === 0}
-                              title={bulkDeletableIds.length === 0 ? "Sélection uniquement composée de l'actif ou de la source" : undefined}
-                            >
-                              <Trash2 className="h-3 w-3 mr-1" />Suppr.
-                            </Button>
-                          </>
-                        ) : null}
-                      </div>
                     </div>
+
                     {versions.length === 0 ? (
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
                     ) : (
