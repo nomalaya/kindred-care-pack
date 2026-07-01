@@ -1182,27 +1182,15 @@ const AvatarStudio = () => {
                           const url = v.image_url || "";
                           const isPreview = url.includes("/preview-") || url.includes("/preview/");
                           const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
-                          const isChecked = selectedVersionIds.has(v.id);
-                          const selectionMode = selectedVersionIds.size > 0;
                           return (
                             <div
                               key={v.id}
                               className={`relative w-full aspect-square rounded overflow-hidden bg-muted group ${
-                                isChecked ? "ring-2 ring-destructive" :
-                                isActive ? "ring-2 ring-primary" :
-                                "hover:ring-2 hover:ring-primary/40"
+                                isActive ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/40"
                               }`}
-
                             >
                               <button
-                                onClick={(e) => {
-                                  if (selectionMode || e.shiftKey) {
-                                    e.preventDefault();
-                                    toggleVersionSelect(v.id);
-                                  } else {
-                                    setDetailVersionId(v.id);
-                                  }
-                                }}
+                                onClick={() => setDetailVersionId(v.id)}
                                 className="block w-full h-full"
                                 aria-label="Voir cette version en grand"
                               >
@@ -1220,50 +1208,25 @@ const AvatarStudio = () => {
                                 {isActive ? "Actif" : "Hist."}
                               </span>
 
-                              {/* Nature — coin haut-droit décalé pour laisser place au menu … */}
+                              {/* Nature — coin haut-droit décalé pour laisser place à la corbeille */}
                               <span className={`absolute top-0 right-7 text-[9px] px-1 rounded-bl pointer-events-none font-semibold ${
                                 isHD ? "bg-emerald-600 text-white" : "bg-amber-400 text-amber-950"
                               }`}>
                                 {isHD ? "HD" : "Aperçu"}
                               </span>
 
-                              {/* Menu … — toujours visible discret, plein au hover */}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <button
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="absolute top-0.5 right-0.5 w-6 h-6 rounded bg-background/70 hover:bg-background text-foreground flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity"
-                                    aria-label="Actions sur cette version"
-                                    title="Actions"
-                                  >
-                                    <MoreHorizontal className="h-3.5 w-3.5" />
-                                  </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56">
-                                  <DropdownMenuItem
-                                    className="text-xs"
-                                    onClick={() => setDetailVersionId(v.id)}
-                                  >
-                                    <Eye className="h-3.5 w-3.5 mr-2" />Voir en grand
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-xs"
-                                    onClick={() => restoreVersion(v)}
-                                    disabled={isLocked || !!busy || isActive}
-                                    title="Remplace l'avatar actif par cette version et en fait la base des futures retouches."
-                                  >
-                                    <RotateCcw className="h-3.5 w-3.5 mr-2" />
-                                    {isActive ? "Version déjà utilisée" : "Utiliser cette version"}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-xs text-destructive focus:text-destructive"
-                                    onClick={() => attemptDeleteVersion(v)}
-                                    disabled={!!busy}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5 mr-2" />Supprimer…
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              {/* Corbeille directe — visible en permanence sauf sur l'actif */}
+                              {!isActive && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); attemptDeleteVersion(v); }}
+                                  disabled={!!busy}
+                                  className="absolute top-0.5 right-0.5 w-6 h-6 rounded bg-background/80 hover:bg-destructive hover:text-destructive-foreground text-foreground flex items-center justify-center opacity-80 group-hover:opacity-100 transition-colors"
+                                  aria-label="Supprimer cette version"
+                                  title="Supprimer cette version"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
 
                               {/* QA — coin bas-droit */}
                               {v.qa_score && (
@@ -1277,23 +1240,10 @@ const AvatarStudio = () => {
                                   {relativeFrFR(v.created_at)}
                                 </span>
                               )}
-
-                              {/* Case sélection multiple — visible au hover, plein si cochée */}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); toggleVersionSelect(v.id); }}
-                                className={`absolute top-6 left-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-opacity ${
-                                  isChecked
-                                    ? "bg-destructive border-destructive text-destructive-foreground opacity-100"
-                                    : "bg-background/80 border-background/80 text-foreground opacity-0 group-hover:opacity-100"
-                                }`}
-                                title={isChecked ? "Désélectionner" : "Sélectionner (multi)"}
-                                aria-label={isChecked ? "Désélectionner" : "Sélectionner"}
-                              >
-                                {isChecked && <Check className="h-3 w-3" />}
-                              </button>
                             </div>
                           );
                         })}
+
                       </div>
                       </>
                     )}
