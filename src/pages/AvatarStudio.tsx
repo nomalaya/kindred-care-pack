@@ -1775,9 +1775,7 @@ const AvatarStudio = () => {
             const v = versions.find(x => x.id === detailVersionId);
             if (!v || !selected) return null;
             const activeUrl = selected.avatar_url ?? null;
-            const rawSource = (selected as any).avatar_source_url ?? null;
             const isActive = activeUrl === v.image_url;
-            const isSource = !!rawSource && rawSource !== activeUrl && rawSource === v.image_url;
             const url = v.image_url || "";
             const model: string = v.model_used || "";
             const isCleanBg = model.startsWith("clean-bg/");
@@ -1786,16 +1784,12 @@ const AvatarStudio = () => {
             const isHD = !isCleanBg && !isImport && !isPreview;
             const typeLabel = isCleanBg ? "Nettoyage fond" : isImport ? "Import" : isPreview ? "Aperçu rapide" : "Portrait HD";
             const isTransparent = url.includes("/cleaned/") && url.toLowerCase().includes(".png");
-            const alreadyInUse = isActive && (isSource || !rawSource || rawSource === activeUrl);
             const otherSelected = Array.from(selectedVersionIds).filter(id => id !== v.id);
             const canCompareSelection = otherSelected.length === 1;
             const canCompareActive = !isActive && !!activeUrl;
             const qa = v.qa_score ? Math.round(v.qa_score) : null;
             const qaColor = qa == null ? "" : qa >= 85 ? "text-emerald-700" : qa >= 70 ? "text-amber-700" : "text-red-700";
-            const usageLabel = isActive && isSource ? "Avatar actif et source de retouche"
-              : isActive ? "Avatar actif"
-              : isSource ? "Source de retouche"
-              : "Historique";
+            const usageLabel = isActive ? "Avatar actif" : "Historique";
 
             const cleanThisVersion = async () => {
               setCleaningVersionId(v.id);
@@ -1835,8 +1829,7 @@ const AvatarStudio = () => {
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 flex-wrap pr-8">
                     <span>Version — {absoluteFrFR(v.created_at)}</span>
-                    {isActive && <Badge className="bg-primary text-primary-foreground">Actif</Badge>}
-                    {isSource && <Badge className="bg-amber-400 text-amber-950 hover:bg-amber-400">Source</Badge>}
+                    {isActive && <Badge className="bg-primary text-primary-foreground" title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image.">Actif</Badge>}
                     <Badge variant="outline">{typeLabel}</Badge>
                     {qa != null && <Badge variant="outline" className={qaColor}>QA {qa}</Badge>}
                   </DialogTitle>
@@ -1965,11 +1958,11 @@ const AvatarStudio = () => {
                     )}
                     <Button
                       onClick={() => { restoreVersion(v); setDetailVersionId(null); }}
-                      disabled={isLocked || !!busy || alreadyInUse || cleaningVersionId === v.id}
-                      title={busyLabel ?? "Cette version devient l'avatar affiché ET la base pour la prochaine retouche."}
+                      disabled={isLocked || !!busy || isActive || cleaningVersionId === v.id}
+                      title="Remplace l'avatar actif par cette version et en fait la base des futures retouches."
                     >
                       <RotateCcw className="h-4 w-4 mr-2" />
-                      {alreadyInUse ? "Version déjà utilisée" : "Utiliser cette version"}
+                      {isActive ? "Version déjà utilisée" : "Utiliser cette version"}
                     </Button>
                     <Button variant="outline" onClick={() => setDetailVersionId(null)}>Fermer</Button>
                   </div>
