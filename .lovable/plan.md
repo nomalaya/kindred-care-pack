@@ -1,126 +1,57 @@
+## Modale "Voir en grand" enrichie + nettoyage fond sur n'importe quelle version
 
-# Plan UI — Zone Versions Avatar Studio (zéro-crédit)
+Option B validée : petite extension backend pour permettre le nettoyage du fond sur une version arbitraire (pas seulement l'avatar actif).
 
-## Périmètre strict
-Uniquement `src/pages/AvatarStudio.tsx` (bloc "Versions carousel" ~L1245-1391 + ligne source sous bouton de génération + états `busy`). Aucun autre fichier touché.
+### 1. Extension `clean-avatar-background` (edge function)
 
-**Aucun appel IA. Aucune génération. Aucune modification de** : prompts, modèles, attributs, fonds, cadrage, edge functions, SQL, RPC, base de données, schéma, matching, panier, checkout.
+Fichier : `supabase/functions/clean-avatar-background/index.ts`
 
----
+Ajout d'un mode alternatif accepté dans le `body` :
+- `source_url` (string, optionnel) — URL publique de la version à nettoyer.
+- `version_id` (string, optionnel) — id de la ligne `avatar_versions` correspondante, pour traçabilité.
 
-## 1. Badges permanents sur chaque miniature (fin du "tout au survol")
+Comportement :
+- Si `source_url` fourni → nettoie cette image spécifique, crée une nouvelle ligne `avatar_versions` (model_used `clean-bg/version/...`), **sans** modifier `avatar_url` ni `avatar_preview_url` du bénéficiaire. Retourne l'URL nettoyée.
+- Si `source_url` absent → comportement actuel inchangé (nettoie `avatar_url` ou `avatar_preview_url` selon `target`).
+- Chemin d'upload distinct : `cleaned/version-{version_id or hash}.png` pour éviter les collisions.
+- Toutes les protections existantes conservées (seuil `transparentRatio`, gestion 402/429).
 
-Chaque miniature 80×80 affiche des badges **toujours visibles** :
+Aucune modification de `config.toml`, aucune nouvelle variable d'environnement.
 
-- **Coin haut-gauche** — statut principal (un seul, ordre de priorité) :
-  - `Actif` (bleu primary, plein) si `avatar_url === v.image_url`
-  - `Source` (secondary + icône RotateCcw) **uniquement si `avatar_source_url` est explicitement défini** et matche cette version. Le fallback implicite (source = actif) n'affiche plus le badge Source — la nuance est expliquée dans la ligne "Source utilisée".
-  - sinon `Historique` (outline gris discret)
-- **Coin haut-droit** — nature : `HD` (emerald) ou `Preview` (amber)
-- **Coin bas-droit** — `QA 87` si `qa_score` présent
-- **Coin bas-gauche** — date relative `il y a 2 j` (formatée fr-FR, `Intl.RelativeTimeFormat`)
+### 2. Modale "Voir en grand" enrichie
 
-L'anneau : bleu si actif, ambre si source explicite, rouge si sélectionné multi.
+Fichier : `src/pages/AvatarStudio.tsx` (bloc `Dialog` `detailVersionId` uniquement).
 
-## 2. Tri et épinglage
+**Bloc Informations (colonne droite ou sous l'image sur mobile) :**
+- Date absolue complète (`Intl.DateTimeFormat("fr-FR")` avec heure).
+- Type : Portrait HD / Aperçu rapide / Import / Nettoyage fond (déduit de `model_used`).
+- Score QA global si présent, avec code couleur (vert ≥85, ambre 70-84, rouge <70).
+- Modèle utilisé (`model_used` brut, texte petit, muted).
+- Statut fond : `Fond transparent ✓` (si URL contient `/cleaned/` et `.png`) ou `Fond blanc` sinon.
+- Statut d'usage : phrase explicite selon Actif / Source explicite / Historique.
+- Lien discret « Ouvrir dans un nouvel onglet » sur l'URL publique.
 
-Les versions sont triées **plus récent → plus ancien**. Actif et Source (si explicite) sont **épinglés en tête**, dans cet ordre, séparés du reste par un léger espacement vertical / une fine barre verticale. Le reste défile normalement.
+**Bloc Actions (footer de la modale) :**
+- **Utiliser cette version** (primary) — inchangé, comportement actuel.
+- **Nettoyer le fond** — visible uniquement si le fond n'est pas déjà transparent. Appelle `clean-avatar-background` avec `source_url = v.image_url` et `version_id = v.id`. Affiche un spinner pendant l'appel. Ajoute la version nettoyée à la liste (via refetch local ou insertion optimiste). Toast succès/erreur. Désactivé pendant tout `busy` global.
+- **Télécharger** — lien `<a href={url} download>`.
+- **Copier l'URL** — `navigator.clipboard.writeText`, toast confirmation.
+- **Comparer avec l'actif** — visible si la version n'est pas déjà l'actif. Pré-remplit la sélection multi (actif + version courante), ferme la modale et scroll vers le comparateur (réutilise la logique §8 du plan précédent).
+- **Supprimer** (rouge, à gauche visuellement) — inchangé, avec protections existantes.
+- **Fermer** (ghost).
 
-## 3. Actions par miniature — fin du survol caché
+### 3. Nouvel état local
 
-- Un **bouton `…`** (MoreHorizontal) en coin haut-droite de chaque miniature, **toujours visible** en opacité 60%, pleine opacité au hover. Ouvre un `DropdownMenu` :
-  - `Voir en grand`
-  - `Utiliser cette version` (une seule action, cf. §4) — désactivé si déjà active + source
-  - séparateur
-  - `Supprimer` (rouge, cf. §6)
-- **Clic simple sur la miniature** → ouvre la modale "Voir en grand" (§5). Shift+clic conserve le mode sélection multiple existant.
-- La **poubelle directe au survol disparaît** complètement.
+- `cleaningVersionId: string | null` — spinner ciblé sur le bouton "Nettoyer le fond" dans la modale.
 
-## 4. Action unique « Utiliser cette version » (option B validée)
+### 4. Confirmations
 
-Une seule action, comportement identique à `restoreVersion` actuel : met à jour à la fois `avatar_url` et `avatar_source_url` sur la ligne bénéficiaire. Aucun appel IA, aucune génération.
+- **Aucun appel IA nouveau non déclenché explicitement par l'utilisateur.** Le bouton "Nettoyer le fond" appelle Gemini (comme aujourd'hui côté avatar actif) — c'est le seul consommateur de crédits, uniquement sur clic explicite.
+- Aucun changement sur : prompts de génération, modèles avatar, cadrage, QA, matching, panier, checkout, SQL schéma, RLS.
+- L'extension edge function est **additive** — l'appel existant (sans `source_url`) continue de fonctionner à l'identique.
 
-Tooltip explicatif au survol :
-> « Cette version devient l'avatar affiché ET la base pour la prochaine retouche. »
+### 5. Fichiers modifiés
 
-Bouton désactivé si déjà active + source, avec tooltip « Version déjà utilisée ».
-
-## 5. Modale "Voir en grand" (nouvelle)
-
-Composant local dans le fichier, basé sur `Dialog` déjà importé.
-
-Contenu :
-- Image agrandie (max-h 70vh, `object-contain`, fond neutre)
-- Bandeau de badges : `Actif` / `Source` / `HD`|`Preview` / `QA xx` / date absolue `12/05/2026`
-- Boutons alignés à droite :
-  - `Utiliser cette version` (désactivé si déjà active + source, ou si un `busy` est en cours, cf. §7)
-  - `Comparer` — visible uniquement si exactement 1 autre version est cochée dans la sélection multi ; sinon caché (cf. §8)
-  - `Fermer`
-- Menu `…` dans le header de la modale → `Supprimer cette version` (rouge) avec protections §6.
-
-## 6. Protections suppression
-
-Nouvelle fonction `attemptDelete(v)` :
-
-- Si `v.image_url === selected.avatar_url` → refus, toast d'erreur :
-  « Cette image est l'avatar actif. Définissez une autre version comme active avant de la supprimer. »
-- Sinon si `avatar_source_url` explicite et `v.image_url === avatar_source_url` → refus, toast :
-  « Cette image est utilisée comme source de retouche. Choisissez une autre source avant de la supprimer. »
-- Sinon → **`confirm()` natif** (comme aujourd'hui, faible friction sur l'action fréquente).
-
-Pour la **suppression multiple** : `AlertDialog` obligatoire (action lourde). Les IDs actifs/source sont filtrés automatiquement, un texte l'indique dans la modale.
-
-## 7. États `busy` — désactivation des actions risquées
-
-Bannière au-dessus des Versions selon `busy` :
-- `clean` → « Nettoyage du fond en cours… »
-- `preview` → « Génération de l'aperçu en cours… »
-- `final` → « Génération HD en cours… »
-- `import` → « Import de l'image en cours… »
-
-Pendant **tout `busy` non nul**, désactiver dans la zone Versions :
-- `Utiliser cette version` (menu + modale)
-- `Supprimer` (unitaire + multiple)
-- Bouton `Générer` principal (déjà `disabled={!!busy}` — vérifier).
-
-Modale reste ouvrable en lecture seule, boutons `disabled` avec tooltip « Action indisponible pendant `<état>`. »
-
-## 8. Comparer — logique simplifiée
-
-- Retrait de « Comparer avec… » du menu par miniature.
-- Le bouton **`Comparer`** du header (déjà présent) devient visible **uniquement quand exactement 2 versions sont cochées** en sélection multi. Sinon caché.
-- Supprime l'ambiguïté du "Comparer" actuel qui prend arbitrairement les 2 premières versions.
-
-## 9. Ligne "Source utilisée" sous le bouton Générer
-
-Insérée juste sous le bouton principal (`Générer`/`Régénérer`), lecture seule :
-
-- `avatar_source_url` explicite + trouvé dans versions :
-  → `Source utilisée : version du 12/05/2026 · HD · QA 92` avec miniature 16×16.
-- `avatar_source_url` explicite mais orphelin :
-  → `Source utilisée : image absente — sélectionnez une version dans la liste.` (ambre)
-- `avatar_source_url` null mais `avatar_url` présent :
-  → `Source utilisée : avatar actif (source implicite).` (explique la nuance §1)
-- Aucun avatar :
-  → `Source utilisée : aucune — première génération.`
-
-## 10. Détail technique
-
-- Icônes ajoutées depuis `lucide-react` (déjà utilisé) : `MoreHorizontal`, `Eye`.
-- Nouveaux états locaux : `detailVersionId: string | null`, `pendingBulkDelete: boolean`.
-- Composants réutilisés : `DropdownMenu`, `Dialog`, `AlertDialog`, `Tooltip` — tous déjà présents, aucune nouvelle dépendance.
-- Formatage dates : `Intl.RelativeTimeFormat("fr-FR")` + `Intl.DateTimeFormat("fr-FR")`.
-- Vocabulaire strictement fr-FR (conforme mémoire projet).
-
----
-
-## Confirmations
-
-- **Aucun appel IA ne sera fait.**
-- **Aucune génération d'image ne sera lancée.**
-- **Aucun prompt, modèle, attribut, fond, cadrage, ni schéma BD ne sera modifié.**
-- Les seuls écrits BD conservés sont ceux qui existent déjà (`avatar_source_url`, `avatar_url`, suppression de lignes `avatar_versions`), déclenchés uniquement par action utilisateur explicite.
-
-## Fichiers concernés
-
-- `src/pages/AvatarStudio.tsx` — unique fichier modifié.
+- `supabase/functions/clean-avatar-background/index.ts` — ajout du mode `source_url`.
+- `src/pages/AvatarStudio.tsx` — enrichissement du bloc `Dialog` `detailVersionId` uniquement.
+- `.lovable/plan.md` — mise à jour de la section §5 pour refléter la modale enrichie.
