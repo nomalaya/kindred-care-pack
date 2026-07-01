@@ -1720,13 +1720,41 @@ const AvatarStudio = () => {
                 </DialogHeader>
 
                 <div className="grid gap-4 md:grid-cols-[1fr_260px]">
-                  <div className="bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                  <div className="relative bg-muted rounded-md flex items-center justify-center overflow-hidden">
                     <img
                       src={v.image_url}
                       alt=""
                       className="max-h-[65vh] w-auto object-contain"
                     />
+                    {/* Overlay QA — visible dans tous les cas où qa est renseigné */}
+                    {qa != null && (
+                      <span
+                        className={`absolute bottom-2 right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-background/90 border ${qaColor}`}
+                        title="Score qualité automatique (0–100). Seuil de passage : 75."
+                      >
+                        QA {qa}
+                      </span>
+                    )}
+                    {/* Aperçu parcours donateur — même rendu que sur les cartes bénéficiaires */}
+                    <div
+                      className="absolute top-2 left-2 flex flex-col items-center gap-1 bg-background/90 border rounded-md px-2 py-2 shadow-sm"
+                      title="Rendu tel qu'affiché dans le parcours donateur (fond aléatoire + cadrage appliqués)."
+                    >
+                      <BeneficiaryAvatar
+                        size="lg"
+                        name={selected.alias_first_name ?? "Bénéficiaire"}
+                        avatarUrl={v.image_url}
+                        backgroundSeed={selected.id}
+                        framing={readFramingFromRow(selected)}
+                      />
+                      <div className="text-[10px] text-muted-foreground text-center leading-tight max-w-[110px] truncate">
+                        {selected.alias_first_name}
+                        {selected.region ? ` · ${selected.region}` : ""}
+                      </div>
+                      <div className="text-[9px] uppercase tracking-wide text-muted-foreground">Parcours donateur</div>
+                    </div>
                   </div>
+
 
                   <div className="space-y-3 text-sm">
                     <div>
