@@ -1,54 +1,62 @@
-# Correctifs UI panneau central Avatar Studio
 
-Fichier modifié : `src/pages/AvatarStudio.tsx` uniquement (pas de logique métier).
+## Problème observé
 
-## 1. Barre d'actions génération — deux boutons distincts, pas de doublon
+Sur Léa (Île-de-France), aucun des 3 signaux "Actif" n'apparaît dans la grille des versions : pas de badge « Actif », pas d'anneau primaire, corbeille visible partout (y compris sur l'image publique).
 
-Aujourd'hui, un seul bouton principal reprend le libellé du mode par défaut ("Prévisualiser les changements" OU "Générer l'avatar final"), suivi d'un chevron qui ouvre un menu contenant les deux mêmes entrées. Résultat : le libellé se répète (bouton + menu) et le second bouton est invisible tant qu'on n'ouvre pas le menu.
+## Cause racine
 
-Correction :
-- Remplacer le bloc `bouton principal + chevron` par **deux boutons côte à côte** :
-  - `Prévisualiser` (icône `RefreshCw`, variant `default`, raccourci P)
-  - `Générer HD` (icône `Sparkles`, variant `secondary`, raccourci G)
-- Libellés courts pour que les deux boutons rentrent dans la colonne étroite du panneau (largeur observée ≈ 380 px). Tooltip sur chaque bouton avec le libellé long ("Prévisualiser les changements" / "Générer l'avatar final") + description.
-- Suppression du `DropdownMenu` de choix de mode et de `defaultGenMode` / `localStorage "avatar-studio-default-mode"` (plus de mode par défaut à mémoriser puisque les deux actions sont visibles).
-- Conserver `isLocked` / `dignityBlocked` / `busy` sur chaque bouton.
+La colonne `beneficiaries.avatar_url` porte parfois un cache-buster (`?t=1782900631850`) ajouté après nettoyage de fond ou upload, alors que `avatar_versions.image_url` est stocké sans query string. La comparaison stricte `activeUrl === v.image_url`, utilisée en 3 endroits de `src/pages/AvatarStudio.tsx`, échoue donc pour toute bénéficiaire dont l'avatar a été régénéré/nettoyé récemment.
 
-## 2. Libellé du bouton d'import
+Conséquences directes :
+- La vignette active n'est pas surlignée.
+- La protection anti-suppression de l'active saute (la corbeille s'affiche dessus).
+- Le bouton « Utiliser cette version » reste actif sur la version déjà en place.
+- La comparaison « Comparer à l'actif » dans la modale ne trouve plus l'actif.
 
-Remplacer :
+## Correctif proposé (frontend uniquement)
+
+### 1. Helper de normalisation d'URL
+
+Dans `src/pages/AvatarStudio.tsx`, ajouter un utilitaire pur en haut du fichier :
+
+```ts
+// Compare deux URLs d'image en ignorant le cache-buster (?t=…, ?v=…) et les espaces.
+const sameImage = (a?: string | null, b?: string | null) => {
+  if (!a || !b) return false;
+  const strip = (u: string) => u.split("?")[0].trim();
+  return strip(a) === strip(b);
+};
 ```
-Importer une image (PNG/JPG/WEBP — sans contrôle IA)
-```
-par :
-```
-Importer une image
-```
-Les formats acceptés restent gérés par l'`<input accept>`. Ajouter un `title` discret sur le bouton pour l'info "PNG/JPG/WEBP — pas de contrôle IA" si besoin d'une trace.
 
-## 3. Retirer la sélection multiple + réintroduire la poubelle par vignette
+Remplacer les 3 comparaisons `activeUrl === v.image_url` (grille, modale de détail, recherche `versions.find`) par `sameImage(activeUrl, v.image_url)`. Faire de même dans `attemptDeleteVersion` (ligne 722) et dans `orderedVersions` (ligne 777).
 
-La case à cocher de sélection est peinte en `opacity-0 group-hover:opacity-100` sur fond clair de l'image → invisible sur beaucoup de portraits, et son mode "sélection" masque le clic normal. Simplification demandée : plus de sélection multi.
+### 2. Renforcer les signaux visuels de l'actif
 
-Modifications sur chaque vignette de la grille `Versions` :
-- Supprimer le bouton case à cocher (lignes ≈ 1365-1376) et toute la logique `selectionMode` / `isChecked` / `toggleVersionSelect` dans le `onClick` de la vignette.
-- Ajouter un **bouton poubelle visible en permanence** en bas-droite de chaque vignette (au-dessus du badge QA quand présent) :
-  - `w-6 h-6`, fond `bg-background/85`, icône `Trash2 h-3.5`, `text-destructive`.
-  - `opacity-80 group-hover:opacity-100` (visible sans hover, plus contrasté au hover).
-  - `title="Supprimer cette version"`.
-  - `onClick={(e) => { e.stopPropagation(); attemptDeleteVersion(v); }}` — réutilise la fonction existante qui gère la confirmation et la protection "actif".
-  - Sur l'avatar actif : bouton désactivé (`disabled`, `opacity-40`, title "Impossible de supprimer la version active").
-- Le clic sur l'image ouvre toujours la modale détail (`setDetailVersionId(v.id)`).
-- Entrée "Supprimer…" dans le menu `…` conservée (redondance utile côté modale et clavier).
+Une fois la détection fiable, rendre le repérage franc et non ambigu :
 
-## 4. Nettoyage des états devenus inutiles
+- **Anneau** : passer de `ring-2 ring-primary` à `ring-2 ring-primary ring-offset-1` pour un contraste net contre les vignettes voisines.
+- **Badge « Actif »** : ajouter une petite icône `CheckCircle2` (lucide) devant le libellé et augmenter le padding (`px-1.5 py-0.5 text-[10px]`) pour qu'il soit lisible à la taille des vignettes de la grille 3 colonnes.
+- **Coin actif** : ajouter un léger halo (`shadow-[0_0_0_2px_hsl(var(--primary))]`) au survol pour distinguer davantage de « Hist. ».
+- **Confirmation textuelle** : sous le titre "Versions (N)", ajouter une ligne discrète `Publiée : la vignette entourée de bleu` (ou couleur primaire) pour lever le doute au premier usage.
 
-- Supprimer `selectedVersionIds`, `toggleVersionSelect`, `bulkDeleteOpen`, `bulkDeletableIds`, `performDeleteVersions` (usage restant : la vignette appelle déjà `attemptDeleteVersion`, qui supprime unitairement).
-- Supprimer la barre de tête "N sél. / Comparer / Suppr." (lignes ≈ 1223-1255). Ne garder que le titre `Versions (n)`.
-- Supprimer l'`AlertDialog` de suppression groupée (lignes ≈ 1951+).
-- Comparaison à deux versions : conservée uniquement depuis la modale détail (`otherSelected` remplacé par un état local simple `pinnedForCompareId` déjà en place via `setCompareIds` dans la modale — vérifier ligne 1912/1925 et l'adapter pour ne plus dépendre de `selectedVersionIds`; si besoin, retirer le bouton "Comparer avec la sélection" et ne garder que "Comparer avec l'actif").
+### 3. Garde-fous
 
-## 5. Vérifications
+- Vérifier que `attemptDeleteVersion` bloque bien la suppression de l'image active via `sameImage`.
+- Vérifier que `restoreVersion` ne s'active plus sur la version déjà publiée (via `sameImage`).
+- Ajouter un `console.warn` de dev si `selected.avatar_url` est défini mais ne correspond à aucune version après normalisation (aide au diagnostic futur).
 
-- Build TS propre (les symboles supprimés ne doivent plus être référencés).
-- Screenshot Playwright de `/avatar-studio` sur Léa pour confirmer : (a) les deux boutons Prévisualiser + Générer HD visibles sans troncature, (b) libellé import raccourci, (c) icône poubelle visible sur chaque vignette non-active.
+## Validation
+
+Après application, sur Léa Île-de-France, la vignette portant `…de8c19bc….png` doit :
+1. Afficher le badge « Actif » plein primaire avec icône.
+2. Être entourée de l'anneau primaire visible.
+3. Ne plus afficher la corbeille (protection restaurée).
+4. Afficher « Version déjà utilisée » (grisé) dans le menu et la modale.
+
+Test à répéter sur 2 autres bénéficiaires ayant un cache-buster dans leur `avatar_url` pour confirmer.
+
+## Portée
+
+- Fichier modifié : `src/pages/AvatarStudio.tsx` uniquement.
+- Aucun changement de schéma, aucune migration, aucune modification de logique backend/matching.
+- Aucun crédit IA consommé.

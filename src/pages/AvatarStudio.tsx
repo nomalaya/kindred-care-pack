@@ -50,13 +50,24 @@ import {
   Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown, ExternalLink,
   PanelLeft, Image as ImageIcon, SlidersHorizontal, Info, Trash2, X,
-  Crop, MoreHorizontal, Download, Copy, GitCompare,
+  Crop, MoreHorizontal, Download, Copy, GitCompare, CheckCircle2,
 } from "lucide-react";
+
 import { AvatarFramingDialog } from "@/features/avatar-studio/AvatarFramingDialog";
 import { readFramingFromRow, isDefaultFraming, framingToTransform } from "@/lib/avatarFraming";
 
 
 type Beneficiary = any;
+
+// Compare deux URLs d'image en ignorant le cache-buster (?t=…, ?v=…) et les espaces.
+// beneficiaries.avatar_url reçoit parfois `?t=<timestamp>` après nettoyage/upload,
+// alors que avatar_versions.image_url est stocké sans query string.
+const sameImage = (a?: string | null, b?: string | null) => {
+  if (!a || !b) return false;
+  const strip = (u: string) => u.split("?")[0].trim();
+  return strip(a) === strip(b);
+};
+
 
 
 
@@ -719,7 +730,7 @@ const AvatarStudio = () => {
   // Suppression unitaire avec protection contre la suppression de l'avatar actif.
   const attemptDeleteVersion = async (v: any) => {
     if (!selected) return;
-    if (v.image_url === selected.avatar_url) {
+    if (sameImage(v.image_url, selected.avatar_url)) {
       toast.error("Cette image est l'avatar actif. Utilisez une autre version comme active avant de la supprimer.");
       return;
     }
@@ -774,7 +785,7 @@ const AvatarStudio = () => {
     const pinned: any[] = [];
     const rest: any[] = [];
     for (const v of versions) {
-      if (activeUrl && v.image_url === activeUrl) pinned[0] = v;
+      if (activeUrl && sameImage(v.image_url, activeUrl)) pinned[0] = v;
       else rest.push(v);
     }
     return [...pinned.filter(Boolean), ...rest];
@@ -1165,11 +1176,16 @@ const AvatarStudio = () => {
                   {/* Versions grid — occupe l'espace restant */}
                   <div className="flex-1 min-h-0 flex flex-col">
 
-                    <div className="flex items-center justify-between mb-1.5 gap-2 shrink-0">
+                    <div className="flex items-center justify-between mb-1 gap-2 shrink-0">
                       <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
                         <History className="h-3 w-3" />Versions ({versions.length})
                       </h3>
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 rounded-sm ring-2 ring-primary bg-primary/30" />
+                        Publiée
+                      </span>
                     </div>
+
 
                     {versions.length === 0 ? (
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
@@ -1178,7 +1194,7 @@ const AvatarStudio = () => {
                       <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 overflow-y-auto auto-rows-max content-start pr-1 pb-1">
                         {orderedVersions.map(v => {
                           const activeUrl = selected.avatar_url ?? null;
-                          const isActive = activeUrl === v.image_url;
+                          const isActive = sameImage(activeUrl, v.image_url);
                           const url = v.image_url || "";
                           const isPreview = url.includes("/preview-") || url.includes("/preview/");
                           const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
@@ -1186,7 +1202,7 @@ const AvatarStudio = () => {
                             <div
                               key={v.id}
                               className={`relative w-full aspect-square rounded overflow-hidden bg-muted group ${
-                                isActive ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/40"
+                                isActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md" : "hover:ring-2 hover:ring-primary/40"
                               }`}
                             >
                               <button
@@ -1199,14 +1215,16 @@ const AvatarStudio = () => {
 
                               {/* Badge principal — coin haut-gauche */}
                               <span
-                                className={`absolute top-0 left-0 text-[9px] px-1 rounded-br pointer-events-none font-semibold ${
+                                className={`absolute top-0 left-0 text-[10px] px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 ${
                                   isActive ? "bg-primary text-primary-foreground" :
                                   "bg-background/80 text-muted-foreground border border-border"
                                 }`}
                                 title={isActive ? "C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image." : "Version d'historique"}
                               >
+                                {isActive && <CheckCircle2 className="h-2.5 w-2.5" />}
                                 {isActive ? "Actif" : "Hist."}
                               </span>
+
 
                               {/* Nature — coin haut-droit décalé pour laisser place à la corbeille */}
                               <span className={`absolute top-0 right-7 text-[9px] px-1 rounded-bl pointer-events-none font-semibold ${
@@ -1616,7 +1634,7 @@ const AvatarStudio = () => {
             const v = versions.find(x => x.id === detailVersionId);
             if (!v || !selected) return null;
             const activeUrl = selected.avatar_url ?? null;
-            const isActive = activeUrl === v.image_url;
+            const isActive = sameImage(activeUrl, v.image_url);
             const url = v.image_url || "";
             const model: string = v.model_used || "";
             const isCleanBg = model.startsWith("clean-bg/");
@@ -1776,7 +1794,7 @@ const AvatarStudio = () => {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          const activeVersion = versions.find(x => x.image_url === activeUrl);
+                          const activeVersion = versions.find(x => sameImage(x.image_url, activeUrl));
                           if (!activeVersion) { toast.error("Avatar actif introuvable dans l'historique"); return; }
                           setCompareIds([v.id, activeVersion.id]);
                           setCompareOpen(true);
