@@ -785,7 +785,7 @@ const AvatarStudio = () => {
     const pinned: any[] = [];
     const rest: any[] = [];
     for (const v of versions) {
-      if (activeUrl && v.image_url === activeUrl) pinned[0] = v;
+      if (activeUrl && sameImage(v.image_url, activeUrl)) pinned[0] = v;
       else rest.push(v);
     }
     return [...pinned.filter(Boolean), ...rest];
