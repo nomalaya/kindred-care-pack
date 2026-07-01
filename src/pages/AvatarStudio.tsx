@@ -347,11 +347,11 @@ const AvatarStudio = () => {
 
 
   // Auto-route: if the selected beneficiary already has an approved avatar
-  // (avatar_url + workflow approved/locked OR an avatar_source_url snapshot),
-  // we switch to the edit pipeline so only the changed attributes are altered.
+  // (avatar_url + workflow approved/locked), we switch to the edit pipeline
+  // so only the changed attributes are altered.
   // Otherwise, a full text-to-image generation is performed.
   const isEditCapable = !!selected
-    && !!((selected as any).avatar_url || (selected as any).avatar_source_url)
+    && !!((selected as any).avatar_url)
     && !!((selected as any).avatar_generated_traits);
 
   // Affichage : quand un aperçu fraîchement généré existe (status === "preview"),
@@ -719,22 +719,6 @@ const AvatarStudio = () => {
     toast.success("Base de retouche définie. Vos modifications d'attributs seront appliquées au prochain aperçu.");
   };
 
-  // Définit v comme source de la prochaine retouche, sans toucher à l'avatar affiché.
-  const setAsRetouchBase = async (v: any) => {
-    if (!selected) return;
-    const { error } = await supabase
-      .from("beneficiaries")
-      .update({ avatar_source_url: v.image_url } as any)
-      .eq("id", selected.id);
-    if (error) {
-      toast.error("Impossible de définir la base de retouche : " + error.message);
-      return;
-    }
-    setBeneficiaries(prev => prev.map(b =>
-      b.id === selected.id ? { ...b, avatar_source_url: v.image_url } as any : b,
-    ));
-    toast.success("Base de retouche mise à jour. L'avatar affiché reste inchangé.");
-  };
 
   const toggleVersionSelect = (id: string) => {
     setSelectedVersionIds(prev => {
@@ -746,10 +730,6 @@ const AvatarStudio = () => {
 
   const performDeleteVersions = async (ids: string[]) => {
     if (!ids.length) return;
-    const activeUrl = selected?.avatar_url;
-    const sourceUrl = (selected as any)?.avatar_source_url ?? null;
-    const targetsSource = !!sourceUrl && versions.some(v => ids.includes(v.id) && v.image_url === sourceUrl);
-
     const { error } = await supabase.from("avatar_versions" as any).delete().in("id", ids);
     if (error) {
       toast.error("Échec de la suppression : " + error.message);
@@ -757,24 +737,6 @@ const AvatarStudio = () => {
     }
     setVersions(prev => prev.filter(v => !ids.includes(v.id)));
     setSelectedVersionIds(new Set());
-
-    // Si l'on vient de supprimer la base de retouche, on la réancre immédiatement
-    // sur l'avatar actif pour éviter que la prochaine génération reparte d'une image
-    // qui n'existe plus.
-    if (targetsSource && selected && sourceUrl && sourceUrl !== activeUrl) {
-      const newSource = activeUrl ?? null;
-      const { error: upErr } = await supabase
-        .from("beneficiaries")
-        .update({ avatar_source_url: newSource } as any)
-        .eq("id", selected.id);
-      if (!upErr) {
-        setBeneficiaries(prev => prev.map(b =>
-          b.id === selected.id ? { ...b, avatar_source_url: newSource } as any : b,
-        ));
-        toast.info("Base de retouche réancrée sur l'avatar actif.");
-      }
-    }
-
     toast.success(ids.length === 1 ? "Version supprimée" : `${ids.length} versions supprimées`);
   };
 
@@ -782,13 +744,8 @@ const AvatarStudio = () => {
   const attemptDeleteVersion = (v: any) => {
     if (!selected) return;
     const activeUrl = selected.avatar_url;
-    const sourceUrl = (selected as any).avatar_source_url ?? null;
     if (v.image_url === activeUrl) {
       toast.error("Cette image est l'avatar actif. Définissez une autre version comme active avant de la supprimer.");
-      return;
-    }
-    if (sourceUrl && v.image_url === sourceUrl) {
-      toast.error("Cette image est utilisée comme source de retouche. Choisissez une autre source avant de la supprimer.");
       return;
     }
     if (!confirm("Supprimer définitivement cette version ? Action irréversible.")) return;
@@ -799,12 +756,10 @@ const AvatarStudio = () => {
   const bulkDeletableIds = useMemo(() => {
     if (!selected) return [] as string[];
     const activeUrl = selected.avatar_url;
-    const sourceUrl = (selected as any).avatar_source_url ?? null;
     return Array.from(selectedVersionIds).filter(id => {
       const v = versions.find(x => x.id === id);
       if (!v) return false;
       if (v.image_url === activeUrl) return false;
-      if (sourceUrl && v.image_url === sourceUrl) return false;
       return true;
     });
   }, [selected, selectedVersionIds, versions]);
@@ -842,17 +797,14 @@ const AvatarStudio = () => {
     return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
-  // Actif + Source épinglés en tête, puis reste trié par date desc (déjà l'ordre côté DB).
+  // Actif épinglé en tête, puis reste trié par date desc (déjà l'ordre côté DB).
   const orderedVersions = useMemo(() => {
     if (!selected || versions.length === 0) return versions;
     const activeUrl = selected.avatar_url ?? null;
-    const rawSource = (selected as any).avatar_source_url ?? null;
-    const sourceUrl = rawSource && rawSource !== activeUrl ? rawSource : null;
     const pinned: any[] = [];
     const rest: any[] = [];
     for (const v of versions) {
-      if (activeUrl && v.image_url === activeUrl)       pinned[0] = v;
-      else if (sourceUrl && v.image_url === sourceUrl)  pinned[1] = v;
+      if (activeUrl && v.image_url === activeUrl) pinned[0] = v;
       else rest.push(v);
     }
     return [...pinned.filter(Boolean), ...rest];
