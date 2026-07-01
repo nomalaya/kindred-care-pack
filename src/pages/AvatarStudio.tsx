@@ -1368,22 +1368,6 @@ const AvatarStudio = () => {
 
 
 
-                  {displayAvatarUrl(selected) && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start text-xs"
-                      onClick={() => setFramingDialogOpen(true)}
-                      disabled={isLocked}
-                    >
-                      <Crop className="h-3.5 w-3.5 mr-2" />
-                      <span className="flex-1 text-left">Ajuster le cadrage</span>
-                      {!isDefaultFraming(readFramingFromRow(selected)) && (
-                        <span className="text-[10px] text-muted-foreground">modifié</span>
-                      )}
-                    </Button>
-                  )}
 
 
                   {/* Bannière état "busy" — désactive les actions risquées */}
