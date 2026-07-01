@@ -730,7 +730,7 @@ const AvatarStudio = () => {
   // Suppression unitaire avec protection contre la suppression de l'avatar actif.
   const attemptDeleteVersion = async (v: any) => {
     if (!selected) return;
-    if (v.image_url === selected.avatar_url) {
+    if (sameImage(v.image_url, selected.avatar_url)) {
       toast.error("Cette image est l'avatar actif. Utilisez une autre version comme active avant de la supprimer.");
       return;
     }
