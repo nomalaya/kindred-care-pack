@@ -1301,7 +1301,11 @@ const AvatarStudio = () => {
                   } else if (ws === "locked") {
                     main = { label: "Déverrouiller", icon: Unlock, variant: "outline", onClick: () => setWorkflow("draft"), hint: workflowHint("unlock", ws, hasImage) };
                   } else {
-                    main = { label: "Approuver", icon: ShieldCheck, variant: "default", onClick: () => setWorkflow("approved"), hint: workflowHint("approve", ws, hasImage), shortcut: "A" };
+                    // QA >= 75 → auto-approuvé via Realtime : ce cas est rare.
+                    // QA < 75 ou absent (import manuel) → approbation manuelle requise.
+                    const qa = Number(selected.avatar_qa_score ?? 0);
+                    const label = qa > 0 && qa < 75 ? "Approuver quand même" : "Approuver";
+                    main = { label, icon: ShieldCheck, variant: "default", onClick: () => setWorkflow("approved"), hint: workflowHint("approve", ws, hasImage), shortcut: "A" };
                   }
                   const showUndo = ws === "approved";
                   const MainIcon = main.icon;
