@@ -1342,27 +1342,31 @@ const AvatarStudio = () => {
 
 
 
-                  {/* Indicateur de mode : création complète vs édition contrôlée */}
+                  {/* Indicateur compact : édition contrôlée vs création complète */}
                   <div
-                    className={`text-[11px] rounded-md px-2 py-1.5 border ${
+                    className={`text-[11px] rounded-md px-2 py-1.5 border flex items-center gap-1.5 ${
                       isEditCapable
                         ? "bg-primary/5 border-primary/20 text-primary"
                         : "bg-muted border-border text-muted-foreground"
                     }`}
-                    title={
-                      isEditCapable
-                        ? "L'avatar source sert de référence visuelle. Pose, cadrage et fond sont préservés ; seuls les attributs modifiés depuis la dernière génération sont retouchés."
-                        : "Aucune référence visuelle — création complète depuis les attributs."
-                    }
                   >
-                    {isEditCapable
-                      ? "✏️ Édition contrôlée — basée sur la version source"
-                      : "🎨 Création complète — première génération"}
-                    <span className="block text-[10px] opacity-70 mt-0.5">
+                    <span className="flex-1">
                       {isEditCapable
-                        ? "Astuce : pour repartir d'une autre image, cliquez sur « Base de retouche » dans Versions."
-                        : "Le fond importé sera visible automatiquement après génération."}
+                        ? "✏️ Ce visage vous plaît ? Modifiez des attributs — ils seront appliqués sans repartir de zéro."
+                        : "🎨 Première génération — création complète depuis les attributs."}
                     </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" aria-label="En savoir plus" className="opacity-70 hover:opacity-100">
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs max-w-[260px]">
+                        {isEditCapable
+                          ? "L'avatar source sert de référence visuelle. Pose, cadrage et fond sont préservés ; seuls les attributs modifiés depuis la dernière génération sont retouchés."
+                          : "Aucune référence visuelle — création complète depuis les attributs. Le fond importé sera visible automatiquement après génération."}
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
 
 
