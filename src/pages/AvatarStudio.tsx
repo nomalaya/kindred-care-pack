@@ -1804,34 +1804,8 @@ const AvatarStudio = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation suppression multiple */}
-      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer les versions sélectionnées ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {bulkDeletableIds.length} version{bulkDeletableIds.length > 1 ? "s" : ""} seront supprimées définitivement.
-              {selectedVersionIds.size !== bulkDeletableIds.length && (
-                <>
-                  <br />
-                  <span className="text-amber-700">
-                    Les versions actives ou utilisées comme source sont automatiquement protégées et ne seront pas supprimées.
-                  </span>
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { performDeleteVersions(bulkDeletableIds); setBulkDeleteOpen(false); }}
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
+
 
 
 
