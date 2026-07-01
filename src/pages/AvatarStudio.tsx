@@ -1625,9 +1625,9 @@ const AvatarStudio = () => {
             const isHD = !isCleanBg && !isImport && !isPreview;
             const typeLabel = isCleanBg ? "Nettoyage fond" : isImport ? "Import" : isPreview ? "Aperçu rapide" : "Portrait HD";
             const isTransparent = url.includes("/cleaned/") && url.toLowerCase().includes(".png");
-            const otherSelected = Array.from(selectedVersionIds).filter(id => id !== v.id);
-            const canCompareSelection = otherSelected.length === 1;
+            const canCompareSelection = false;
             const canCompareActive = !isActive && !!activeUrl;
+
             const qa = v.qa_score ? Math.round(v.qa_score) : null;
             const qaColor = qa == null ? "" : qa >= 85 ? "text-emerald-700" : qa >= 70 ? "text-amber-700" : "text-red-700";
             const usageLabel = isActive ? "Avatar actif" : "Historique";
