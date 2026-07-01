@@ -1368,6 +1368,14 @@ const AvatarStudio = () => {
                   )}
 
 
+                  {/* Bannière état "busy" — désactive les actions risquées */}
+                  {busyLabel && (
+                    <div className="text-[11px] rounded-md border border-primary/30 bg-primary/5 text-primary px-2 py-1.5 flex items-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                      <span className="flex-1">{busyLabel}</span>
+                    </div>
+                  )}
+
                   {/* Versions carousel */}
                   <div className="mt-2">
                     <div className="flex items-center justify-between mb-1.5 gap-2">
@@ -1384,23 +1392,28 @@ const AvatarStudio = () => {
                             >
                               <X className="h-3 w-3" />
                             </Button>
+                            {selectedVersionIds.size === 2 && (
+                              <Button
+                                size="sm" variant="ghost" className="h-6 text-xs"
+                                onClick={() => {
+                                  const [a, b] = Array.from(selectedVersionIds);
+                                  setCompareIds([a, b]);
+                                  setCompareOpen(true);
+                                }}
+                              >
+                                Comparer
+                              </Button>
+                            )}
                             <Button
                               size="sm" variant="destructive" className="h-6 text-xs"
-                              onClick={() => deleteVersions(Array.from(selectedVersionIds))}
+                              onClick={() => setBulkDeleteOpen(true)}
+                              disabled={!!busy || bulkDeletableIds.length === 0}
+                              title={bulkDeletableIds.length === 0 ? "Sélection uniquement composée de l'actif ou de la source" : undefined}
                             >
                               <Trash2 className="h-3 w-3 mr-1" />Suppr.
                             </Button>
                           </>
-                        ) : (
-                          versions.length >= 2 && (
-                            <Button
-                              size="sm" variant="ghost" className="h-6 text-xs"
-                              onClick={() => { setCompareIds([versions[0].id, versions[1].id]); setCompareOpen(true); }}
-                            >
-                              Comparer
-                            </Button>
-                          )
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     {versions.length === 0 ? (
@@ -1415,27 +1428,31 @@ const AvatarStudio = () => {
                           && !versions.some(v => v.image_url === rawSource);
                         return sourceMissing ? (
                           <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
-                            La base de retouche actuelle n'existe plus dans vos versions. Cliquez sur « Base de retouche » sur une version pour la réancrer.
+                            La base de retouche actuelle n'existe plus dans vos versions. Cliquez sur « Utiliser cette version » pour la réancrer.
                           </div>
                         ) : null;
                       })()}
                       <div className="flex gap-1.5 overflow-x-auto pb-2 snap-x scroll-pl-1 -mx-1 px-1">
-                        {versions.map(v => {
-                          const isActive = selected.avatar_url === v.image_url;
-                          const isSource = ((selected as any).avatar_source_url ?? selected.avatar_url) === v.image_url;
+                        {orderedVersions.map(v => {
+                          const activeUrl = selected.avatar_url ?? null;
+                          const rawSource = (selected as any).avatar_source_url ?? null;
+                          const isActive = activeUrl === v.image_url;
+                          const isSource = !!rawSource && rawSource !== activeUrl && rawSource === v.image_url;
                           const url = v.image_url || "";
                           const isPreview = url.includes("/preview-") || url.includes("/preview/");
                           const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
                           const isChecked = selectedVersionIds.has(v.id);
                           const selectionMode = selectedVersionIds.size > 0;
+                          const alreadyInUse = isActive && (isSource || !rawSource || rawSource === activeUrl);
                           return (
                             <div
                               key={v.id}
                               className={`relative w-20 aspect-square shrink-0 snap-start rounded overflow-hidden bg-muted group ${
                                 isChecked ? "ring-2 ring-destructive" :
-                                isActive ? "ring-2 ring-primary" : isHD ? "hover:ring-2 hover:ring-primary/50" : "hover:ring-2 hover:ring-amber-400/50"
+                                isActive ? "ring-2 ring-primary" :
+                                isSource ? "ring-2 ring-amber-400" :
+                                "hover:ring-2 hover:ring-primary/40"
                               }`}
-                              title={`${isHD ? "HD" : "Aperçu"} · ${v.model_used?.split("/")[1] || ""} · QA ${v.qa_score ? Math.round(v.qa_score) : "—"}`}
                             >
                               <button
                                 onClick={(e) => {
@@ -1443,71 +1460,98 @@ const AvatarStudio = () => {
                                     e.preventDefault();
                                     toggleVersionSelect(v.id);
                                   } else {
-                                    setLightboxUrl(v.image_url);
+                                    setDetailVersionId(v.id);
                                   }
                                 }}
                                 className="block w-full h-full"
+                                aria-label="Voir cette version en grand"
                               >
                                 <img src={v.image_url} alt="" className="w-full h-full object-cover" />
                               </button>
-                              <span className={`absolute top-0 right-0 text-[9px] px-1 rounded-bl pointer-events-none font-semibold ${
+
+                              {/* Badge principal — coin haut-gauche */}
+                              <span
+                                className={`absolute top-0 left-0 text-[9px] px-1 rounded-br pointer-events-none font-semibold ${
+                                  isActive ? "bg-primary text-primary-foreground" :
+                                  isSource ? "bg-amber-400 text-amber-950" :
+                                  "bg-background/80 text-muted-foreground border border-border"
+                                }`}
+                                title={isActive ? "Avatar affiché publiquement" : isSource ? "Base utilisée pour la prochaine retouche" : "Version d'historique"}
+                              >
+                                {isActive ? "Actif" : isSource ? "Source" : "Hist."}
+                              </span>
+
+                              {/* Nature — coin haut-droit décalé pour laisser place au menu … */}
+                              <span className={`absolute top-0 right-7 text-[9px] px-1 rounded-bl pointer-events-none font-semibold ${
                                 isHD ? "bg-emerald-600 text-white" : "bg-amber-400 text-amber-950"
                               }`}>
-                                {isHD ? "HD" : "AP"}
+                                {isHD ? "HD" : "Aperçu"}
                               </span>
+
+                              {/* Menu … — toujours visible discret, plein au hover */}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="absolute top-0.5 right-0.5 w-6 h-6 rounded bg-background/70 hover:bg-background text-foreground flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity"
+                                    aria-label="Actions sur cette version"
+                                    title="Actions"
+                                  >
+                                    <MoreHorizontal className="h-3.5 w-3.5" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52">
+                                  <DropdownMenuItem
+                                    className="text-xs"
+                                    onClick={() => setDetailVersionId(v.id)}
+                                  >
+                                    <Eye className="h-3.5 w-3.5 mr-2" />Voir en grand
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-xs"
+                                    onClick={() => restoreVersion(v)}
+                                    disabled={isLocked || !!busy || alreadyInUse}
+                                    title="Cette version devient l'avatar affiché ET la base pour la prochaine retouche."
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5 mr-2" />
+                                    {alreadyInUse ? "Version déjà utilisée" : "Utiliser cette version"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-xs text-destructive focus:text-destructive"
+                                    onClick={() => attemptDeleteVersion(v)}
+                                    disabled={!!busy}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" />Supprimer…
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+
+                              {/* QA — coin bas-droit */}
                               {v.qa_score && (
-                                <span className="absolute bottom-0 right-0 bg-background/80 text-[9px] px-1 rounded-tl pointer-events-none">
+                                <span className="absolute bottom-0 right-0 bg-background/85 text-[9px] px-1 rounded-tl pointer-events-none">
                                   QA {Math.round(v.qa_score)}
                                 </span>
                               )}
+                              {/* Date relative — coin bas-gauche */}
+                              {v.created_at && (
+                                <span className="absolute bottom-0 left-0 bg-background/85 text-[9px] px-1 rounded-tr pointer-events-none text-muted-foreground">
+                                  {relativeFrFR(v.created_at)}
+                                </span>
+                              )}
+
+                              {/* Case sélection multiple — visible au hover, plein si cochée */}
                               <button
                                 onClick={(e) => { e.stopPropagation(); toggleVersionSelect(v.id); }}
-                                className={`absolute top-1 left-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-opacity ${
+                                className={`absolute top-6 left-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-opacity ${
                                   isChecked
                                     ? "bg-destructive border-destructive text-destructive-foreground opacity-100"
                                     : "bg-background/80 border-background/80 text-foreground opacity-0 group-hover:opacity-100"
                                 }`}
-                                title={isChecked ? "Désélectionner" : "Sélectionner pour suppression"}
+                                title={isChecked ? "Désélectionner" : "Sélectionner (multi)"}
                                 aria-label={isChecked ? "Désélectionner" : "Sélectionner"}
                               >
                                 {isChecked && <Check className="h-3 w-3" />}
                               </button>
-                              {!selectionMode && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); deleteVersions([v.id]); }}
-                                  className="absolute top-1 right-7 w-5 h-5 rounded bg-background/80 hover:bg-destructive hover:text-destructive-foreground text-muted-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                  title="Supprimer cette version"
-                                  aria-label="Supprimer cette version"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              )}
-                              {!isSource && !selectionMode && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); restoreVersion(v); }}
-                                  disabled={isLocked}
-                                  className="absolute inset-x-0 bottom-0 bg-primary/90 text-primary-foreground text-[10px] py-0.5 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
-                                  title="Définir cette version comme base de retouche pour la prochaine génération"
-                                >
-                                  <RotateCcw className="h-3 w-3" />Base de retouche
-                                </button>
-                              )}
-                              {isActive && (
-                                <span
-                                  className="absolute top-0 left-0 bg-primary text-primary-foreground text-[9px] px-1 rounded-br pointer-events-none"
-                                  title="Avatar affiché publiquement (pas forcément la base de retouche)"
-                                >
-                                  Actif
-                                </span>
-                              )}
-                              {isSource && (
-                                <span
-                                  className="absolute bottom-0 left-0 bg-secondary text-secondary-foreground text-[9px] px-1 rounded-tr pointer-events-none flex items-center gap-0.5"
-                                  title="Base utilisée pour la prochaine retouche"
-                                >
-                                  <RotateCcw className="h-2.5 w-2.5" />Source
-                                </span>
-                              )}
                             </div>
                           );
                         })}
@@ -1515,6 +1559,7 @@ const AvatarStudio = () => {
                       </>
                     )}
                   </div>
+
                 </div>
 
                 {/* Sticky workflow footer */}
