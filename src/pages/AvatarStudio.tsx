@@ -1794,7 +1794,7 @@ const AvatarStudio = () => {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          const activeVersion = versions.find(x => x.image_url === activeUrl);
+                          const activeVersion = versions.find(x => sameImage(x.image_url, activeUrl));
                           if (!activeVersion) { toast.error("Avatar actif introuvable dans l'historique"); return; }
                           setCompareIds([v.id, activeVersion.id]);
                           setCompareOpen(true);
