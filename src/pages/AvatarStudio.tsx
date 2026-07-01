@@ -83,6 +83,8 @@ const AvatarStudio = () => {
   const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(new Set());
   const [framingDialogOpen, setFramingDialogOpen] = useState(false);
   const [showHdInstead, setShowHdInstead] = useState(false);
+  const [detailVersionId, setDetailVersionId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
   const saveTimer = useRef<any>(null);
