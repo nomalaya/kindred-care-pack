@@ -347,11 +347,11 @@ const AvatarStudio = () => {
 
 
   // Auto-route: if the selected beneficiary already has an approved avatar
-  // (avatar_url + workflow approved/locked OR an avatar_source_url snapshot),
-  // we switch to the edit pipeline so only the changed attributes are altered.
+  // (avatar_url + workflow approved/locked), we switch to the edit pipeline
+  // so only the changed attributes are altered.
   // Otherwise, a full text-to-image generation is performed.
   const isEditCapable = !!selected
-    && !!((selected as any).avatar_url || (selected as any).avatar_source_url)
+    && !!((selected as any).avatar_url)
     && !!((selected as any).avatar_generated_traits);
 
   // Affichage : quand un aperçu fraîchement généré existe (status === "preview"),
@@ -719,22 +719,6 @@ const AvatarStudio = () => {
     toast.success("Base de retouche définie. Vos modifications d'attributs seront appliquées au prochain aperçu.");
   };
 
-  // Définit v comme source de la prochaine retouche, sans toucher à l'avatar affiché.
-  const setAsRetouchBase = async (v: any) => {
-    if (!selected) return;
-    const { error } = await supabase
-      .from("beneficiaries")
-      .update({ avatar_source_url: v.image_url } as any)
-      .eq("id", selected.id);
-    if (error) {
-      toast.error("Impossible de définir la base de retouche : " + error.message);
-      return;
-    }
-    setBeneficiaries(prev => prev.map(b =>
-      b.id === selected.id ? { ...b, avatar_source_url: v.image_url } as any : b,
-    ));
-    toast.success("Base de retouche mise à jour. L'avatar affiché reste inchangé.");
-  };
 
   const toggleVersionSelect = (id: string) => {
     setSelectedVersionIds(prev => {
@@ -746,10 +730,6 @@ const AvatarStudio = () => {
 
   const performDeleteVersions = async (ids: string[]) => {
     if (!ids.length) return;
-    const activeUrl = selected?.avatar_url;
-    const sourceUrl = (selected as any)?.avatar_source_url ?? null;
-    const targetsSource = !!sourceUrl && versions.some(v => ids.includes(v.id) && v.image_url === sourceUrl);
-
     const { error } = await supabase.from("avatar_versions" as any).delete().in("id", ids);
     if (error) {
       toast.error("Échec de la suppression : " + error.message);
@@ -757,24 +737,6 @@ const AvatarStudio = () => {
     }
     setVersions(prev => prev.filter(v => !ids.includes(v.id)));
     setSelectedVersionIds(new Set());
-
-    // Si l'on vient de supprimer la base de retouche, on la réancre immédiatement
-    // sur l'avatar actif pour éviter que la prochaine génération reparte d'une image
-    // qui n'existe plus.
-    if (targetsSource && selected && sourceUrl && sourceUrl !== activeUrl) {
-      const newSource = activeUrl ?? null;
-      const { error: upErr } = await supabase
-        .from("beneficiaries")
-        .update({ avatar_source_url: newSource } as any)
-        .eq("id", selected.id);
-      if (!upErr) {
-        setBeneficiaries(prev => prev.map(b =>
-          b.id === selected.id ? { ...b, avatar_source_url: newSource } as any : b,
-        ));
-        toast.info("Base de retouche réancrée sur l'avatar actif.");
-      }
-    }
-
     toast.success(ids.length === 1 ? "Version supprimée" : `${ids.length} versions supprimées`);
   };
 
@@ -782,13 +744,8 @@ const AvatarStudio = () => {
   const attemptDeleteVersion = (v: any) => {
     if (!selected) return;
     const activeUrl = selected.avatar_url;
-    const sourceUrl = (selected as any).avatar_source_url ?? null;
     if (v.image_url === activeUrl) {
       toast.error("Cette image est l'avatar actif. Définissez une autre version comme active avant de la supprimer.");
-      return;
-    }
-    if (sourceUrl && v.image_url === sourceUrl) {
-      toast.error("Cette image est utilisée comme source de retouche. Choisissez une autre source avant de la supprimer.");
       return;
     }
     if (!confirm("Supprimer définitivement cette version ? Action irréversible.")) return;
@@ -799,12 +756,10 @@ const AvatarStudio = () => {
   const bulkDeletableIds = useMemo(() => {
     if (!selected) return [] as string[];
     const activeUrl = selected.avatar_url;
-    const sourceUrl = (selected as any).avatar_source_url ?? null;
     return Array.from(selectedVersionIds).filter(id => {
       const v = versions.find(x => x.id === id);
       if (!v) return false;
       if (v.image_url === activeUrl) return false;
-      if (sourceUrl && v.image_url === sourceUrl) return false;
       return true;
     });
   }, [selected, selectedVersionIds, versions]);
@@ -842,17 +797,14 @@ const AvatarStudio = () => {
     return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
-  // Actif + Source épinglés en tête, puis reste trié par date desc (déjà l'ordre côté DB).
+  // Actif épinglé en tête, puis reste trié par date desc (déjà l'ordre côté DB).
   const orderedVersions = useMemo(() => {
     if (!selected || versions.length === 0) return versions;
     const activeUrl = selected.avatar_url ?? null;
-    const rawSource = (selected as any).avatar_source_url ?? null;
-    const sourceUrl = rawSource && rawSource !== activeUrl ? rawSource : null;
     const pinned: any[] = [];
     const rest: any[] = [];
     for (const v of versions) {
-      if (activeUrl && v.image_url === activeUrl)       pinned[0] = v;
-      else if (sourceUrl && v.image_url === sourceUrl)  pinned[1] = v;
+      if (activeUrl && v.image_url === activeUrl) pinned[0] = v;
       else rest.push(v);
     }
     return [...pinned.filter(Boolean), ...rest];
@@ -1247,32 +1199,6 @@ const AvatarStudio = () => {
 
 
 
-                  {/* Indicateur compact : édition contrôlée vs création complète */}
-                  <div
-                    className={`text-[11px] rounded-md px-2 py-1.5 border flex items-center gap-1.5 ${
-                      isEditCapable
-                        ? "bg-primary/5 border-primary/20 text-primary"
-                        : "bg-muted border-border text-muted-foreground"
-                    }`}
-                  >
-                    <span className="flex-1">
-                      {isEditCapable
-                        ? "✏️ Ce visage vous plaît ? Modifiez des attributs — ils seront appliqués sans repartir de zéro."
-                        : "🎨 Première génération — création complète depuis les attributs."}
-                    </span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" aria-label="En savoir plus" className="opacity-70 hover:opacity-100">
-                          <Info className="h-3.5 w-3.5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs max-w-[260px]">
-                        {isEditCapable
-                          ? "L'avatar source sert de référence visuelle. Pose, cadrage et fond sont préservés ; seuls les attributs modifiés depuis la dernière génération sont retouchés."
-                          : "Aucune référence visuelle — création complète depuis les attributs. Le fond importé sera visible automatiquement après génération."}
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
 
 
 
@@ -1332,37 +1258,21 @@ const AvatarStudio = () => {
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
                     ) : (
                       <>
-                      {(() => {
-                        const rawSource = (selected as any).avatar_source_url ?? null;
-                        const activeUrl = selected.avatar_url ?? null;
-                        const sourceMissing = !!rawSource
-                          && rawSource !== activeUrl
-                          && !versions.some(v => v.image_url === rawSource);
-                        return sourceMissing ? (
-                          <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
-                            La base de retouche actuelle n'existe plus dans vos versions. Cliquez sur « Utiliser cette version » pour la réancrer.
-                          </div>
-                        ) : null;
-                      })()}
                       <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 overflow-y-auto auto-rows-max content-start pr-1 pb-1">
                         {orderedVersions.map(v => {
                           const activeUrl = selected.avatar_url ?? null;
-                          const rawSource = (selected as any).avatar_source_url ?? null;
                           const isActive = activeUrl === v.image_url;
-                          const isSource = !!rawSource && rawSource !== activeUrl && rawSource === v.image_url;
                           const url = v.image_url || "";
                           const isPreview = url.includes("/preview-") || url.includes("/preview/");
                           const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
                           const isChecked = selectedVersionIds.has(v.id);
                           const selectionMode = selectedVersionIds.size > 0;
-                          const alreadyInUse = isActive && (isSource || !rawSource || rawSource === activeUrl);
                           return (
                             <div
                               key={v.id}
                               className={`relative w-full aspect-square rounded overflow-hidden bg-muted group ${
                                 isChecked ? "ring-2 ring-destructive" :
                                 isActive ? "ring-2 ring-primary" :
-                                isSource ? "ring-2 ring-amber-400" :
                                 "hover:ring-2 hover:ring-primary/40"
                               }`}
 
@@ -1386,12 +1296,11 @@ const AvatarStudio = () => {
                               <span
                                 className={`absolute top-0 left-0 text-[9px] px-1 rounded-br pointer-events-none font-semibold ${
                                   isActive ? "bg-primary text-primary-foreground" :
-                                  isSource ? "bg-amber-400 text-amber-950" :
                                   "bg-background/80 text-muted-foreground border border-border"
                                 }`}
-                                title={isActive ? "Avatar affiché publiquement" : isSource ? "Base utilisée pour la prochaine retouche" : "Version d'historique"}
+                                title={isActive ? "C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image." : "Version d'historique"}
                               >
-                                {isActive ? "Actif" : isSource ? "Source" : "Hist."}
+                                {isActive ? "Actif" : "Hist."}
                               </span>
 
                               {/* Nature — coin haut-droit décalé pour laisser place au menu … */}
@@ -1422,21 +1331,12 @@ const AvatarStudio = () => {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="text-xs"
-                                    onClick={() => setAsRetouchBase(v)}
-                                    disabled={isLocked || !!busy || isSource}
-                                    title="Prochaine retouche basée sur cette image, sans changer l'avatar affiché."
-                                  >
-                                    <Wand2 className="h-3.5 w-3.5 mr-2" />
-                                    {isSource ? "Base déjà utilisée" : "Définir comme base de retouche"}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-xs"
                                     onClick={() => restoreVersion(v)}
-                                    disabled={isLocked || !!busy || alreadyInUse}
-                                    title="Cette version devient l'avatar affiché ET la base pour la prochaine retouche."
+                                    disabled={isLocked || !!busy || isActive}
+                                    title="Remplace l'avatar actif par cette version et en fait la base des futures retouches."
                                   >
                                     <RotateCcw className="h-3.5 w-3.5 mr-2" />
-                                    {alreadyInUse ? "Version déjà utilisée" : "Utiliser cette version"}
+                                    {isActive ? "Version déjà utilisée" : "Utiliser cette version"}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="text-xs text-destructive focus:text-destructive"
@@ -1849,9 +1749,7 @@ const AvatarStudio = () => {
             const v = versions.find(x => x.id === detailVersionId);
             if (!v || !selected) return null;
             const activeUrl = selected.avatar_url ?? null;
-            const rawSource = (selected as any).avatar_source_url ?? null;
             const isActive = activeUrl === v.image_url;
-            const isSource = !!rawSource && rawSource !== activeUrl && rawSource === v.image_url;
             const url = v.image_url || "";
             const model: string = v.model_used || "";
             const isCleanBg = model.startsWith("clean-bg/");
@@ -1860,16 +1758,12 @@ const AvatarStudio = () => {
             const isHD = !isCleanBg && !isImport && !isPreview;
             const typeLabel = isCleanBg ? "Nettoyage fond" : isImport ? "Import" : isPreview ? "Aperçu rapide" : "Portrait HD";
             const isTransparent = url.includes("/cleaned/") && url.toLowerCase().includes(".png");
-            const alreadyInUse = isActive && (isSource || !rawSource || rawSource === activeUrl);
             const otherSelected = Array.from(selectedVersionIds).filter(id => id !== v.id);
             const canCompareSelection = otherSelected.length === 1;
             const canCompareActive = !isActive && !!activeUrl;
             const qa = v.qa_score ? Math.round(v.qa_score) : null;
             const qaColor = qa == null ? "" : qa >= 85 ? "text-emerald-700" : qa >= 70 ? "text-amber-700" : "text-red-700";
-            const usageLabel = isActive && isSource ? "Avatar actif et source de retouche"
-              : isActive ? "Avatar actif"
-              : isSource ? "Source de retouche"
-              : "Historique";
+            const usageLabel = isActive ? "Avatar actif" : "Historique";
 
             const cleanThisVersion = async () => {
               setCleaningVersionId(v.id);
@@ -1909,8 +1803,7 @@ const AvatarStudio = () => {
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 flex-wrap pr-8">
                     <span>Version — {absoluteFrFR(v.created_at)}</span>
-                    {isActive && <Badge className="bg-primary text-primary-foreground">Actif</Badge>}
-                    {isSource && <Badge className="bg-amber-400 text-amber-950 hover:bg-amber-400">Source</Badge>}
+                    {isActive && <Badge className="bg-primary text-primary-foreground" title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image.">Actif</Badge>}
                     <Badge variant="outline">{typeLabel}</Badge>
                     {qa != null && <Badge variant="outline" className={qaColor}>QA {qa}</Badge>}
                   </DialogTitle>
@@ -2039,11 +1932,11 @@ const AvatarStudio = () => {
                     )}
                     <Button
                       onClick={() => { restoreVersion(v); setDetailVersionId(null); }}
-                      disabled={isLocked || !!busy || alreadyInUse || cleaningVersionId === v.id}
-                      title={busyLabel ?? "Cette version devient l'avatar affiché ET la base pour la prochaine retouche."}
+                      disabled={isLocked || !!busy || isActive || cleaningVersionId === v.id}
+                      title="Remplace l'avatar actif par cette version et en fait la base des futures retouches."
                     >
                       <RotateCcw className="h-4 w-4 mr-2" />
-                      {alreadyInUse ? "Version déjà utilisée" : "Utiliser cette version"}
+                      {isActive ? "Version déjà utilisée" : "Utiliser cette version"}
                     </Button>
                     <Button variant="outline" onClick={() => setDetailVersionId(null)}>Fermer</Button>
                   </div>
