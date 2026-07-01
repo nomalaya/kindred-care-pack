@@ -1082,64 +1082,41 @@ const AvatarStudio = () => {
                     </div>
                   )}
 
-                  {/* Actions de génération IA — libellés métier */}
+                  {/* Actions de génération IA — deux boutons distincts */}
                   <div className="flex gap-1.5 w-full">
-                    <Button
-                      onClick={() => generate(defaultGenMode)}
-                      size="sm"
-                      disabled={!!busy || isLocked || dignityBlocked}
-                      className="flex-1 justify-start"
-                      aria-label={defaultGenMode === "preview" ? "Prévisualiser les changements" : "Générer l'avatar final"}
-                    >
-                      {defaultGenMode === "preview" ? <RefreshCw className="h-3.5 w-3.5 mr-2" /> : <Sparkles className="h-3.5 w-3.5 mr-2" />}
-                      <span className="flex-1 text-left">
-                        {defaultGenMode === "preview" ? "Prévisualiser les changements" : "Générer l'avatar final"}
-                      </span>
-                      <kbd className="ml-2 text-[10px] opacity-70 bg-primary-foreground/10 px-1 rounded">
-                        {defaultGenMode === "preview" ? "P" : "G"}
-                      </kbd>
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" disabled={!!busy} aria-label="Choisir le type de génération">
-                          <ChevronDown className="h-3.5 w-3.5" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => generate("preview")}
+                          size="sm"
+                          disabled={!!busy || isLocked || dignityBlocked}
+                          className="flex-1 min-w-0"
+                          aria-label="Prévisualiser les changements"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5 mr-1 shrink-0" />
+                          <span className="truncate">Prévisualiser</span>
+                          <kbd className="ml-1 text-[10px] opacity-70 bg-primary-foreground/10 px-1 rounded">P</kbd>
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-64">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setDefaultGenMode("preview");
-                            try { localStorage.setItem("avatar-studio-default-mode", "preview"); } catch {}
-                            generate("preview");
-                          }}
-                          disabled={isLocked || dignityBlocked}
-                          className="text-xs"
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs">Prévisualiser les changements — aperçu sans remplacer l'avatar final.</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => generate("final")}
+                          size="sm"
+                          variant="secondary"
+                          disabled={!!busy || isLocked || dignityBlocked}
+                          className="flex-1 min-w-0"
+                          aria-label="Générer l'avatar final"
                         >
-                          <RefreshCw className="h-3.5 w-3.5 mr-2" />
-                          <div className="flex-1">
-                            <div>Prévisualiser les changements</div>
-                            <div className="text-[10px] text-muted-foreground">Crée un aperçu sans remplacer l'avatar final</div>
-                          </div>
-                          <kbd className="ml-2 text-[10px] opacity-60">P</kbd>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setDefaultGenMode("final");
-                            try { localStorage.setItem("avatar-studio-default-mode", "final"); } catch {}
-                            generate("final");
-                          }}
-                          disabled={isLocked || dignityBlocked}
-                          className="text-xs"
-                        >
-                          <Sparkles className="h-3.5 w-3.5 mr-2" />
-                          <div className="flex-1">
-                            <div>Générer l'avatar final</div>
-                            <div className="text-[10px] text-muted-foreground">Crée une version HD à valider</div>
-                          </div>
-                          <kbd className="ml-2 text-[10px] opacity-60">G</kbd>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <Sparkles className="h-3.5 w-3.5 mr-1 shrink-0" />
+                          <span className="truncate">Générer HD</span>
+                          <kbd className="ml-1 text-[10px] opacity-70 bg-primary/10 px-1 rounded">G</kbd>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs">Générer l'avatar final — version HD à valider.</TooltipContent>
+                    </Tooltip>
                     <input
                       ref={importInputRef}
                       type="file"
@@ -1161,10 +1138,12 @@ const AvatarStudio = () => {
                     className="w-full justify-start text-xs text-muted-foreground"
                     onClick={() => importInputRef.current?.click()}
                     disabled={!!busy || isLocked}
+                    title="Importer une image PNG/JPG/WEBP — sans contrôle IA"
                   >
                     <Upload className="h-3.5 w-3.5 mr-2" />
-                    Importer une image (PNG/JPG/WEBP — sans contrôle IA)
+                    Importer une image
                   </Button>
+
 
 
 
