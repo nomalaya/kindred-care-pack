@@ -1283,6 +1283,47 @@ const AvatarStudio = () => {
                     />
                   </div>
 
+                  {/* Ligne "Source utilisée" — lecture seule, avant génération */}
+                  {(() => {
+                    const activeUrl = selected.avatar_url ?? null;
+                    const rawSource = (selected as any).avatar_source_url ?? null;
+                    if (!activeUrl && !rawSource) {
+                      return (
+                        <div className="text-[11px] text-muted-foreground border border-dashed rounded-md px-2 py-1.5">
+                          Source utilisée : aucune — première génération.
+                        </div>
+                      );
+                    }
+                    if (rawSource) {
+                      const match = versions.find(v => v.image_url === rawSource);
+                      if (!match) {
+                        return (
+                          <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+                            Source utilisée : image absente — sélectionnez une version dans la liste.
+                          </div>
+                        );
+                      }
+                      const isHD = !!match.qa_score || (match.image_url || "").includes("/final-");
+                      return (
+                        <div className="text-[11px] text-muted-foreground border rounded-md px-2 py-1.5 flex items-center gap-2">
+                          <img src={match.image_url} alt="" className="w-6 h-6 rounded object-cover shrink-0" />
+                          <span className="flex-1 truncate">
+                            Source utilisée : version du {absoluteFrFR(match.created_at)}
+                            {" · "}{isHD ? "HD" : "Aperçu"}
+                            {match.qa_score ? ` · QA ${Math.round(match.qa_score)}` : ""}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="text-[11px] text-muted-foreground border rounded-md px-2 py-1.5">
+                        Source utilisée : avatar actif (source implicite).
+                      </div>
+                    );
+                  })()}
+
+
+
                   {/* Indicateur de mode : création complète vs édition contrôlée */}
                   <div
                     className={`text-[11px] rounded-md px-2 py-1.5 border ${
