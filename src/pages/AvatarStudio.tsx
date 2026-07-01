@@ -143,9 +143,8 @@ const AvatarStudio = () => {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!selectedId) { setVersions([]); setInferenceReasons({}); setSelectedVersionIds(new Set()); setShowHdInstead(false); return; }
+    if (!selectedId) { setVersions([]); setInferenceReasons({}); setShowHdInstead(false); return; }
     setInferenceReasons({}); // reset à chaque changement de bénéficiaire
-    setSelectedVersionIds(new Set());
     setShowHdInstead(false);
     (async () => {
       const { data } = await supabase
