@@ -1920,6 +1920,108 @@ const AvatarStudio = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Modale "Voir en grand" — détail d'une version avec actions */}
+      <Dialog open={!!detailVersionId} onOpenChange={(o) => !o && setDetailVersionId(null)}>
+        <DialogContent className="max-w-2xl">
+          {(() => {
+            const v = versions.find(x => x.id === detailVersionId);
+            if (!v || !selected) return null;
+            const activeUrl = selected.avatar_url ?? null;
+            const rawSource = (selected as any).avatar_source_url ?? null;
+            const isActive = activeUrl === v.image_url;
+            const isSource = !!rawSource && rawSource !== activeUrl && rawSource === v.image_url;
+            const url = v.image_url || "";
+            const isPreview = url.includes("/preview-") || url.includes("/preview/");
+            const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
+            const alreadyInUse = isActive && (isSource || !rawSource || rawSource === activeUrl);
+            const otherSelected = Array.from(selectedVersionIds).filter(id => id !== v.id);
+            const canCompare = otherSelected.length === 1;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 flex-wrap">
+                    <span>Version — {absoluteFrFR(v.created_at)}</span>
+                    {isActive && <Badge className="bg-primary text-primary-foreground">Actif</Badge>}
+                    {isSource && <Badge className="bg-amber-400 text-amber-950 hover:bg-amber-400">Source</Badge>}
+                    <Badge variant="outline">{isHD ? "HD" : "Aperçu"}</Badge>
+                    {v.qa_score && <Badge variant="outline">QA {Math.round(v.qa_score)}</Badge>}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                  <img
+                    src={v.image_url}
+                    alt=""
+                    className="max-h-[70vh] w-auto object-contain"
+                  />
+                </div>
+                <DialogFooter className="flex-wrap gap-2">
+                  {canCompare && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setCompareIds([v.id, otherSelected[0]]);
+                        setCompareOpen(true);
+                        setDetailVersionId(null);
+                      }}
+                    >
+                      Comparer
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => { setDetailVersionId(null); attemptDeleteVersion(v); }}
+                    disabled={!!busy}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />Supprimer…
+                  </Button>
+                  <Button
+                    onClick={() => { restoreVersion(v); setDetailVersionId(null); }}
+                    disabled={isLocked || !!busy || alreadyInUse}
+                    title={busyLabel ?? "Cette version devient l'avatar affiché ET la base pour la prochaine retouche."}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    {alreadyInUse ? "Version déjà utilisée" : "Utiliser cette version"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setDetailVersionId(null)}>Fermer</Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation suppression multiple */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer les versions sélectionnées ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkDeletableIds.length} version{bulkDeletableIds.length > 1 ? "s" : ""} seront supprimées définitivement.
+              {selectedVersionIds.size !== bulkDeletableIds.length && (
+                <>
+                  <br />
+                  <span className="text-amber-700">
+                    Les versions actives ou utilisées comme source sont automatiquement protégées et ne seront pas supprimées.
+                  </span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { performDeleteVersions(bulkDeletableIds); setBulkDeleteOpen(false); }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
+
       {selected && displayAvatarUrl(selected) && (
         <AvatarFramingDialog
           open={framingDialogOpen}
