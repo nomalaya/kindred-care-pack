@@ -55,6 +55,7 @@ import {
 
 import { AvatarFramingDialog } from "@/features/avatar-studio/AvatarFramingDialog";
 import { readFramingFromRow, isDefaultFraming, framingToTransform } from "@/lib/avatarFraming";
+import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 
 
 type Beneficiary = any;
@@ -139,7 +140,28 @@ const AvatarStudio = () => {
           // libère busy si la génération est terminée
           const cur = busyRef.current;
           if (cur === "preview" && next.avatar_status === "preview") setBusy(null);
-          if (cur === "final" && next.avatar_status === "validated") setBusy(null);
+          if (cur === "final" && next.avatar_status === "validated") {
+            setBusy(null);
+            // Auto-approbation : HD généré avec QA >= 75 (QA_PASS backend)
+            // passe automatiquement à "approved" pour éviter le clic manuel.
+            // En dessous du seuil, on reste "generated" et le bouton
+            // "Approuver quand même" reste disponible dans le footer.
+            const qa = Number(next.avatar_qa_score ?? 0);
+            const ws = next.avatar_workflow_status;
+            if (qa >= 75 && ws !== "approved" && ws !== "locked") {
+              supabase
+                .from("beneficiaries")
+                .update({ avatar_workflow_status: "approved" } as any)
+                .eq("id", next.id)
+                .then(({ error }) => {
+                  if (!error) {
+                    setBeneficiaries(prev => prev.map(b =>
+                      b.id === next.id ? { ...b, avatar_workflow_status: "approved" } : b,
+                    ));
+                  }
+                });
+            }
+          }
           if (next.avatar_status === "failed" && (cur === "preview" || cur === "final")) {
             const r: any = next.avatar_qa_report || {};
             const reason = r.reason || r.code;
@@ -1226,14 +1248,7 @@ const AvatarStudio = () => {
                               </span>
 
 
-                              {/* Nature — coin haut-droit décalé pour laisser place à la corbeille */}
-                              <span className={`absolute top-0 right-7 text-[9px] px-1 rounded-bl pointer-events-none font-semibold ${
-                                isHD ? "bg-emerald-600 text-white" : "bg-amber-400 text-amber-950"
-                              }`}>
-                                {isHD ? "HD" : "Aperçu"}
-                              </span>
-
-                              {/* Corbeille directe — visible en permanence sauf sur l'actif */}
+                              {/* Corbeille directe — coin haut-droit, visible en permanence sauf sur l'actif */}
                               {!isActive && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); attemptDeleteVersion(v); }}
@@ -1245,6 +1260,13 @@ const AvatarStudio = () => {
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               )}
+
+                              {/* Nature (HD/Aperçu) — bas-centre, couleur distincte du vert "Actif" */}
+                              <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] px-1.5 py-0.5 rounded pointer-events-none font-semibold shadow-sm ${
+                                isHD ? "bg-slate-700 text-white" : "bg-amber-400 text-amber-950"
+                              }`}>
+                                {isHD ? "HD" : "Aperçu"}
+                              </span>
 
                               {/* QA — coin bas-droit */}
                               {v.qa_score && (
@@ -1280,7 +1302,11 @@ const AvatarStudio = () => {
                   } else if (ws === "locked") {
                     main = { label: "Déverrouiller", icon: Unlock, variant: "outline", onClick: () => setWorkflow("draft"), hint: workflowHint("unlock", ws, hasImage) };
                   } else {
-                    main = { label: "Approuver", icon: ShieldCheck, variant: "default", onClick: () => setWorkflow("approved"), hint: workflowHint("approve", ws, hasImage), shortcut: "A" };
+                    // QA >= 75 → auto-approuvé via Realtime : ce cas est rare.
+                    // QA < 75 ou absent (import manuel) → approbation manuelle requise.
+                    const qa = Number(selected.avatar_qa_score ?? 0);
+                    const label = qa > 0 && qa < 75 ? "Approuver quand même" : "Approuver";
+                    main = { label, icon: ShieldCheck, variant: "default", onClick: () => setWorkflow("approved"), hint: workflowHint("approve", ws, hasImage), shortcut: "A" };
                   }
                   const showUndo = ws === "approved";
                   const MainIcon = main.icon;
@@ -1695,13 +1721,41 @@ const AvatarStudio = () => {
                 </DialogHeader>
 
                 <div className="grid gap-4 md:grid-cols-[1fr_260px]">
-                  <div className="bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                  <div className="relative bg-muted rounded-md flex items-center justify-center overflow-hidden">
                     <img
                       src={v.image_url}
                       alt=""
                       className="max-h-[65vh] w-auto object-contain"
                     />
+                    {/* Overlay QA — visible dans tous les cas où qa est renseigné */}
+                    {qa != null && (
+                      <span
+                        className={`absolute bottom-2 right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-background/90 border ${qaColor}`}
+                        title="Score qualité automatique (0–100). Seuil de passage : 75."
+                      >
+                        QA {qa}
+                      </span>
+                    )}
+                    {/* Aperçu parcours donateur — même rendu que sur les cartes bénéficiaires */}
+                    <div
+                      className="absolute top-2 left-2 flex flex-col items-center gap-1 bg-background/90 border rounded-md px-2 py-2 shadow-sm"
+                      title="Rendu tel qu'affiché dans le parcours donateur (fond aléatoire + cadrage appliqués)."
+                    >
+                      <BeneficiaryAvatar
+                        size="lg"
+                        name={selected.alias_first_name ?? "Bénéficiaire"}
+                        avatarUrl={v.image_url}
+                        backgroundSeed={selected.id}
+                        framing={readFramingFromRow(selected)}
+                      />
+                      <div className="text-[10px] text-muted-foreground text-center leading-tight max-w-[110px] truncate">
+                        {selected.alias_first_name}
+                        {selected.region ? ` · ${selected.region}` : ""}
+                      </div>
+                      <div className="text-[9px] uppercase tracking-wide text-muted-foreground">Parcours donateur</div>
+                    </div>
                   </div>
+
 
                   <div className="space-y-3 text-sm">
                     <div>
