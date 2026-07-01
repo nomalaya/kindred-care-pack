@@ -1357,21 +1357,12 @@ const AvatarStudio = () => {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="text-xs"
-                                    onClick={() => setAsRetouchBase(v)}
-                                    disabled={isLocked || !!busy || isSource}
-                                    title="Prochaine retouche basée sur cette image, sans changer l'avatar affiché."
-                                  >
-                                    <Wand2 className="h-3.5 w-3.5 mr-2" />
-                                    {isSource ? "Base déjà utilisée" : "Définir comme base de retouche"}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-xs"
                                     onClick={() => restoreVersion(v)}
-                                    disabled={isLocked || !!busy || alreadyInUse}
-                                    title="Cette version devient l'avatar affiché ET la base pour la prochaine retouche."
+                                    disabled={isLocked || !!busy || isActive}
+                                    title="Remplace l'avatar actif par cette version et en fait la base des futures retouches."
                                   >
                                     <RotateCcw className="h-3.5 w-3.5 mr-2" />
-                                    {alreadyInUse ? "Version déjà utilisée" : "Utiliser cette version"}
+                                    {isActive ? "Version déjà utilisée" : "Utiliser cette version"}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="text-xs text-destructive focus:text-destructive"
