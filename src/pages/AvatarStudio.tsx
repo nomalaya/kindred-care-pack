@@ -59,6 +59,16 @@ import { readFramingFromRow, isDefaultFraming, framingToTransform } from "@/lib/
 
 type Beneficiary = any;
 
+// Compare deux URLs d'image en ignorant le cache-buster (?t=…, ?v=…) et les espaces.
+// beneficiaries.avatar_url reçoit parfois `?t=<timestamp>` après nettoyage/upload,
+// alors que avatar_versions.image_url est stocké sans query string.
+const sameImage = (a?: string | null, b?: string | null) => {
+  if (!a || !b) return false;
+  const strip = (u: string) => u.split("?")[0].trim();
+  return strip(a) === strip(b);
+};
+
+
 
 
 const AvatarStudio = () => {
