@@ -69,9 +69,6 @@ const AvatarStudio = () => {
   const [showFailedOnly, setShowFailedOnly] = useState(false);
   // panelTab removed — 3-column layout shows Visuel + Attributs side-by-side
   const [listSheetOpen, setListSheetOpen] = useState(false);
-  const [defaultGenMode, setDefaultGenMode] = useState<"preview" | "final">(
-    () => (typeof window !== "undefined" && (localStorage.getItem("avatar-studio-default-mode") as any)) || "final",
-  );
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [versions, setVersions] = useState<any[]>([]);
@@ -80,11 +77,11 @@ const AvatarStudio = () => {
   const [modelChoice, setModelChoice] = useState<"preview" | "final">("final");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(new Set());
+  
   const [framingDialogOpen, setFramingDialogOpen] = useState(false);
   const [showHdInstead, setShowHdInstead] = useState(false);
   const [detailVersionId, setDetailVersionId] = useState<string | null>(null);
-  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  
   const [cleaningVersionId, setCleaningVersionId] = useState<string | null>(null);
 
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
@@ -146,9 +143,8 @@ const AvatarStudio = () => {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!selectedId) { setVersions([]); setInferenceReasons({}); setSelectedVersionIds(new Set()); setShowHdInstead(false); return; }
+    if (!selectedId) { setVersions([]); setInferenceReasons({}); setShowHdInstead(false); return; }
     setInferenceReasons({}); // reset à chaque changement de bénéficiaire
-    setSelectedVersionIds(new Set());
     setShowHdInstead(false);
     (async () => {
       const { data } = await supabase
@@ -720,49 +716,23 @@ const AvatarStudio = () => {
   };
 
 
-  const toggleVersionSelect = (id: string) => {
-    setSelectedVersionIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const performDeleteVersions = async (ids: string[]) => {
-    if (!ids.length) return;
-    const { error } = await supabase.from("avatar_versions" as any).delete().in("id", ids);
+  // Suppression unitaire avec protection contre la suppression de l'avatar actif.
+  const attemptDeleteVersion = async (v: any) => {
+    if (!selected) return;
+    if (v.image_url === selected.avatar_url) {
+      toast.error("Cette image est l'avatar actif. Utilisez une autre version comme active avant de la supprimer.");
+      return;
+    }
+    if (!confirm("Supprimer définitivement cette version ? Action irréversible.")) return;
+    const { error } = await supabase.from("avatar_versions" as any).delete().eq("id", v.id);
     if (error) {
       toast.error("Échec de la suppression : " + error.message);
       return;
     }
-    setVersions(prev => prev.filter(v => !ids.includes(v.id)));
-    setSelectedVersionIds(new Set());
-    toast.success(ids.length === 1 ? "Version supprimée" : `${ids.length} versions supprimées`);
+    setVersions(prev => prev.filter(x => x.id !== v.id));
+    toast.success("Version supprimée");
   };
 
-  // Suppression unitaire avec protections actif / source explicite.
-  const attemptDeleteVersion = (v: any) => {
-    if (!selected) return;
-    const activeUrl = selected.avatar_url;
-    if (v.image_url === activeUrl) {
-      toast.error("Cette image est l'avatar actif. Définissez une autre version comme active avant de la supprimer.");
-      return;
-    }
-    if (!confirm("Supprimer définitivement cette version ? Action irréversible.")) return;
-    performDeleteVersions([v.id]);
-  };
-
-  // IDs supprimables en masse : on filtre l'actif et la source explicite.
-  const bulkDeletableIds = useMemo(() => {
-    if (!selected) return [] as string[];
-    const activeUrl = selected.avatar_url;
-    return Array.from(selectedVersionIds).filter(id => {
-      const v = versions.find(x => x.id === id);
-      if (!v) return false;
-      if (v.image_url === activeUrl) return false;
-      return true;
-    });
-  }, [selected, selectedVersionIds, versions]);
 
   // Libellé humain de l'état "busy" pour bannière + désactivation d'actions.
   const busyLabel = useMemo(() => {
@@ -1112,64 +1082,41 @@ const AvatarStudio = () => {
                     </div>
                   )}
 
-                  {/* Actions de génération IA — libellés métier */}
+                  {/* Actions de génération IA — deux boutons distincts */}
                   <div className="flex gap-1.5 w-full">
-                    <Button
-                      onClick={() => generate(defaultGenMode)}
-                      size="sm"
-                      disabled={!!busy || isLocked || dignityBlocked}
-                      className="flex-1 justify-start"
-                      aria-label={defaultGenMode === "preview" ? "Prévisualiser les changements" : "Générer l'avatar final"}
-                    >
-                      {defaultGenMode === "preview" ? <RefreshCw className="h-3.5 w-3.5 mr-2" /> : <Sparkles className="h-3.5 w-3.5 mr-2" />}
-                      <span className="flex-1 text-left">
-                        {defaultGenMode === "preview" ? "Prévisualiser les changements" : "Générer l'avatar final"}
-                      </span>
-                      <kbd className="ml-2 text-[10px] opacity-70 bg-primary-foreground/10 px-1 rounded">
-                        {defaultGenMode === "preview" ? "P" : "G"}
-                      </kbd>
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" disabled={!!busy} aria-label="Choisir le type de génération">
-                          <ChevronDown className="h-3.5 w-3.5" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => generate("preview")}
+                          size="sm"
+                          disabled={!!busy || isLocked || dignityBlocked}
+                          className="flex-1 min-w-0"
+                          aria-label="Prévisualiser les changements"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5 mr-1 shrink-0" />
+                          <span className="truncate">Prévisualiser</span>
+                          <kbd className="ml-1 text-[10px] opacity-70 bg-primary-foreground/10 px-1 rounded">P</kbd>
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-64">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setDefaultGenMode("preview");
-                            try { localStorage.setItem("avatar-studio-default-mode", "preview"); } catch {}
-                            generate("preview");
-                          }}
-                          disabled={isLocked || dignityBlocked}
-                          className="text-xs"
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs">Prévisualiser les changements — aperçu sans remplacer l'avatar final.</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => generate("final")}
+                          size="sm"
+                          variant="secondary"
+                          disabled={!!busy || isLocked || dignityBlocked}
+                          className="flex-1 min-w-0"
+                          aria-label="Générer l'avatar final"
                         >
-                          <RefreshCw className="h-3.5 w-3.5 mr-2" />
-                          <div className="flex-1">
-                            <div>Prévisualiser les changements</div>
-                            <div className="text-[10px] text-muted-foreground">Crée un aperçu sans remplacer l'avatar final</div>
-                          </div>
-                          <kbd className="ml-2 text-[10px] opacity-60">P</kbd>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setDefaultGenMode("final");
-                            try { localStorage.setItem("avatar-studio-default-mode", "final"); } catch {}
-                            generate("final");
-                          }}
-                          disabled={isLocked || dignityBlocked}
-                          className="text-xs"
-                        >
-                          <Sparkles className="h-3.5 w-3.5 mr-2" />
-                          <div className="flex-1">
-                            <div>Générer l'avatar final</div>
-                            <div className="text-[10px] text-muted-foreground">Crée une version HD à valider</div>
-                          </div>
-                          <kbd className="ml-2 text-[10px] opacity-60">G</kbd>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <Sparkles className="h-3.5 w-3.5 mr-1 shrink-0" />
+                          <span className="truncate">Générer HD</span>
+                          <kbd className="ml-1 text-[10px] opacity-70 bg-primary/10 px-1 rounded">G</kbd>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs">Générer l'avatar final — version HD à valider.</TooltipContent>
+                    </Tooltip>
                     <input
                       ref={importInputRef}
                       type="file"
@@ -1191,10 +1138,12 @@ const AvatarStudio = () => {
                     className="w-full justify-start text-xs text-muted-foreground"
                     onClick={() => importInputRef.current?.click()}
                     disabled={!!busy || isLocked}
+                    title="Importer une image PNG/JPG/WEBP — sans contrôle IA"
                   >
                     <Upload className="h-3.5 w-3.5 mr-2" />
-                    Importer une image (PNG/JPG/WEBP — sans contrôle IA)
+                    Importer une image
                   </Button>
+
 
 
 
@@ -1220,40 +1169,8 @@ const AvatarStudio = () => {
                       <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
                         <History className="h-3 w-3" />Versions ({versions.length})
                       </h3>
-                      <div className="flex items-center gap-1">
-                        {selectedVersionIds.size > 0 ? (
-                          <>
-                            <span className="text-xs text-muted-foreground">{selectedVersionIds.size} sél.</span>
-                            <Button
-                              size="sm" variant="ghost" className="h-6 text-xs"
-                              onClick={() => setSelectedVersionIds(new Set())}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                            {selectedVersionIds.size === 2 && (
-                              <Button
-                                size="sm" variant="ghost" className="h-6 text-xs"
-                                onClick={() => {
-                                  const [a, b] = Array.from(selectedVersionIds);
-                                  setCompareIds([a, b]);
-                                  setCompareOpen(true);
-                                }}
-                              >
-                                Comparer
-                              </Button>
-                            )}
-                            <Button
-                              size="sm" variant="destructive" className="h-6 text-xs"
-                              onClick={() => setBulkDeleteOpen(true)}
-                              disabled={!!busy || bulkDeletableIds.length === 0}
-                              title={bulkDeletableIds.length === 0 ? "Sélection uniquement composée de l'actif ou de la source" : undefined}
-                            >
-                              <Trash2 className="h-3 w-3 mr-1" />Suppr.
-                            </Button>
-                          </>
-                        ) : null}
-                      </div>
                     </div>
+
                     {versions.length === 0 ? (
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
                     ) : (
@@ -1265,27 +1182,15 @@ const AvatarStudio = () => {
                           const url = v.image_url || "";
                           const isPreview = url.includes("/preview-") || url.includes("/preview/");
                           const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
-                          const isChecked = selectedVersionIds.has(v.id);
-                          const selectionMode = selectedVersionIds.size > 0;
                           return (
                             <div
                               key={v.id}
                               className={`relative w-full aspect-square rounded overflow-hidden bg-muted group ${
-                                isChecked ? "ring-2 ring-destructive" :
-                                isActive ? "ring-2 ring-primary" :
-                                "hover:ring-2 hover:ring-primary/40"
+                                isActive ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/40"
                               }`}
-
                             >
                               <button
-                                onClick={(e) => {
-                                  if (selectionMode || e.shiftKey) {
-                                    e.preventDefault();
-                                    toggleVersionSelect(v.id);
-                                  } else {
-                                    setDetailVersionId(v.id);
-                                  }
-                                }}
+                                onClick={() => setDetailVersionId(v.id)}
                                 className="block w-full h-full"
                                 aria-label="Voir cette version en grand"
                               >
@@ -1303,50 +1208,25 @@ const AvatarStudio = () => {
                                 {isActive ? "Actif" : "Hist."}
                               </span>
 
-                              {/* Nature — coin haut-droit décalé pour laisser place au menu … */}
+                              {/* Nature — coin haut-droit décalé pour laisser place à la corbeille */}
                               <span className={`absolute top-0 right-7 text-[9px] px-1 rounded-bl pointer-events-none font-semibold ${
                                 isHD ? "bg-emerald-600 text-white" : "bg-amber-400 text-amber-950"
                               }`}>
                                 {isHD ? "HD" : "Aperçu"}
                               </span>
 
-                              {/* Menu … — toujours visible discret, plein au hover */}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <button
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="absolute top-0.5 right-0.5 w-6 h-6 rounded bg-background/70 hover:bg-background text-foreground flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity"
-                                    aria-label="Actions sur cette version"
-                                    title="Actions"
-                                  >
-                                    <MoreHorizontal className="h-3.5 w-3.5" />
-                                  </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56">
-                                  <DropdownMenuItem
-                                    className="text-xs"
-                                    onClick={() => setDetailVersionId(v.id)}
-                                  >
-                                    <Eye className="h-3.5 w-3.5 mr-2" />Voir en grand
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-xs"
-                                    onClick={() => restoreVersion(v)}
-                                    disabled={isLocked || !!busy || isActive}
-                                    title="Remplace l'avatar actif par cette version et en fait la base des futures retouches."
-                                  >
-                                    <RotateCcw className="h-3.5 w-3.5 mr-2" />
-                                    {isActive ? "Version déjà utilisée" : "Utiliser cette version"}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-xs text-destructive focus:text-destructive"
-                                    onClick={() => attemptDeleteVersion(v)}
-                                    disabled={!!busy}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5 mr-2" />Supprimer…
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              {/* Corbeille directe — visible en permanence sauf sur l'actif */}
+                              {!isActive && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); attemptDeleteVersion(v); }}
+                                  disabled={!!busy}
+                                  className="absolute top-0.5 right-0.5 w-6 h-6 rounded bg-background/80 hover:bg-destructive hover:text-destructive-foreground text-foreground flex items-center justify-center opacity-80 group-hover:opacity-100 transition-colors"
+                                  aria-label="Supprimer cette version"
+                                  title="Supprimer cette version"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
 
                               {/* QA — coin bas-droit */}
                               {v.qa_score && (
@@ -1360,23 +1240,10 @@ const AvatarStudio = () => {
                                   {relativeFrFR(v.created_at)}
                                 </span>
                               )}
-
-                              {/* Case sélection multiple — visible au hover, plein si cochée */}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); toggleVersionSelect(v.id); }}
-                                className={`absolute top-6 left-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-opacity ${
-                                  isChecked
-                                    ? "bg-destructive border-destructive text-destructive-foreground opacity-100"
-                                    : "bg-background/80 border-background/80 text-foreground opacity-0 group-hover:opacity-100"
-                                }`}
-                                title={isChecked ? "Désélectionner" : "Sélectionner (multi)"}
-                                aria-label={isChecked ? "Désélectionner" : "Sélectionner"}
-                              >
-                                {isChecked && <Check className="h-3 w-3" />}
-                              </button>
                             </div>
                           );
                         })}
+
                       </div>
                       </>
                     )}
@@ -1758,9 +1625,9 @@ const AvatarStudio = () => {
             const isHD = !isCleanBg && !isImport && !isPreview;
             const typeLabel = isCleanBg ? "Nettoyage fond" : isImport ? "Import" : isPreview ? "Aperçu rapide" : "Portrait HD";
             const isTransparent = url.includes("/cleaned/") && url.toLowerCase().includes(".png");
-            const otherSelected = Array.from(selectedVersionIds).filter(id => id !== v.id);
-            const canCompareSelection = otherSelected.length === 1;
+            const canCompareSelection = false;
             const canCompareActive = !isActive && !!activeUrl;
+
             const qa = v.qa_score ? Math.round(v.qa_score) : null;
             const qaColor = qa == null ? "" : qa >= 85 ? "text-emerald-700" : qa >= 70 ? "text-amber-700" : "text-red-700";
             const usageLabel = isActive ? "Avatar actif" : "Historique";
@@ -1905,18 +1772,7 @@ const AvatarStudio = () => {
                         <Crop className="h-4 w-4 mr-2" />Ajuster le cadrage
                       </Button>
                     )}
-                    {canCompareSelection ? (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setCompareIds([v.id, otherSelected[0]]);
-                          setCompareOpen(true);
-                          setDetailVersionId(null);
-                        }}
-                      >
-                        <GitCompare className="h-4 w-4 mr-2" />Comparer
-                      </Button>
-                    ) : canCompareActive && (
+                    {canCompareActive && (
                       <Button
                         variant="outline"
                         onClick={() => {
@@ -1930,6 +1786,7 @@ const AvatarStudio = () => {
                         <GitCompare className="h-4 w-4 mr-2" />Comparer à l'actif
                       </Button>
                     )}
+
                     <Button
                       onClick={() => { restoreVersion(v); setDetailVersionId(null); }}
                       disabled={isLocked || !!busy || isActive || cleaningVersionId === v.id}
@@ -1947,34 +1804,8 @@ const AvatarStudio = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation suppression multiple */}
-      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer les versions sélectionnées ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {bulkDeletableIds.length} version{bulkDeletableIds.length > 1 ? "s" : ""} seront supprimées définitivement.
-              {selectedVersionIds.size !== bulkDeletableIds.length && (
-                <>
-                  <br />
-                  <span className="text-amber-700">
-                    Les versions actives ou utilisées comme source sont automatiquement protégées et ne seront pas supprimées.
-                  </span>
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { performDeleteVersions(bulkDeletableIds); setBulkDeleteOpen(false); }}
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
+
 
 
 
