@@ -1,78 +1,71 @@
 
-## Refonte du panneau central Avatar Studio
+# Objectif
 
-Toutes les modifications sont limitées à `src/pages/AvatarStudio.tsx` (UI/présentation, pas de changement backend, pas d'impact prompts/matching/QA/pipeline IA).
+Le panneau central (colonne du milieu de l'Avatar Studio) doit tenir intégralement dans son cadre : aucun élément coupé, et la section **Versions** doit occuper tout l'espace vertical restant sous les actions, avec ses vignettes visibles et non tronquées.
 
-### 1. Suppression de la grande image du haut
+# Diagnostic
 
-- Supprimer le bloc `aspect-square` (lignes ~1101-1158) qui affiche l'avatar sélectionné en grand, avec ses overlays (bouton "Nettoyer le fond", badge Info, loader busy).
-- Conserver les bannières "Aperçu en attente de validation", "HD validé (référence)" et l'alerte `failed`.
-- Le loader `busy` est rendu via la bannière `busyLabel` existante remontée au-dessus des versions.
+Aujourd'hui, tout le contenu (bannières + actions + import + indicateur + busy + Versions) est dans un unique conteneur `flex-1 overflow-y-auto` (ligne 1116). Résultat :
 
-### 2. Encadré "Source utilisée : version du …" (lignes 1287-1324)
+- Quand l'espace vertical est serré (viewport 639 px de haut), on scrolle verticalement pour tout voir → la partie Versions se retrouve tout en bas et est coupée.
+- Les vignettes Versions sont dans un carrousel **horizontal** unique (`flex gap-1.5 overflow-x-auto`, `w-28 aspect-square`) : elles ne remplissent jamais la hauteur restante, seulement une bande.
 
-Supprimé entièrement. L'info reste portée par le ring ambre + badge "Source" sur la vignette.
+# Changements (UI uniquement, `src/pages/AvatarStudio.tsx`)
 
-### 3. Indicateur "Édition contrôlée / Création complète" (lignes 1328-1349)
+## 1. Séparer la zone fixe de la zone Versions
 
-Remplacer le pavé multi-lignes par un badge compact d'une ligne :
+Remplacer le conteneur unique scrollable par une colonne flex :
 
-- Édition : « ✏️ Ce visage vous plaît ? Modifiez des attributs — ils seront appliqués sans repartir de zéro. »
-- Création : « 🎨 Première génération — création complète depuis les attributs. »
-- Le texte technique long ("L'avatar source sert de référence visuelle, pose/cadrage/fond préservés…") passe dans un `Tooltip` déclenché par une petite icône `Info` à droite du badge.
-- Suppression de la mention « Astuce : … "Base de retouche" » (l'action est réintroduite au §5).
+```text
+<section flex flex-col min-h-0>
+  header (sticky, shrink-0)                 ← inchangé
+  ── zone fixe (shrink-0, p-3, space-y-2) ──
+    bannières fresh/failed
+    actions génération (split-button)
+    bouton Importer
+    indicateur édition contrôlée
+    bannière busy
+  ── zone Versions (flex-1 min-h-0 flex flex-col) ──
+    en-tête « Versions (n) » + actions sélection (shrink-0)
+    bannière source manquante (shrink-0, si présente)
+    grille de vignettes (flex-1 min-h-0 overflow-y-auto)
+  footer workflow (sticky, shrink-0)        ← inchangé
+</section>
+```
 
-### 4. Simplification du menu "Générer un aperçu" (lignes ~1206-1284)
+Ainsi la zone fixe ne peut pas être « poussée hors du cadre » : elle occupe sa hauteur naturelle, et Versions prend tout ce qui reste.
 
-Réécrire le split-button et son `DropdownMenu` pour ne contenir **que** des actions de génération IA, avec des libellés métier (aucune mention `Nano Banana`, `économique`, `qualité finale`).
+## 2. Versions : grille verticale au lieu du carrousel horizontal
 
-**Bouton principal** (adapte son libellé au mode par défaut) :
-- `preview` → « Prévisualiser les changements »
-- `final` → « Générer l'avatar final »
+Remplacer `flex gap-1.5 overflow-x-auto` par une grille responsive qui remplit la hauteur :
 
-**Dropdown** : deux items uniquement.
+```text
+grid grid-cols-3 gap-1.5 overflow-y-auto pr-1
+(vignettes: aspect-square w-full, on retire w-28 et shrink-0/snap)
+```
 
-| Action | Libellé | Sous-libellé |
-|---|---|---|
-| `generate("preview")` | Prévisualiser les changements | Crée un aperçu sans remplacer l'avatar final |
-| `generate("final")` | Générer l'avatar final | Crée une version HD à valider |
+- Sur écrans très étroits la grille reste à 3 colonnes (les vignettes s'adaptent à la largeur disponible → aucune n'est coupée horizontalement).
+- Le défilement devient vertical, contenu à la zone Versions uniquement ; la zone fixe du dessus reste toujours visible.
+- L'ordre (Actif puis Source puis reste) reste inchangé — c'est simplement le mode d'affichage qui change.
 
-**Retrait** de l'item "Importer une image" de ce menu. La fonction n'est pas supprimée : l'action est déplacée dans un bouton discret séparé (`variant="ghost"`, `size="sm"`, icône `Upload`, libellé « Importer une image ») placé juste sous le split-button. Le `<input ref={importInputRef}>` existant est conservé.
+## 3. Menu contextuel des vignettes
 
-Aucun changement à la fonction `generate()`, aux modes, ni à `handleImportFile`.
+Le menu `…` conserve ses actions existantes (Voir en grand / Base de retouche / Utiliser cette version / Supprimer). Aucun changement.
 
-### 5. Suppression du bouton "Ajuster le cadrage" du panneau (lignes 1354-1369)
+## 4. Aucune modification hors présentation
 
-L'action est déplacée dans la modale "Voir en grand" (§7). `AvatarFramingDialog` reste monté au niveau page ; déclenché depuis la modale en fermant celle-ci d'abord.
+- Pas de changement de logique métier, pas de changement backend, pas de changement de génération/QA.
+- Les composants supprimés lors des étapes précédentes (grande image, encadré « Source utilisée », bouton « Ajuster le cadrage » du panneau) ne reviennent pas.
 
-### 6. Réintroduction de "Base de retouche" dans le menu … de chaque vignette
+# Critères d'acceptation
 
-Dans le `DropdownMenu` des vignettes (lignes ~1504-1527), insérer un item entre "Voir en grand" et "Utiliser cette version" :
+1. À 1204×639 (viewport actuel), le header, les bannières, les actions de génération, le bouton Importer, l'indicateur « ✏️ Ce visage… » et le footer workflow sont visibles **sans scroll**.
+2. La section Versions occupe visuellement toute la hauteur restante entre l'indicateur et le footer.
+3. Aucune vignette n'est coupée à droite ni en bas ; le défilement des versions est vertical et confiné à leur zone.
+4. Sur écrans plus hauts, la grille Versions grandit et affiche plus de vignettes sans scroll.
 
-- Libellé : « Définir comme base de retouche »
-- Handler : update `avatar_source_url = v.image_url` (fonction déjà existante ligne ~700, à réutiliser via une petite `setAsRetouchBase(v)` extraite).
-- Désactivé si `isSource`, `isLocked` ou `busy`.
-- Tooltip : « Prochaine retouche basée sur cette image, sans changer l'avatar affiché. »
+# Détails techniques
 
-### 7. Modale "Voir en grand" — nouvelle action Cadrage
-
-Dans le footer (lignes 2061-2119), ajouter avant "Comparer" :
-
-- Bouton `variant="outline"` « Ajuster le cadrage » (icône `Crop`).
-- Visible uniquement si `isActive` (le cadrage est stocké sur `beneficiaries`, valable pour l'avatar affiché).
-- Handler : `setDetailVersionId(null); setFramingDialogOpen(true);`
-
-### 8. Espace récupéré → carousel versions plus grand
-
-- Vignettes `w-20` → `w-28` (ligne 1451).
-- Bannière `busyLabel` positionnée juste au-dessus du carousel.
-- Titre "Versions (n)" et logique de sélection multiple inchangés.
-
-### Fichiers modifiés
-
-- `src/pages/AvatarStudio.tsx` — points 1 à 8 ci-dessus.
-
-### Hors périmètre (inchangé)
-
-- `AvatarFramingDialog`, `clean-avatar-background`, prompts, QA, matching, panier, checkout, schéma DB, RLS.
-- Aucun appel IA nouveau ; crédits consommés uniquement aux actions explicites existantes (Générer, Nettoyer le fond).
+- Fichier unique modifié : `src/pages/AvatarStudio.tsx`, blocs 1116–1483 (restructuration en deux zones flex) et 1346–1478 (carrousel → grille).
+- Classes Tailwind uniquement, aucune dépendance ajoutée.
+- Le `TooltipProvider` existant et les composants shadcn utilisés restent inchangés.
