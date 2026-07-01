@@ -1114,65 +1114,6 @@ const AvatarStudio = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                  {/* Image with overlays — remplit la colonne */}
-                  <div className="aspect-square w-full bg-muted rounded-lg overflow-hidden relative group">
-                    {displayAvatarUrl(selected) ? (
-                      <img
-                        src={displayAvatarUrl(selected)!}
-                        alt={selected.alias_first_name}
-                        className="w-full h-full object-cover cursor-zoom-in"
-                        style={framingToTransform(readFramingFromRow(selected))}
-                        onClick={() => setLightboxUrl(displayAvatarUrl(selected))}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                        <Eye className="h-10 w-10 opacity-40" />
-                      </div>
-                    )}
-
-                    {/* Overlay: clean background */}
-                    {selected.avatar_url && !busy && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={() => cleanBackground()}
-                            size="icon"
-                            variant="secondary"
-                            disabled={!!busy || isLocked}
-                            className="absolute top-2 right-2 h-8 w-8 shadow-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-                            aria-label="Nettoyer le fond de l'avatar"
-                          >
-                            {busy === "clean" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scissors className="h-3.5 w-3.5" />}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-xs max-w-[220px]">
-                          Nettoyer le fond — détoure et remplace par blanc pur pour laisser passer votre fond importé.
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-
-                    {/* Debug badge as tooltip */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="absolute bottom-2 left-2 bg-background/80 backdrop-blur rounded-full h-6 w-6 inline-flex items-center justify-center text-[10px] cursor-help opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Info className="h-3 w-3" />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs max-w-[260px]">
-                        Style : cartoon illustré storybook · fond contextuel flou
-                        {selected.avatar_model_used ? <><br />Modèle : {selected.avatar_model_used.split("/")[1] || selected.avatar_model_used}</> : null}
-                      </TooltipContent>
-                    </Tooltip>
-
-                    {busy && (
-                      <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-                        <div className="text-center">
-                          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-1" />
-                          <div className="text-xs">{busy === "preview" ? "Aperçu…" : busy === "final" ? "HD…" : busy === "clean" ? "Nettoyage…" : "Import…"}</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
 
                   {/* Aperçu fraîchement généré — badge + bascule comparaison */}
                   {isShowingFreshPreview && (
