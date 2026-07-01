@@ -69,9 +69,6 @@ const AvatarStudio = () => {
   const [showFailedOnly, setShowFailedOnly] = useState(false);
   // panelTab removed — 3-column layout shows Visuel + Attributs side-by-side
   const [listSheetOpen, setListSheetOpen] = useState(false);
-  const [defaultGenMode, setDefaultGenMode] = useState<"preview" | "final">(
-    () => (typeof window !== "undefined" && (localStorage.getItem("avatar-studio-default-mode") as any)) || "final",
-  );
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [versions, setVersions] = useState<any[]>([]);
@@ -80,11 +77,11 @@ const AvatarStudio = () => {
   const [modelChoice, setModelChoice] = useState<"preview" | "final">("final");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(new Set());
+  
   const [framingDialogOpen, setFramingDialogOpen] = useState(false);
   const [showHdInstead, setShowHdInstead] = useState(false);
   const [detailVersionId, setDetailVersionId] = useState<string | null>(null);
-  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  
   const [cleaningVersionId, setCleaningVersionId] = useState<string | null>(null);
 
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
