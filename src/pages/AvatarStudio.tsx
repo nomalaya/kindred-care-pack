@@ -1284,37 +1284,21 @@ const AvatarStudio = () => {
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
                     ) : (
                       <>
-                      {(() => {
-                        const rawSource = (selected as any).avatar_source_url ?? null;
-                        const activeUrl = selected.avatar_url ?? null;
-                        const sourceMissing = !!rawSource
-                          && rawSource !== activeUrl
-                          && !versions.some(v => v.image_url === rawSource);
-                        return sourceMissing ? (
-                          <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
-                            La base de retouche actuelle n'existe plus dans vos versions. Cliquez sur « Utiliser cette version » pour la réancrer.
-                          </div>
-                        ) : null;
-                      })()}
                       <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 overflow-y-auto auto-rows-max content-start pr-1 pb-1">
                         {orderedVersions.map(v => {
                           const activeUrl = selected.avatar_url ?? null;
-                          const rawSource = (selected as any).avatar_source_url ?? null;
                           const isActive = activeUrl === v.image_url;
-                          const isSource = !!rawSource && rawSource !== activeUrl && rawSource === v.image_url;
                           const url = v.image_url || "";
                           const isPreview = url.includes("/preview-") || url.includes("/preview/");
                           const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
                           const isChecked = selectedVersionIds.has(v.id);
                           const selectionMode = selectedVersionIds.size > 0;
-                          const alreadyInUse = isActive && (isSource || !rawSource || rawSource === activeUrl);
                           return (
                             <div
                               key={v.id}
                               className={`relative w-full aspect-square rounded overflow-hidden bg-muted group ${
                                 isChecked ? "ring-2 ring-destructive" :
                                 isActive ? "ring-2 ring-primary" :
-                                isSource ? "ring-2 ring-amber-400" :
                                 "hover:ring-2 hover:ring-primary/40"
                               }`}
 
@@ -1338,12 +1322,11 @@ const AvatarStudio = () => {
                               <span
                                 className={`absolute top-0 left-0 text-[9px] px-1 rounded-br pointer-events-none font-semibold ${
                                   isActive ? "bg-primary text-primary-foreground" :
-                                  isSource ? "bg-amber-400 text-amber-950" :
                                   "bg-background/80 text-muted-foreground border border-border"
                                 }`}
-                                title={isActive ? "Avatar affiché publiquement" : isSource ? "Base utilisée pour la prochaine retouche" : "Version d'historique"}
+                                title={isActive ? "C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image." : "Version d'historique"}
                               >
-                                {isActive ? "Actif" : isSource ? "Source" : "Hist."}
+                                {isActive ? "Actif" : "Hist."}
                               </span>
 
                               {/* Nature — coin haut-droit décalé pour laisser place au menu … */}
