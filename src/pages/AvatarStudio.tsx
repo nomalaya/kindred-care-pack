@@ -1176,11 +1176,16 @@ const AvatarStudio = () => {
                   {/* Versions grid — occupe l'espace restant */}
                   <div className="flex-1 min-h-0 flex flex-col">
 
-                    <div className="flex items-center justify-between mb-1.5 gap-2 shrink-0">
+                    <div className="flex items-center justify-between mb-1 gap-2 shrink-0">
                       <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
                         <History className="h-3 w-3" />Versions ({versions.length})
                       </h3>
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 rounded-sm ring-2 ring-primary bg-primary/30" />
+                        Publiée
+                      </span>
                     </div>
+
 
                     {versions.length === 0 ? (
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
