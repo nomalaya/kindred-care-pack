@@ -1189,7 +1189,7 @@ const AvatarStudio = () => {
                       <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 overflow-y-auto auto-rows-max content-start pr-1 pb-1">
                         {orderedVersions.map(v => {
                           const activeUrl = selected.avatar_url ?? null;
-                          const isActive = activeUrl === v.image_url;
+                          const isActive = sameImage(activeUrl, v.image_url);
                           const url = v.image_url || "";
                           const isPreview = url.includes("/preview-") || url.includes("/preview/");
                           const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
