@@ -50,7 +50,7 @@ import {
   Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown, ExternalLink,
   PanelLeft, Image as ImageIcon, SlidersHorizontal, Info, Trash2, X,
-  Crop, MoreHorizontal,
+  Crop, MoreHorizontal, Download, Copy, GitCompare,
 } from "lucide-react";
 import { AvatarFramingDialog } from "@/features/avatar-studio/AvatarFramingDialog";
 import { readFramingFromRow, isDefaultFraming, framingToTransform } from "@/lib/avatarFraming";
