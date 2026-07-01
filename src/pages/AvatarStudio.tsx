@@ -1113,7 +1113,7 @@ const AvatarStudio = () => {
                   </a>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                <div className="flex-1 min-h-0 flex flex-col p-3 gap-2">
 
                   {/* Aperçu fraîchement généré — badge + bascule comparaison */}
                   {isShowingFreshPreview && (
@@ -1287,9 +1287,10 @@ const AvatarStudio = () => {
                     </div>
                   )}
 
-                  {/* Versions carousel */}
-                  <div className="mt-2">
-                    <div className="flex items-center justify-between mb-1.5 gap-2">
+                  {/* Versions grid — occupe l'espace restant */}
+                  <div className="flex-1 min-h-0 flex flex-col">
+
+                    <div className="flex items-center justify-between mb-1.5 gap-2 shrink-0">
                       <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
                         <History className="h-3 w-3" />Versions ({versions.length})
                       </h3>
@@ -1343,7 +1344,7 @@ const AvatarStudio = () => {
                           </div>
                         ) : null;
                       })()}
-                      <div className="flex gap-1.5 overflow-x-auto pb-2 snap-x scroll-pl-1 -mx-1 px-1">
+                      <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 overflow-y-auto auto-rows-max content-start pr-1 pb-1">
                         {orderedVersions.map(v => {
                           const activeUrl = selected.avatar_url ?? null;
                           const rawSource = (selected as any).avatar_source_url ?? null;
@@ -1358,12 +1359,13 @@ const AvatarStudio = () => {
                           return (
                             <div
                               key={v.id}
-                              className={`relative w-28 aspect-square shrink-0 snap-start rounded overflow-hidden bg-muted group ${
+                              className={`relative w-full aspect-square rounded overflow-hidden bg-muted group ${
                                 isChecked ? "ring-2 ring-destructive" :
                                 isActive ? "ring-2 ring-primary" :
                                 isSource ? "ring-2 ring-amber-400" :
                                 "hover:ring-2 hover:ring-primary/40"
                               }`}
+
                             >
                               <button
                                 onClick={(e) => {
