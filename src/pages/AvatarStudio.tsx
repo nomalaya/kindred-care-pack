@@ -1772,18 +1772,7 @@ const AvatarStudio = () => {
                         <Crop className="h-4 w-4 mr-2" />Ajuster le cadrage
                       </Button>
                     )}
-                    {canCompareSelection ? (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setCompareIds([v.id, otherSelected[0]]);
-                          setCompareOpen(true);
-                          setDetailVersionId(null);
-                        }}
-                      >
-                        <GitCompare className="h-4 w-4 mr-2" />Comparer
-                      </Button>
-                    ) : canCompareActive && (
+                    {canCompareActive && (
                       <Button
                         variant="outline"
                         onClick={() => {
@@ -1797,6 +1786,7 @@ const AvatarStudio = () => {
                         <GitCompare className="h-4 w-4 mr-2" />Comparer à l'actif
                       </Button>
                     )}
+
                     <Button
                       onClick={() => { restoreVersion(v); setDetailVersionId(null); }}
                       disabled={isLocked || !!busy || isActive || cleaningVersionId === v.id}
