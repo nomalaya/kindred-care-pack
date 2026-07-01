@@ -791,6 +791,57 @@ const AvatarStudio = () => {
     });
   }, [selected, selectedVersionIds, versions]);
 
+  // Libellé humain de l'état "busy" pour bannière + désactivation d'actions.
+  const busyLabel = useMemo(() => {
+    switch (busy) {
+      case "clean":   return "Nettoyage du fond en cours…";
+      case "preview": return "Génération de l'aperçu en cours…";
+      case "final":   return "Génération HD en cours…";
+      case "import":  return "Import de l'image en cours…";
+      default:        return null;
+    }
+  }, [busy]);
+
+  // Formatage dates fr-FR.
+  const relativeFrFR = (iso?: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso).getTime();
+    if (Number.isNaN(d)) return "";
+    const diff = (d - Date.now()) / 1000;
+    const rtf = new Intl.RelativeTimeFormat("fr-FR", { numeric: "auto" });
+    const abs = Math.abs(diff);
+    if (abs < 60)          return rtf.format(Math.round(diff), "second");
+    if (abs < 3600)        return rtf.format(Math.round(diff / 60), "minute");
+    if (abs < 86400)       return rtf.format(Math.round(diff / 3600), "hour");
+    if (abs < 86400 * 30)  return rtf.format(Math.round(diff / 86400), "day");
+    if (abs < 86400 * 365) return rtf.format(Math.round(diff / (86400 * 30)), "month");
+    return rtf.format(Math.round(diff / (86400 * 365)), "year");
+  };
+  const absoluteFrFR = (iso?: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  };
+
+  // Actif + Source épinglés en tête, puis reste trié par date desc (déjà l'ordre côté DB).
+  const orderedVersions = useMemo(() => {
+    if (!selected || versions.length === 0) return versions;
+    const activeUrl = selected.avatar_url ?? null;
+    const rawSource = (selected as any).avatar_source_url ?? null;
+    const sourceUrl = rawSource && rawSource !== activeUrl ? rawSource : null;
+    const pinned: any[] = [];
+    const rest: any[] = [];
+    for (const v of versions) {
+      if (activeUrl && v.image_url === activeUrl)       pinned[0] = v;
+      else if (sourceUrl && v.image_url === sourceUrl)  pinned[1] = v;
+      else rest.push(v);
+    }
+    return [...pinned.filter(Boolean), ...rest];
+  }, [selected, versions]);
+
+
+
 
 
   const workflowHint = (action: "approve" | "lock" | "unlock", status: WorkflowStatus, hasImage: boolean): string | null => {
