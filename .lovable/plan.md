@@ -1,62 +1,46 @@
+Ajustements ciblés sur `src/pages/AvatarStudio.tsx` (aucun changement backend).
 
-## Problème observé
+## 1. Auto-approbation (rappel — inchangé du plan précédent)
 
-Sur Léa (Île-de-France), aucun des 3 signaux "Actif" n'apparaît dans la grille des versions : pas de badge « Actif », pas d'anneau primaire, corbeille visible partout (y compris sur l'image publique).
+Génération HD réussie avec `QA ≥ 75` → passage automatique à `approved`. En dessous du seuil, on reste en `generated` avec bouton « Approuver quand même ». Import manuel : idem, approbation manuelle.
 
-## Cause racine
+## 2. Modale — badge QA toujours visible
 
-La colonne `beneficiaries.avatar_url` porte parfois un cache-buster (`?t=1782900631850`) ajouté après nettoyage de fond ou upload, alors que `avatar_versions.image_url` est stocké sans query string. La comparaison stricte `activeUrl === v.image_url`, utilisée en 3 endroits de `src/pages/AvatarStudio.tsx`, échoue donc pour toute bénéficiaire dont l'avatar a été régénéré/nettoyé récemment.
+**Précision demandée** : il n'existe **aucun forçage à QA = 100**. Le pipeline (`generate-avatar/index.ts`) accepte tout HD dont `global_score ≥ 75` (`QA_PASS`). Les scores réels varient typiquement entre 75 et 100 selon la difficulté du sujet. Si vous ne voyez que 100, c'est parce que les cas récents étaient faciles à noter, pas parce que le code filtre.
 
-Conséquences directes :
-- La vignette active n'est pas surlignée.
-- La protection anti-suppression de l'active saute (la corbeille s'affiche dessus).
-- Le bouton « Utiliser cette version » reste actif sur la version déjà en place.
-- La comparaison « Comparer à l'actif » dans la modale ne trouve plus l'actif.
+**Correctif modale** :
+- Afficher le badge « QA {valeur} » **dans tous les cas** où `qa_score` est défini (retirer la condition `< 100`).
+- Placement : petit overlay `text-[10px]` en bas-droit de l'image de la modale, fond `bg-background/85`, couleur du texte modulée : vert (≥ 90), ambre (75-89), rouge (<75).
+- Retirer le badge « Hist. » et la ligne « il y a X jours » (comme convenu).
+- Retirer aussi le libellé technique `nano-banana-2` / typeLabel dupliqué si redondant avec le badge QA (à confirmer visuellement en implémentation).
 
-## Correctif proposé (frontend uniquement)
+## 3. Vignettes de la grille
 
-### 1. Helper de normalisation d'URL
+**Repositionner les badges Aperçu / HD** :
+- Les conserver, mais les déplacer en **bas-centre** de la vignette (petit chip absolu `bottom-1 left-1/2 -translate-x-1/2`).
+- Nouvelle couleur pour « HD » : **bleu ardoise** (`bg-slate-700 text-white`) — franchement distinct du vert primaire de « Actif ».
+- « Aperçu » reste ambre (`bg-amber-400 text-amber-950`).
+- Comme le coin haut-droit est libéré, remettre la corbeille en `right-1 top-1` sans décalage.
+- La date en bas-gauche reste ; le QA passe en bas-droit (position d'origine, cohabite avec le badge central).
 
-Dans `src/pages/AvatarStudio.tsx`, ajouter un utilitaire pur en haut du fichier :
+## 4. Nouvel aperçu contextuel dans la modale (image jointe comme référence)
 
-```ts
-// Compare deux URLs d'image en ignorant le cache-buster (?t=…, ?v=…) et les espaces.
-const sameImage = (a?: string | null, b?: string | null) => {
-  if (!a || !b) return false;
-  const strip = (u: string) => u.split("?")[0].trim();
-  return strip(a) === strip(b);
-};
-```
+Ajouter, en haut de la modale de détail d'une version, un **aperçu « tel qu'affiché dans le parcours donateur »** :
 
-Remplacer les 3 comparaisons `activeUrl === v.image_url` (grille, modale de détail, recherche `versions.find`) par `sameImage(activeUrl, v.image_url)`. Faire de même dans `attemptDeleteVersion` (ligne 722) et dans `orderedVersions` (ligne 777).
+- Rendu via le composant existant `<BeneficiaryAvatar />` (mêmes props que celles utilisées sur les cartes bénéficiaires du funnel).
+- Utilise :
+  - `avatarUrl = v.image_url` (la version consultée, pas nécessairement l'active),
+  - `backgroundSeed = selected.id` (même seed que celle utilisée en production, ce qui reproduit **exactement** le fond aléatoire depuis le bucket `avatar-backgrounds`),
+  - `framing = readFramingFromRow(selected)` (respect du zoom/offset appliqué),
+  - `size = "lg"` (120 px, comme sur les listes).
+- Placement : à droite de l'image principale de la modale, dans un petit cartouche « Aperçu parcours donateur », avec libellé sous le rond du type « Prénom · Région ».
+- Le rond utilise le vrai fond aléatoire déterministe déjà en place — **aucun appel supplémentaire à Supabase** (le hook `useAvatarBackground` a un cache module).
+- L'utilisateur voit ainsi immédiatement le rendu final sans passer par « Ouvrir la fiche ».
 
-### 2. Renforcer les signaux visuels de l'actif
-
-Une fois la détection fiable, rendre le repérage franc et non ambigu :
-
-- **Anneau** : passer de `ring-2 ring-primary` à `ring-2 ring-primary ring-offset-1` pour un contraste net contre les vignettes voisines.
-- **Badge « Actif »** : ajouter une petite icône `CheckCircle2` (lucide) devant le libellé et augmenter le padding (`px-1.5 py-0.5 text-[10px]`) pour qu'il soit lisible à la taille des vignettes de la grille 3 colonnes.
-- **Coin actif** : ajouter un léger halo (`shadow-[0_0_0_2px_hsl(var(--primary))]`) au survol pour distinguer davantage de « Hist. ».
-- **Confirmation textuelle** : sous le titre "Versions (N)", ajouter une ligne discrète `Publiée : la vignette entourée de bleu` (ou couleur primaire) pour lever le doute au premier usage.
-
-### 3. Garde-fous
-
-- Vérifier que `attemptDeleteVersion` bloque bien la suppression de l'image active via `sameImage`.
-- Vérifier que `restoreVersion` ne s'active plus sur la version déjà publiée (via `sameImage`).
-- Ajouter un `console.warn` de dev si `selected.avatar_url` est défini mais ne correspond à aucune version après normalisation (aide au diagnostic futur).
-
-## Validation
-
-Après application, sur Léa Île-de-France, la vignette portant `…de8c19bc….png` doit :
-1. Afficher le badge « Actif » plein primaire avec icône.
-2. Être entourée de l'anneau primaire visible.
-3. Ne plus afficher la corbeille (protection restaurée).
-4. Afficher « Version déjà utilisée » (grisé) dans le menu et la modale.
-
-Test à répéter sur 2 autres bénéficiaires ayant un cache-buster dans leur `avatar_url` pour confirmer.
+Le bouton « Ouvrir la fiche telle qu'elle apparaîtra » reste disponible pour la fiche complète, mais devient secondaire.
 
 ## Portée
 
-- Fichier modifié : `src/pages/AvatarStudio.tsx` uniquement.
-- Aucun changement de schéma, aucune migration, aucune modification de logique backend/matching.
-- Aucun crédit IA consommé.
+- Fichier unique modifié : `src/pages/AvatarStudio.tsx`.
+- Imports ajoutés : `BeneficiaryAvatar`, `readFramingFromRow` (déjà présent probablement).
+- Aucun changement backend, pas de migration, pas de consommation de crédits IA.
