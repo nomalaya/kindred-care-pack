@@ -1359,12 +1359,13 @@ const AvatarStudio = () => {
                           return (
                             <div
                               key={v.id}
-                              className={`relative w-28 aspect-square shrink-0 snap-start rounded overflow-hidden bg-muted group ${
+                              className={`relative w-full aspect-square rounded overflow-hidden bg-muted group ${
                                 isChecked ? "ring-2 ring-destructive" :
                                 isActive ? "ring-2 ring-primary" :
                                 isSource ? "ring-2 ring-amber-400" :
                                 "hover:ring-2 hover:ring-primary/40"
                               }`}
+
                             >
                               <button
                                 onClick={(e) => {
