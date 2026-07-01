@@ -1219,8 +1219,6 @@ const AvatarStudio = () => {
                     </div>
                   )}
 
-                  {/* Unified Generate split-button */}
-                  <div className="flex gap-1.5 w-full">
                   {/* Actions de génération IA — libellés métier */}
                   <div className="flex gap-1.5 w-full">
                     <Button
