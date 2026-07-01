@@ -716,49 +716,23 @@ const AvatarStudio = () => {
   };
 
 
-  const toggleVersionSelect = (id: string) => {
-    setSelectedVersionIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const performDeleteVersions = async (ids: string[]) => {
-    if (!ids.length) return;
-    const { error } = await supabase.from("avatar_versions" as any).delete().in("id", ids);
+  // Suppression unitaire avec protection contre la suppression de l'avatar actif.
+  const attemptDeleteVersion = async (v: any) => {
+    if (!selected) return;
+    if (v.image_url === selected.avatar_url) {
+      toast.error("Cette image est l'avatar actif. Utilisez une autre version comme active avant de la supprimer.");
+      return;
+    }
+    if (!confirm("Supprimer définitivement cette version ? Action irréversible.")) return;
+    const { error } = await supabase.from("avatar_versions" as any).delete().eq("id", v.id);
     if (error) {
       toast.error("Échec de la suppression : " + error.message);
       return;
     }
-    setVersions(prev => prev.filter(v => !ids.includes(v.id)));
-    setSelectedVersionIds(new Set());
-    toast.success(ids.length === 1 ? "Version supprimée" : `${ids.length} versions supprimées`);
+    setVersions(prev => prev.filter(x => x.id !== v.id));
+    toast.success("Version supprimée");
   };
 
-  // Suppression unitaire avec protections actif / source explicite.
-  const attemptDeleteVersion = (v: any) => {
-    if (!selected) return;
-    const activeUrl = selected.avatar_url;
-    if (v.image_url === activeUrl) {
-      toast.error("Cette image est l'avatar actif. Définissez une autre version comme active avant de la supprimer.");
-      return;
-    }
-    if (!confirm("Supprimer définitivement cette version ? Action irréversible.")) return;
-    performDeleteVersions([v.id]);
-  };
-
-  // IDs supprimables en masse : on filtre l'actif et la source explicite.
-  const bulkDeletableIds = useMemo(() => {
-    if (!selected) return [] as string[];
-    const activeUrl = selected.avatar_url;
-    return Array.from(selectedVersionIds).filter(id => {
-      const v = versions.find(x => x.id === id);
-      if (!v) return false;
-      if (v.image_url === activeUrl) return false;
-      return true;
-    });
-  }, [selected, selectedVersionIds, versions]);
 
   // Libellé humain de l'état "busy" pour bannière + désactivation d'actions.
   const busyLabel = useMemo(() => {
