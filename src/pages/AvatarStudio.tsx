@@ -719,6 +719,23 @@ const AvatarStudio = () => {
     toast.success("Base de retouche définie. Vos modifications d'attributs seront appliquées au prochain aperçu.");
   };
 
+  // Définit v comme source de la prochaine retouche, sans toucher à l'avatar affiché.
+  const setAsRetouchBase = async (v: any) => {
+    if (!selected) return;
+    const { error } = await supabase
+      .from("beneficiaries")
+      .update({ avatar_source_url: v.image_url } as any)
+      .eq("id", selected.id);
+    if (error) {
+      toast.error("Impossible de définir la base de retouche : " + error.message);
+      return;
+    }
+    setBeneficiaries(prev => prev.map(b =>
+      b.id === selected.id ? { ...b, avatar_source_url: v.image_url } as any : b,
+    ));
+    toast.success("Base de retouche mise à jour. L'avatar affiché reste inchangé.");
+  };
+
   const toggleVersionSelect = (id: string) => {
     setSelectedVersionIds(prev => {
       const next = new Set(prev);
@@ -1097,65 +1114,6 @@ const AvatarStudio = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                  {/* Image with overlays — remplit la colonne */}
-                  <div className="aspect-square w-full bg-muted rounded-lg overflow-hidden relative group">
-                    {displayAvatarUrl(selected) ? (
-                      <img
-                        src={displayAvatarUrl(selected)!}
-                        alt={selected.alias_first_name}
-                        className="w-full h-full object-cover cursor-zoom-in"
-                        style={framingToTransform(readFramingFromRow(selected))}
-                        onClick={() => setLightboxUrl(displayAvatarUrl(selected))}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                        <Eye className="h-10 w-10 opacity-40" />
-                      </div>
-                    )}
-
-                    {/* Overlay: clean background */}
-                    {selected.avatar_url && !busy && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={() => cleanBackground()}
-                            size="icon"
-                            variant="secondary"
-                            disabled={!!busy || isLocked}
-                            className="absolute top-2 right-2 h-8 w-8 shadow-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-                            aria-label="Nettoyer le fond de l'avatar"
-                          >
-                            {busy === "clean" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scissors className="h-3.5 w-3.5" />}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-xs max-w-[220px]">
-                          Nettoyer le fond — détoure et remplace par blanc pur pour laisser passer votre fond importé.
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-
-                    {/* Debug badge as tooltip */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="absolute bottom-2 left-2 bg-background/80 backdrop-blur rounded-full h-6 w-6 inline-flex items-center justify-center text-[10px] cursor-help opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Info className="h-3 w-3" />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs max-w-[260px]">
-                        Style : cartoon illustré storybook · fond contextuel flou
-                        {selected.avatar_model_used ? <><br />Modèle : {selected.avatar_model_used.split("/")[1] || selected.avatar_model_used}</> : null}
-                      </TooltipContent>
-                    </Tooltip>
-
-                    {busy && (
-                      <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-                        <div className="text-center">
-                          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-1" />
-                          <div className="text-xs">{busy === "preview" ? "Aperçu…" : busy === "final" ? "HD…" : busy === "clean" ? "Nettoyage…" : "Import…"}</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
 
                   {/* Aperçu fraîchement généré — badge + bascule comparaison */}
                   {isShowingFreshPreview && (
@@ -1202,18 +1160,18 @@ const AvatarStudio = () => {
                     </div>
                   )}
 
-                  {/* Unified Generate split-button */}
+                  {/* Actions de génération IA — libellés métier */}
                   <div className="flex gap-1.5 w-full">
                     <Button
                       onClick={() => generate(defaultGenMode)}
                       size="sm"
                       disabled={!!busy || isLocked || dignityBlocked}
                       className="flex-1 justify-start"
-                      aria-label={defaultGenMode === "preview" ? "Générer un aperçu" : "Générer en HD"}
+                      aria-label={defaultGenMode === "preview" ? "Prévisualiser les changements" : "Générer l'avatar final"}
                     >
                       {defaultGenMode === "preview" ? <RefreshCw className="h-3.5 w-3.5 mr-2" /> : <Sparkles className="h-3.5 w-3.5 mr-2" />}
                       <span className="flex-1 text-left">
-                        {defaultGenMode === "preview" ? "Générer un aperçu" : "Générer en HD"}
+                        {defaultGenMode === "preview" ? "Prévisualiser les changements" : "Générer l'avatar final"}
                       </span>
                       <kbd className="ml-2 text-[10px] opacity-70 bg-primary-foreground/10 px-1 rounded">
                         {defaultGenMode === "preview" ? "P" : "G"}
@@ -1221,11 +1179,11 @@ const AvatarStudio = () => {
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" disabled={!!busy} aria-label="Choisir le mode de génération">
+                        <Button variant="outline" size="sm" disabled={!!busy} aria-label="Choisir le type de génération">
                           <ChevronDown className="h-3.5 w-3.5" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuContent align="end" className="w-64">
                         <DropdownMenuItem
                           onClick={() => {
                             setDefaultGenMode("preview");
@@ -1237,8 +1195,8 @@ const AvatarStudio = () => {
                         >
                           <RefreshCw className="h-3.5 w-3.5 mr-2" />
                           <div className="flex-1">
-                            <div>Aperçu rapide</div>
-                            <div className="text-[10px] text-muted-foreground">Nano Banana 2 · économique</div>
+                            <div>Prévisualiser les changements</div>
+                            <div className="text-[10px] text-muted-foreground">Crée un aperçu sans remplacer l'avatar final</div>
                           </div>
                           <kbd className="ml-2 text-[10px] opacity-60">P</kbd>
                         </DropdownMenuItem>
@@ -1253,21 +1211,10 @@ const AvatarStudio = () => {
                         >
                           <Sparkles className="h-3.5 w-3.5 mr-2" />
                           <div className="flex-1">
-                            <div>Portrait HD</div>
-                            <div className="text-[10px] text-muted-foreground">Nano Banana 2 · qualité finale</div>
+                            <div>Générer l'avatar final</div>
+                            <div className="text-[10px] text-muted-foreground">Crée une version HD à valider</div>
                           </div>
                           <kbd className="ml-2 text-[10px] opacity-60">G</kbd>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => importInputRef.current?.click()}
-                          disabled={isLocked}
-                          className="text-xs"
-                        >
-                          <Upload className="h-3.5 w-3.5 mr-2" />
-                          <div className="flex-1">
-                            <div>Importer une image</div>
-                            <div className="text-[10px] text-muted-foreground">PNG/JPG/WEBP — sans contrôle IA</div>
-                          </div>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -1284,89 +1231,52 @@ const AvatarStudio = () => {
                     />
                   </div>
 
-                  {/* Ligne "Source utilisée" — lecture seule, avant génération */}
-                  {(() => {
-                    const activeUrl = selected.avatar_url ?? null;
-                    const rawSource = (selected as any).avatar_source_url ?? null;
-                    if (!activeUrl && !rawSource) {
-                      return (
-                        <div className="text-[11px] text-muted-foreground border border-dashed rounded-md px-2 py-1.5">
-                          Source utilisée : aucune — première génération.
-                        </div>
-                      );
-                    }
-                    if (rawSource) {
-                      const match = versions.find(v => v.image_url === rawSource);
-                      if (!match) {
-                        return (
-                          <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
-                            Source utilisée : image absente — sélectionnez une version dans la liste.
-                          </div>
-                        );
-                      }
-                      const isHD = !!match.qa_score || (match.image_url || "").includes("/final-");
-                      return (
-                        <div className="text-[11px] text-muted-foreground border rounded-md px-2 py-1.5 flex items-center gap-2">
-                          <img src={match.image_url} alt="" className="w-6 h-6 rounded object-cover shrink-0" />
-                          <span className="flex-1 truncate">
-                            Source utilisée : version du {absoluteFrFR(match.created_at)}
-                            {" · "}{isHD ? "HD" : "Aperçu"}
-                            {match.qa_score ? ` · QA ${Math.round(match.qa_score)}` : ""}
-                          </span>
-                        </div>
-                      );
-                    }
-                    return (
-                      <div className="text-[11px] text-muted-foreground border rounded-md px-2 py-1.5">
-                        Source utilisée : avatar actif (source implicite).
-                      </div>
-                    );
-                  })()}
+                  {/* Import d'image — action non-IA, séparée du menu de génération */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-xs text-muted-foreground"
+                    onClick={() => importInputRef.current?.click()}
+                    disabled={!!busy || isLocked}
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-2" />
+                    Importer une image (PNG/JPG/WEBP — sans contrôle IA)
+                  </Button>
 
 
 
-                  {/* Indicateur de mode : création complète vs édition contrôlée */}
+
+                  {/* Indicateur compact : édition contrôlée vs création complète */}
                   <div
-                    className={`text-[11px] rounded-md px-2 py-1.5 border ${
+                    className={`text-[11px] rounded-md px-2 py-1.5 border flex items-center gap-1.5 ${
                       isEditCapable
                         ? "bg-primary/5 border-primary/20 text-primary"
                         : "bg-muted border-border text-muted-foreground"
                     }`}
-                    title={
-                      isEditCapable
-                        ? "L'avatar source sert de référence visuelle. Pose, cadrage et fond sont préservés ; seuls les attributs modifiés depuis la dernière génération sont retouchés."
-                        : "Aucune référence visuelle — création complète depuis les attributs."
-                    }
                   >
-                    {isEditCapable
-                      ? "✏️ Édition contrôlée — basée sur la version source"
-                      : "🎨 Création complète — première génération"}
-                    <span className="block text-[10px] opacity-70 mt-0.5">
+                    <span className="flex-1">
                       {isEditCapable
-                        ? "Astuce : pour repartir d'une autre image, cliquez sur « Base de retouche » dans Versions."
-                        : "Le fond importé sera visible automatiquement après génération."}
+                        ? "✏️ Ce visage vous plaît ? Modifiez des attributs — ils seront appliqués sans repartir de zéro."
+                        : "🎨 Première génération — création complète depuis les attributs."}
                     </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" aria-label="En savoir plus" className="opacity-70 hover:opacity-100">
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs max-w-[260px]">
+                        {isEditCapable
+                          ? "L'avatar source sert de référence visuelle. Pose, cadrage et fond sont préservés ; seuls les attributs modifiés depuis la dernière génération sont retouchés."
+                          : "Aucune référence visuelle — création complète depuis les attributs. Le fond importé sera visible automatiquement après génération."}
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
 
 
 
 
-                  {displayAvatarUrl(selected) && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start text-xs"
-                      onClick={() => setFramingDialogOpen(true)}
-                      disabled={isLocked}
-                    >
-                      <Crop className="h-3.5 w-3.5 mr-2" />
-                      <span className="flex-1 text-left">Ajuster le cadrage</span>
-                      {!isDefaultFraming(readFramingFromRow(selected)) && (
-                        <span className="text-[10px] text-muted-foreground">modifié</span>
-                      )}
-                    </Button>
-                  )}
 
 
                   {/* Bannière état "busy" — désactive les actions risquées */}
@@ -1448,7 +1358,7 @@ const AvatarStudio = () => {
                           return (
                             <div
                               key={v.id}
-                              className={`relative w-20 aspect-square shrink-0 snap-start rounded overflow-hidden bg-muted group ${
+                              className={`relative w-28 aspect-square shrink-0 snap-start rounded overflow-hidden bg-muted group ${
                                 isChecked ? "ring-2 ring-destructive" :
                                 isActive ? "ring-2 ring-primary" :
                                 isSource ? "ring-2 ring-amber-400" :
@@ -1501,12 +1411,21 @@ const AvatarStudio = () => {
                                     <MoreHorizontal className="h-3.5 w-3.5" />
                                   </button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuContent align="end" className="w-56">
                                   <DropdownMenuItem
                                     className="text-xs"
                                     onClick={() => setDetailVersionId(v.id)}
                                   >
                                     <Eye className="h-3.5 w-3.5 mr-2" />Voir en grand
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-xs"
+                                    onClick={() => setAsRetouchBase(v)}
+                                    disabled={isLocked || !!busy || isSource}
+                                    title="Prochaine retouche basée sur cette image, sans changer l'avatar affiché."
+                                  >
+                                    <Wand2 className="h-3.5 w-3.5 mr-2" />
+                                    {isSource ? "Base déjà utilisée" : "Définir comme base de retouche"}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="text-xs"
@@ -2079,6 +1998,16 @@ const AvatarStudio = () => {
                           ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           : <Scissors className="h-4 w-4 mr-2" />}
                         Nettoyer le fond
+                      </Button>
+                    )}
+                    {isActive && (
+                      <Button
+                        variant="outline"
+                        onClick={() => { setDetailVersionId(null); setFramingDialogOpen(true); }}
+                        disabled={isLocked}
+                        title="Zoom et position d'affichage — n'affecte pas l'image source."
+                      >
+                        <Crop className="h-4 w-4 mr-2" />Ajuster le cadrage
                       </Button>
                     )}
                     {canCompareSelection ? (
