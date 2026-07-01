@@ -1247,14 +1247,7 @@ const AvatarStudio = () => {
                               </span>
 
 
-                              {/* Nature — coin haut-droit décalé pour laisser place à la corbeille */}
-                              <span className={`absolute top-0 right-7 text-[9px] px-1 rounded-bl pointer-events-none font-semibold ${
-                                isHD ? "bg-emerald-600 text-white" : "bg-amber-400 text-amber-950"
-                              }`}>
-                                {isHD ? "HD" : "Aperçu"}
-                              </span>
-
-                              {/* Corbeille directe — visible en permanence sauf sur l'actif */}
+                              {/* Corbeille directe — coin haut-droit, visible en permanence sauf sur l'actif */}
                               {!isActive && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); attemptDeleteVersion(v); }}
@@ -1266,6 +1259,13 @@ const AvatarStudio = () => {
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               )}
+
+                              {/* Nature (HD/Aperçu) — bas-centre, couleur distincte du vert "Actif" */}
+                              <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] px-1.5 py-0.5 rounded pointer-events-none font-semibold shadow-sm ${
+                                isHD ? "bg-slate-700 text-white" : "bg-amber-400 text-amber-950"
+                              }`}>
+                                {isHD ? "HD" : "Aperçu"}
+                              </span>
 
                               {/* QA — coin bas-droit */}
                               {v.qa_score && (
