@@ -111,22 +111,29 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const beneficiary_id: string | undefined = body.beneficiary_id;
-    // "final" → clean avatar_url (default, original behaviour)
-    // "preview" → clean avatar_preview_url (used by auto-clean after Aperçu rapide)
+    // Optional: clean an arbitrary version rather than the beneficiary's active/preview avatar.
+    const explicitSourceUrl: string | undefined = body.source_url;
+    const versionId: string | undefined = body.version_id;
+    // "final" → clean avatar_url (default). "preview" → clean avatar_preview_url.
+    // Ignored when source_url is provided (beneficiary row is NOT mutated in that mode).
     const targetMode: "final" | "preview" = body.target === "preview" ? "preview" : "final";
     if (!beneficiary_id) throw new Error("beneficiary_id required");
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    const { data: b, error: bErr } = await supabase
-      .from("beneficiaries")
-      .select("id, avatar_url, avatar_preview_url")
-      .eq("id", beneficiary_id)
-      .single();
-    if (bErr || !b) throw new Error("Beneficiary not found");
-
-    const rawUrl = targetMode === "preview" ? b.avatar_preview_url : b.avatar_url;
-    if (!rawUrl) throw new Error(`Beneficiary has no ${targetMode} avatar to clean`);
+    let rawUrl: string | null = null;
+    if (explicitSourceUrl) {
+      rawUrl = explicitSourceUrl;
+    } else {
+      const { data: b, error: bErr } = await supabase
+        .from("beneficiaries")
+        .select("id, avatar_url, avatar_preview_url")
+        .eq("id", beneficiary_id)
+        .single();
+      if (bErr || !b) throw new Error("Beneficiary not found");
+      rawUrl = targetMode === "preview" ? b.avatar_preview_url : b.avatar_url;
+      if (!rawUrl) throw new Error(`Beneficiary has no ${targetMode} avatar to clean`);
+    }
 
     // Strip cache-busting query string before fetch
     const sourceUrl = rawUrl.split("?")[0];
@@ -137,7 +144,8 @@ serve(async (req) => {
     // 2) Server-side chroma-key: white → transparent
     const { bytes: transparentPng, transparentRatio } = await whiteToAlpha(whitePng);
 
-    console.log(`[clean-avatar-background] ${beneficiary_id} (${targetMode}) transparent_ratio=${transparentRatio.toFixed(3)}`);
+    const mode = explicitSourceUrl ? "version" : targetMode;
+    console.log(`[clean-avatar-background] ${beneficiary_id} (${mode}) transparent_ratio=${transparentRatio.toFixed(3)}`);
 
     if (transparentRatio < 0.05) {
       throw new Error(
@@ -145,11 +153,17 @@ serve(async (req) => {
       );
     }
 
-    // 3) Upload (idempotent overwrite). Distinct path per target to avoid collisions.
+    // 3) Upload. Distinct path per mode to avoid collisions.
     const ts = Date.now();
-    const fileName = targetMode === "preview"
-      ? `cleaned/preview-${beneficiary_id}.png`
-      : `cleaned/${beneficiary_id}.png`;
+    let fileName: string;
+    if (explicitSourceUrl) {
+      const suffix = versionId ?? crypto.randomUUID();
+      fileName = `cleaned/version-${beneficiary_id}-${suffix}.png`;
+    } else if (targetMode === "preview") {
+      fileName = `cleaned/preview-${beneficiary_id}.png`;
+    } else {
+      fileName = `cleaned/${beneficiary_id}.png`;
+    }
     const { error: upErr } = await supabase.storage
       .from("avatars")
       .upload(fileName, transparentPng, { contentType: "image/png", upsert: true });
@@ -158,23 +172,25 @@ serve(async (req) => {
     const { data: u } = supabase.storage.from("avatars").getPublicUrl(fileName);
     const newUrl = `${u.publicUrl}?t=${ts}`;
 
-    const updatePatch = targetMode === "preview"
-      ? { avatar_preview_url: newUrl }
-      : { avatar_url: newUrl };
-
-    await supabase
-      .from("beneficiaries")
-      .update(updatePatch)
-      .eq("id", beneficiary_id);
+    // In "version" mode, do NOT mutate the beneficiary row — just archive the cleaned version.
+    if (!explicitSourceUrl) {
+      const updatePatch = targetMode === "preview"
+        ? { avatar_preview_url: newUrl }
+        : { avatar_url: newUrl };
+      await supabase
+        .from("beneficiaries")
+        .update(updatePatch)
+        .eq("id", beneficiary_id);
+    }
 
     await supabase.from("avatar_versions").insert({
       beneficiary_id,
       image_url: u.publicUrl,
-      model_used: `clean-bg/${targetMode}/google/gemini-3.1-flash-image-preview+chroma-key`,
+      model_used: `clean-bg/${mode}/google/gemini-3.1-flash-image-preview+chroma-key`,
       prompt: CLEAN_PROMPT,
     });
 
-    return new Response(JSON.stringify({ success: true, newUrl, transparentRatio, target: targetMode }), {
+    return new Response(JSON.stringify({ success: true, newUrl, transparentRatio, target: mode }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
