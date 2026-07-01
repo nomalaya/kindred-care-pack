@@ -85,6 +85,7 @@ const AvatarStudio = () => {
   const [showHdInstead, setShowHdInstead] = useState(false);
   const [detailVersionId, setDetailVersionId] = useState<string | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [cleaningVersionId, setCleaningVersionId] = useState<string | null>(null);
 
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
   const saveTimer = useRef<any>(null);
