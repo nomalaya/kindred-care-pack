@@ -139,7 +139,28 @@ const AvatarStudio = () => {
           // libère busy si la génération est terminée
           const cur = busyRef.current;
           if (cur === "preview" && next.avatar_status === "preview") setBusy(null);
-          if (cur === "final" && next.avatar_status === "validated") setBusy(null);
+          if (cur === "final" && next.avatar_status === "validated") {
+            setBusy(null);
+            // Auto-approbation : HD généré avec QA >= 75 (QA_PASS backend)
+            // passe automatiquement à "approved" pour éviter le clic manuel.
+            // En dessous du seuil, on reste "generated" et le bouton
+            // "Approuver quand même" reste disponible dans le footer.
+            const qa = Number(next.avatar_qa_score ?? 0);
+            const ws = next.avatar_workflow_status;
+            if (qa >= 75 && ws !== "approved" && ws !== "locked") {
+              supabase
+                .from("beneficiaries")
+                .update({ avatar_workflow_status: "approved" } as any)
+                .eq("id", next.id)
+                .then(({ error }) => {
+                  if (!error) {
+                    setBeneficiaries(prev => prev.map(b =>
+                      b.id === next.id ? { ...b, avatar_workflow_status: "approved" } : b,
+                    ));
+                  }
+                });
+            }
+          }
           if (next.avatar_status === "failed" && (cur === "preview" || cur === "final")) {
             const r: any = next.avatar_qa_report || {};
             const reason = r.reason || r.code;
