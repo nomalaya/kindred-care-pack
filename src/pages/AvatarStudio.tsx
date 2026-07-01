@@ -1197,7 +1197,7 @@ const AvatarStudio = () => {
                             <div
                               key={v.id}
                               className={`relative w-full aspect-square rounded overflow-hidden bg-muted group ${
-                                isActive ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/40"
+                                isActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md" : "hover:ring-2 hover:ring-primary/40"
                               }`}
                             >
                               <button
@@ -1210,14 +1210,16 @@ const AvatarStudio = () => {
 
                               {/* Badge principal — coin haut-gauche */}
                               <span
-                                className={`absolute top-0 left-0 text-[9px] px-1 rounded-br pointer-events-none font-semibold ${
+                                className={`absolute top-0 left-0 text-[10px] px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 ${
                                   isActive ? "bg-primary text-primary-foreground" :
                                   "bg-background/80 text-muted-foreground border border-border"
                                 }`}
                                 title={isActive ? "C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image." : "Version d'historique"}
                               >
+                                {isActive && <CheckCircle2 className="h-2.5 w-2.5" />}
                                 {isActive ? "Actif" : "Hist."}
                               </span>
+
 
                               {/* Nature — coin haut-droit décalé pour laisser place à la corbeille */}
                               <span className={`absolute top-0 right-7 text-[9px] px-1 rounded-bl pointer-events-none font-semibold ${
