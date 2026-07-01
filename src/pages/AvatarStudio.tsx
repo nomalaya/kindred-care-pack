@@ -1634,7 +1634,7 @@ const AvatarStudio = () => {
             const v = versions.find(x => x.id === detailVersionId);
             if (!v || !selected) return null;
             const activeUrl = selected.avatar_url ?? null;
-            const isActive = activeUrl === v.image_url;
+            const isActive = sameImage(activeUrl, v.image_url);
             const url = v.image_url || "";
             const model: string = v.model_used || "";
             const isCleanBg = model.startsWith("clean-bg/");
