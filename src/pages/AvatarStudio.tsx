@@ -1923,7 +1923,7 @@ const AvatarStudio = () => {
 
       {/* Modale "Voir en grand" — détail d'une version avec actions */}
       <Dialog open={!!detailVersionId} onOpenChange={(o) => !o && setDetailVersionId(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           {(() => {
             const v = versions.find(x => x.id === detailVersionId);
             if (!v || !selected) return null;
@@ -1932,59 +1932,190 @@ const AvatarStudio = () => {
             const isActive = activeUrl === v.image_url;
             const isSource = !!rawSource && rawSource !== activeUrl && rawSource === v.image_url;
             const url = v.image_url || "";
-            const isPreview = url.includes("/preview-") || url.includes("/preview/");
-            const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
+            const model: string = v.model_used || "";
+            const isCleanBg = model.startsWith("clean-bg/");
+            const isImport = model === "import" || model.startsWith("import");
+            const isPreview = !isCleanBg && (url.includes("/preview-") || url.includes("/preview/") || model.includes("preview"));
+            const isHD = !isCleanBg && !isImport && !isPreview;
+            const typeLabel = isCleanBg ? "Nettoyage fond" : isImport ? "Import" : isPreview ? "Aperçu rapide" : "Portrait HD";
+            const isTransparent = url.includes("/cleaned/") && url.toLowerCase().includes(".png");
             const alreadyInUse = isActive && (isSource || !rawSource || rawSource === activeUrl);
             const otherSelected = Array.from(selectedVersionIds).filter(id => id !== v.id);
-            const canCompare = otherSelected.length === 1;
+            const canCompareSelection = otherSelected.length === 1;
+            const canCompareActive = !isActive && !!activeUrl;
+            const qa = v.qa_score ? Math.round(v.qa_score) : null;
+            const qaColor = qa == null ? "" : qa >= 85 ? "text-emerald-700" : qa >= 70 ? "text-amber-700" : "text-red-700";
+            const usageLabel = isActive && isSource ? "Avatar actif et source de retouche"
+              : isActive ? "Avatar actif"
+              : isSource ? "Source de retouche"
+              : "Historique";
+
+            const cleanThisVersion = async () => {
+              setCleaningVersionId(v.id);
+              try {
+                const { data, error } = await supabase.functions.invoke("clean-avatar-background", {
+                  body: { beneficiary_id: selected.id, source_url: v.image_url, version_id: v.id },
+                });
+                if (error) throw error;
+                toast.success("Fond nettoyé — nouvelle version ajoutée.");
+                // Refetch versions locally
+                const { data: rows } = await supabase
+                  .from("avatar_versions" as any)
+                  .select("*")
+                  .eq("beneficiary_id", selected.id)
+                  .order("created_at", { ascending: false })
+                  .limit(20);
+                setVersions((rows as any[]) || []);
+                setDetailVersionId(null);
+              } catch (e: any) {
+                toast.error(e?.message ?? "Nettoyage du fond impossible");
+              } finally {
+                setCleaningVersionId(null);
+              }
+            };
+
+            const copyUrl = async () => {
+              try {
+                await navigator.clipboard.writeText(v.image_url);
+                toast.success("URL copiée");
+              } catch {
+                toast.error("Copie impossible");
+              }
+            };
+
             return (
               <>
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 flex-wrap">
+                  <DialogTitle className="flex items-center gap-2 flex-wrap pr-8">
                     <span>Version — {absoluteFrFR(v.created_at)}</span>
                     {isActive && <Badge className="bg-primary text-primary-foreground">Actif</Badge>}
                     {isSource && <Badge className="bg-amber-400 text-amber-950 hover:bg-amber-400">Source</Badge>}
-                    <Badge variant="outline">{isHD ? "HD" : "Aperçu"}</Badge>
-                    {v.qa_score && <Badge variant="outline">QA {Math.round(v.qa_score)}</Badge>}
+                    <Badge variant="outline">{typeLabel}</Badge>
+                    {qa != null && <Badge variant="outline" className={qaColor}>QA {qa}</Badge>}
                   </DialogTitle>
                 </DialogHeader>
-                <div className="bg-muted rounded-md flex items-center justify-center overflow-hidden">
-                  <img
-                    src={v.image_url}
-                    alt=""
-                    className="max-h-[70vh] w-auto object-contain"
-                  />
+
+                <div className="grid gap-4 md:grid-cols-[1fr_260px]">
+                  <div className="bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                    <img
+                      src={v.image_url}
+                      alt=""
+                      className="max-h-[65vh] w-auto object-contain"
+                    />
+                  </div>
+
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Statut</div>
+                      <div className="font-medium">{usageLabel}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Type</div>
+                      <div>{typeLabel}</div>
+                    </div>
+                    {qa != null && (
+                      <div>
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Score QA</div>
+                        <div className={`font-medium ${qaColor}`}>{qa} / 100</div>
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Fond</div>
+                      <div>{isTransparent ? "Transparent ✓" : "Blanc (non détouré)"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Créée</div>
+                      <div>{absoluteFrFR(v.created_at)}</div>
+                    </div>
+                    {model && (
+                      <div>
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Modèle</div>
+                        <div className="text-xs text-muted-foreground break-all">{model}</div>
+                      </div>
+                    )}
+                    <div className="pt-2 border-t space-y-2">
+                      <Button variant="outline" size="sm" className="w-full justify-start" onClick={copyUrl}>
+                        <Copy className="h-3.5 w-3.5 mr-2" />Copier l'URL
+                      </Button>
+                      <a
+                        href={v.image_url}
+                        download
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-start w-full h-9 px-3 rounded-md border border-input bg-background hover:bg-accent text-sm"
+                      >
+                        <Download className="h-3.5 w-3.5 mr-2" />Télécharger
+                      </a>
+                      <a
+                        href={v.image_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-start w-full h-9 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 mr-2" />Ouvrir dans un onglet
+                      </a>
+                    </div>
+                  </div>
                 </div>
-                <DialogFooter className="flex-wrap gap-2">
-                  {canCompare && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setCompareIds([v.id, otherSelected[0]]);
-                        setCompareOpen(true);
-                        setDetailVersionId(null);
-                      }}
-                    >
-                      Comparer
-                    </Button>
-                  )}
+
+                <DialogFooter className="flex-wrap gap-2 sm:justify-between">
                   <Button
                     variant="ghost"
                     className="text-destructive hover:text-destructive"
                     onClick={() => { setDetailVersionId(null); attemptDeleteVersion(v); }}
-                    disabled={!!busy}
+                    disabled={!!busy || cleaningVersionId === v.id}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />Supprimer…
                   </Button>
-                  <Button
-                    onClick={() => { restoreVersion(v); setDetailVersionId(null); }}
-                    disabled={isLocked || !!busy || alreadyInUse}
-                    title={busyLabel ?? "Cette version devient l'avatar affiché ET la base pour la prochaine retouche."}
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    {alreadyInUse ? "Version déjà utilisée" : "Utiliser cette version"}
-                  </Button>
-                  <Button variant="outline" onClick={() => setDetailVersionId(null)}>Fermer</Button>
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    {!isTransparent && (
+                      <Button
+                        variant="outline"
+                        onClick={cleanThisVersion}
+                        disabled={!!busy || cleaningVersionId === v.id}
+                        title={busyLabel ?? "Retire le fond blanc et crée une nouvelle version détourée."}
+                      >
+                        {cleaningVersionId === v.id
+                          ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          : <Scissors className="h-4 w-4 mr-2" />}
+                        Nettoyer le fond
+                      </Button>
+                    )}
+                    {canCompareSelection ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setCompareIds([v.id, otherSelected[0]]);
+                          setCompareOpen(true);
+                          setDetailVersionId(null);
+                        }}
+                      >
+                        <GitCompare className="h-4 w-4 mr-2" />Comparer
+                      </Button>
+                    ) : canCompareActive && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const activeVersion = versions.find(x => x.image_url === activeUrl);
+                          if (!activeVersion) { toast.error("Avatar actif introuvable dans l'historique"); return; }
+                          setCompareIds([v.id, activeVersion.id]);
+                          setCompareOpen(true);
+                          setDetailVersionId(null);
+                        }}
+                      >
+                        <GitCompare className="h-4 w-4 mr-2" />Comparer à l'actif
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => { restoreVersion(v); setDetailVersionId(null); }}
+                      disabled={isLocked || !!busy || alreadyInUse || cleaningVersionId === v.id}
+                      title={busyLabel ?? "Cette version devient l'avatar affiché ET la base pour la prochaine retouche."}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      {alreadyInUse ? "Version déjà utilisée" : "Utiliser cette version"}
+                    </Button>
+                    <Button variant="outline" onClick={() => setDetailVersionId(null)}>Fermer</Button>
+                  </div>
                 </DialogFooter>
               </>
             );
