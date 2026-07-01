@@ -10,7 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 // Tabs removed — replaced by SectionAccordion
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -46,7 +50,7 @@ import {
   Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown, ExternalLink,
   PanelLeft, Image as ImageIcon, SlidersHorizontal, Info, Trash2, X,
-  Crop,
+  Crop, MoreHorizontal,
 } from "lucide-react";
 import { AvatarFramingDialog } from "@/features/avatar-studio/AvatarFramingDialog";
 import { readFramingFromRow, isDefaultFraming, framingToTransform } from "@/lib/avatarFraming";
@@ -79,6 +83,8 @@ const AvatarStudio = () => {
   const [selectedVersionIds, setSelectedVersionIds] = useState<Set<string>>(new Set());
   const [framingDialogOpen, setFramingDialogOpen] = useState(false);
   const [showHdInstead, setShowHdInstead] = useState(false);
+  const [detailVersionId, setDetailVersionId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
   const saveTimer = useRef<any>(null);
@@ -720,16 +726,12 @@ const AvatarStudio = () => {
     });
   };
 
-  const deleteVersions = async (ids: string[]) => {
+  const performDeleteVersions = async (ids: string[]) => {
     if (!ids.length) return;
     const activeUrl = selected?.avatar_url;
     const sourceUrl = (selected as any)?.avatar_source_url ?? null;
-    const targetsActive = versions.some(v => ids.includes(v.id) && v.image_url === activeUrl);
     const targetsSource = !!sourceUrl && versions.some(v => ids.includes(v.id) && v.image_url === sourceUrl);
-    const msg = ids.length === 1
-      ? `Supprimer définitivement cette version ?${targetsActive ? "\n\n⚠ C'est la version actuellement active de l'avatar. L'image affichée restera inchangée mais ne sera plus archivée." : ""}`
-      : `Supprimer définitivement ${ids.length} versions ?${targetsActive ? "\n\n⚠ La version actuellement active fait partie de la sélection." : ""}`;
-    if (!confirm(msg)) return;
+
     const { error } = await supabase.from("avatar_versions" as any).delete().in("id", ids);
     if (error) {
       toast.error("Échec de la suppression : " + error.message);
@@ -757,6 +759,89 @@ const AvatarStudio = () => {
 
     toast.success(ids.length === 1 ? "Version supprimée" : `${ids.length} versions supprimées`);
   };
+
+  // Suppression unitaire avec protections actif / source explicite.
+  const attemptDeleteVersion = (v: any) => {
+    if (!selected) return;
+    const activeUrl = selected.avatar_url;
+    const sourceUrl = (selected as any).avatar_source_url ?? null;
+    if (v.image_url === activeUrl) {
+      toast.error("Cette image est l'avatar actif. Définissez une autre version comme active avant de la supprimer.");
+      return;
+    }
+    if (sourceUrl && v.image_url === sourceUrl) {
+      toast.error("Cette image est utilisée comme source de retouche. Choisissez une autre source avant de la supprimer.");
+      return;
+    }
+    if (!confirm("Supprimer définitivement cette version ? Action irréversible.")) return;
+    performDeleteVersions([v.id]);
+  };
+
+  // IDs supprimables en masse : on filtre l'actif et la source explicite.
+  const bulkDeletableIds = useMemo(() => {
+    if (!selected) return [] as string[];
+    const activeUrl = selected.avatar_url;
+    const sourceUrl = (selected as any).avatar_source_url ?? null;
+    return Array.from(selectedVersionIds).filter(id => {
+      const v = versions.find(x => x.id === id);
+      if (!v) return false;
+      if (v.image_url === activeUrl) return false;
+      if (sourceUrl && v.image_url === sourceUrl) return false;
+      return true;
+    });
+  }, [selected, selectedVersionIds, versions]);
+
+  // Libellé humain de l'état "busy" pour bannière + désactivation d'actions.
+  const busyLabel = useMemo(() => {
+    switch (busy) {
+      case "clean":   return "Nettoyage du fond en cours…";
+      case "preview": return "Génération de l'aperçu en cours…";
+      case "final":   return "Génération HD en cours…";
+      case "import":  return "Import de l'image en cours…";
+      default:        return null;
+    }
+  }, [busy]);
+
+  // Formatage dates fr-FR.
+  const relativeFrFR = (iso?: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso).getTime();
+    if (Number.isNaN(d)) return "";
+    const diff = (d - Date.now()) / 1000;
+    const rtf = new Intl.RelativeTimeFormat("fr-FR", { numeric: "auto" });
+    const abs = Math.abs(diff);
+    if (abs < 60)          return rtf.format(Math.round(diff), "second");
+    if (abs < 3600)        return rtf.format(Math.round(diff / 60), "minute");
+    if (abs < 86400)       return rtf.format(Math.round(diff / 3600), "hour");
+    if (abs < 86400 * 30)  return rtf.format(Math.round(diff / 86400), "day");
+    if (abs < 86400 * 365) return rtf.format(Math.round(diff / (86400 * 30)), "month");
+    return rtf.format(Math.round(diff / (86400 * 365)), "year");
+  };
+  const absoluteFrFR = (iso?: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  };
+
+  // Actif + Source épinglés en tête, puis reste trié par date desc (déjà l'ordre côté DB).
+  const orderedVersions = useMemo(() => {
+    if (!selected || versions.length === 0) return versions;
+    const activeUrl = selected.avatar_url ?? null;
+    const rawSource = (selected as any).avatar_source_url ?? null;
+    const sourceUrl = rawSource && rawSource !== activeUrl ? rawSource : null;
+    const pinned: any[] = [];
+    const rest: any[] = [];
+    for (const v of versions) {
+      if (activeUrl && v.image_url === activeUrl)       pinned[0] = v;
+      else if (sourceUrl && v.image_url === sourceUrl)  pinned[1] = v;
+      else rest.push(v);
+    }
+    return [...pinned.filter(Boolean), ...rest];
+  }, [selected, versions]);
+
+
+
 
 
   const workflowHint = (action: "approve" | "lock" | "unlock", status: WorkflowStatus, hasImage: boolean): string | null => {
@@ -1198,6 +1283,47 @@ const AvatarStudio = () => {
                     />
                   </div>
 
+                  {/* Ligne "Source utilisée" — lecture seule, avant génération */}
+                  {(() => {
+                    const activeUrl = selected.avatar_url ?? null;
+                    const rawSource = (selected as any).avatar_source_url ?? null;
+                    if (!activeUrl && !rawSource) {
+                      return (
+                        <div className="text-[11px] text-muted-foreground border border-dashed rounded-md px-2 py-1.5">
+                          Source utilisée : aucune — première génération.
+                        </div>
+                      );
+                    }
+                    if (rawSource) {
+                      const match = versions.find(v => v.image_url === rawSource);
+                      if (!match) {
+                        return (
+                          <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+                            Source utilisée : image absente — sélectionnez une version dans la liste.
+                          </div>
+                        );
+                      }
+                      const isHD = !!match.qa_score || (match.image_url || "").includes("/final-");
+                      return (
+                        <div className="text-[11px] text-muted-foreground border rounded-md px-2 py-1.5 flex items-center gap-2">
+                          <img src={match.image_url} alt="" className="w-6 h-6 rounded object-cover shrink-0" />
+                          <span className="flex-1 truncate">
+                            Source utilisée : version du {absoluteFrFR(match.created_at)}
+                            {" · "}{isHD ? "HD" : "Aperçu"}
+                            {match.qa_score ? ` · QA ${Math.round(match.qa_score)}` : ""}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="text-[11px] text-muted-foreground border rounded-md px-2 py-1.5">
+                        Source utilisée : avatar actif (source implicite).
+                      </div>
+                    );
+                  })()}
+
+
+
                   {/* Indicateur de mode : création complète vs édition contrôlée */}
                   <div
                     className={`text-[11px] rounded-md px-2 py-1.5 border ${
@@ -1242,6 +1368,14 @@ const AvatarStudio = () => {
                   )}
 
 
+                  {/* Bannière état "busy" — désactive les actions risquées */}
+                  {busyLabel && (
+                    <div className="text-[11px] rounded-md border border-primary/30 bg-primary/5 text-primary px-2 py-1.5 flex items-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                      <span className="flex-1">{busyLabel}</span>
+                    </div>
+                  )}
+
                   {/* Versions carousel */}
                   <div className="mt-2">
                     <div className="flex items-center justify-between mb-1.5 gap-2">
@@ -1258,23 +1392,28 @@ const AvatarStudio = () => {
                             >
                               <X className="h-3 w-3" />
                             </Button>
+                            {selectedVersionIds.size === 2 && (
+                              <Button
+                                size="sm" variant="ghost" className="h-6 text-xs"
+                                onClick={() => {
+                                  const [a, b] = Array.from(selectedVersionIds);
+                                  setCompareIds([a, b]);
+                                  setCompareOpen(true);
+                                }}
+                              >
+                                Comparer
+                              </Button>
+                            )}
                             <Button
                               size="sm" variant="destructive" className="h-6 text-xs"
-                              onClick={() => deleteVersions(Array.from(selectedVersionIds))}
+                              onClick={() => setBulkDeleteOpen(true)}
+                              disabled={!!busy || bulkDeletableIds.length === 0}
+                              title={bulkDeletableIds.length === 0 ? "Sélection uniquement composée de l'actif ou de la source" : undefined}
                             >
                               <Trash2 className="h-3 w-3 mr-1" />Suppr.
                             </Button>
                           </>
-                        ) : (
-                          versions.length >= 2 && (
-                            <Button
-                              size="sm" variant="ghost" className="h-6 text-xs"
-                              onClick={() => { setCompareIds([versions[0].id, versions[1].id]); setCompareOpen(true); }}
-                            >
-                              Comparer
-                            </Button>
-                          )
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     {versions.length === 0 ? (
@@ -1289,27 +1428,31 @@ const AvatarStudio = () => {
                           && !versions.some(v => v.image_url === rawSource);
                         return sourceMissing ? (
                           <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1.5">
-                            La base de retouche actuelle n'existe plus dans vos versions. Cliquez sur « Base de retouche » sur une version pour la réancrer.
+                            La base de retouche actuelle n'existe plus dans vos versions. Cliquez sur « Utiliser cette version » pour la réancrer.
                           </div>
                         ) : null;
                       })()}
                       <div className="flex gap-1.5 overflow-x-auto pb-2 snap-x scroll-pl-1 -mx-1 px-1">
-                        {versions.map(v => {
-                          const isActive = selected.avatar_url === v.image_url;
-                          const isSource = ((selected as any).avatar_source_url ?? selected.avatar_url) === v.image_url;
+                        {orderedVersions.map(v => {
+                          const activeUrl = selected.avatar_url ?? null;
+                          const rawSource = (selected as any).avatar_source_url ?? null;
+                          const isActive = activeUrl === v.image_url;
+                          const isSource = !!rawSource && rawSource !== activeUrl && rawSource === v.image_url;
                           const url = v.image_url || "";
                           const isPreview = url.includes("/preview-") || url.includes("/preview/");
                           const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
                           const isChecked = selectedVersionIds.has(v.id);
                           const selectionMode = selectedVersionIds.size > 0;
+                          const alreadyInUse = isActive && (isSource || !rawSource || rawSource === activeUrl);
                           return (
                             <div
                               key={v.id}
                               className={`relative w-20 aspect-square shrink-0 snap-start rounded overflow-hidden bg-muted group ${
                                 isChecked ? "ring-2 ring-destructive" :
-                                isActive ? "ring-2 ring-primary" : isHD ? "hover:ring-2 hover:ring-primary/50" : "hover:ring-2 hover:ring-amber-400/50"
+                                isActive ? "ring-2 ring-primary" :
+                                isSource ? "ring-2 ring-amber-400" :
+                                "hover:ring-2 hover:ring-primary/40"
                               }`}
-                              title={`${isHD ? "HD" : "Aperçu"} · ${v.model_used?.split("/")[1] || ""} · QA ${v.qa_score ? Math.round(v.qa_score) : "—"}`}
                             >
                               <button
                                 onClick={(e) => {
@@ -1317,71 +1460,98 @@ const AvatarStudio = () => {
                                     e.preventDefault();
                                     toggleVersionSelect(v.id);
                                   } else {
-                                    setLightboxUrl(v.image_url);
+                                    setDetailVersionId(v.id);
                                   }
                                 }}
                                 className="block w-full h-full"
+                                aria-label="Voir cette version en grand"
                               >
                                 <img src={v.image_url} alt="" className="w-full h-full object-cover" />
                               </button>
-                              <span className={`absolute top-0 right-0 text-[9px] px-1 rounded-bl pointer-events-none font-semibold ${
+
+                              {/* Badge principal — coin haut-gauche */}
+                              <span
+                                className={`absolute top-0 left-0 text-[9px] px-1 rounded-br pointer-events-none font-semibold ${
+                                  isActive ? "bg-primary text-primary-foreground" :
+                                  isSource ? "bg-amber-400 text-amber-950" :
+                                  "bg-background/80 text-muted-foreground border border-border"
+                                }`}
+                                title={isActive ? "Avatar affiché publiquement" : isSource ? "Base utilisée pour la prochaine retouche" : "Version d'historique"}
+                              >
+                                {isActive ? "Actif" : isSource ? "Source" : "Hist."}
+                              </span>
+
+                              {/* Nature — coin haut-droit décalé pour laisser place au menu … */}
+                              <span className={`absolute top-0 right-7 text-[9px] px-1 rounded-bl pointer-events-none font-semibold ${
                                 isHD ? "bg-emerald-600 text-white" : "bg-amber-400 text-amber-950"
                               }`}>
-                                {isHD ? "HD" : "AP"}
+                                {isHD ? "HD" : "Aperçu"}
                               </span>
+
+                              {/* Menu … — toujours visible discret, plein au hover */}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="absolute top-0.5 right-0.5 w-6 h-6 rounded bg-background/70 hover:bg-background text-foreground flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity"
+                                    aria-label="Actions sur cette version"
+                                    title="Actions"
+                                  >
+                                    <MoreHorizontal className="h-3.5 w-3.5" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52">
+                                  <DropdownMenuItem
+                                    className="text-xs"
+                                    onClick={() => setDetailVersionId(v.id)}
+                                  >
+                                    <Eye className="h-3.5 w-3.5 mr-2" />Voir en grand
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-xs"
+                                    onClick={() => restoreVersion(v)}
+                                    disabled={isLocked || !!busy || alreadyInUse}
+                                    title="Cette version devient l'avatar affiché ET la base pour la prochaine retouche."
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5 mr-2" />
+                                    {alreadyInUse ? "Version déjà utilisée" : "Utiliser cette version"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-xs text-destructive focus:text-destructive"
+                                    onClick={() => attemptDeleteVersion(v)}
+                                    disabled={!!busy}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" />Supprimer…
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+
+                              {/* QA — coin bas-droit */}
                               {v.qa_score && (
-                                <span className="absolute bottom-0 right-0 bg-background/80 text-[9px] px-1 rounded-tl pointer-events-none">
+                                <span className="absolute bottom-0 right-0 bg-background/85 text-[9px] px-1 rounded-tl pointer-events-none">
                                   QA {Math.round(v.qa_score)}
                                 </span>
                               )}
+                              {/* Date relative — coin bas-gauche */}
+                              {v.created_at && (
+                                <span className="absolute bottom-0 left-0 bg-background/85 text-[9px] px-1 rounded-tr pointer-events-none text-muted-foreground">
+                                  {relativeFrFR(v.created_at)}
+                                </span>
+                              )}
+
+                              {/* Case sélection multiple — visible au hover, plein si cochée */}
                               <button
                                 onClick={(e) => { e.stopPropagation(); toggleVersionSelect(v.id); }}
-                                className={`absolute top-1 left-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-opacity ${
+                                className={`absolute top-6 left-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-opacity ${
                                   isChecked
                                     ? "bg-destructive border-destructive text-destructive-foreground opacity-100"
                                     : "bg-background/80 border-background/80 text-foreground opacity-0 group-hover:opacity-100"
                                 }`}
-                                title={isChecked ? "Désélectionner" : "Sélectionner pour suppression"}
+                                title={isChecked ? "Désélectionner" : "Sélectionner (multi)"}
                                 aria-label={isChecked ? "Désélectionner" : "Sélectionner"}
                               >
                                 {isChecked && <Check className="h-3 w-3" />}
                               </button>
-                              {!selectionMode && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); deleteVersions([v.id]); }}
-                                  className="absolute top-1 right-7 w-5 h-5 rounded bg-background/80 hover:bg-destructive hover:text-destructive-foreground text-muted-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                  title="Supprimer cette version"
-                                  aria-label="Supprimer cette version"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              )}
-                              {!isSource && !selectionMode && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); restoreVersion(v); }}
-                                  disabled={isLocked}
-                                  className="absolute inset-x-0 bottom-0 bg-primary/90 text-primary-foreground text-[10px] py-0.5 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
-                                  title="Définir cette version comme base de retouche pour la prochaine génération"
-                                >
-                                  <RotateCcw className="h-3 w-3" />Base de retouche
-                                </button>
-                              )}
-                              {isActive && (
-                                <span
-                                  className="absolute top-0 left-0 bg-primary text-primary-foreground text-[9px] px-1 rounded-br pointer-events-none"
-                                  title="Avatar affiché publiquement (pas forcément la base de retouche)"
-                                >
-                                  Actif
-                                </span>
-                              )}
-                              {isSource && (
-                                <span
-                                  className="absolute bottom-0 left-0 bg-secondary text-secondary-foreground text-[9px] px-1 rounded-tr pointer-events-none flex items-center gap-0.5"
-                                  title="Base utilisée pour la prochaine retouche"
-                                >
-                                  <RotateCcw className="h-2.5 w-2.5" />Source
-                                </span>
-                              )}
                             </div>
                           );
                         })}
@@ -1389,6 +1559,7 @@ const AvatarStudio = () => {
                       </>
                     )}
                   </div>
+
                 </div>
 
                 {/* Sticky workflow footer */}
@@ -1748,6 +1919,108 @@ const AvatarStudio = () => {
           {lightboxUrl && <img src={lightboxUrl} alt="" className="w-full rounded" />}
         </DialogContent>
       </Dialog>
+
+      {/* Modale "Voir en grand" — détail d'une version avec actions */}
+      <Dialog open={!!detailVersionId} onOpenChange={(o) => !o && setDetailVersionId(null)}>
+        <DialogContent className="max-w-2xl">
+          {(() => {
+            const v = versions.find(x => x.id === detailVersionId);
+            if (!v || !selected) return null;
+            const activeUrl = selected.avatar_url ?? null;
+            const rawSource = (selected as any).avatar_source_url ?? null;
+            const isActive = activeUrl === v.image_url;
+            const isSource = !!rawSource && rawSource !== activeUrl && rawSource === v.image_url;
+            const url = v.image_url || "";
+            const isPreview = url.includes("/preview-") || url.includes("/preview/");
+            const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
+            const alreadyInUse = isActive && (isSource || !rawSource || rawSource === activeUrl);
+            const otherSelected = Array.from(selectedVersionIds).filter(id => id !== v.id);
+            const canCompare = otherSelected.length === 1;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 flex-wrap">
+                    <span>Version — {absoluteFrFR(v.created_at)}</span>
+                    {isActive && <Badge className="bg-primary text-primary-foreground">Actif</Badge>}
+                    {isSource && <Badge className="bg-amber-400 text-amber-950 hover:bg-amber-400">Source</Badge>}
+                    <Badge variant="outline">{isHD ? "HD" : "Aperçu"}</Badge>
+                    {v.qa_score && <Badge variant="outline">QA {Math.round(v.qa_score)}</Badge>}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                  <img
+                    src={v.image_url}
+                    alt=""
+                    className="max-h-[70vh] w-auto object-contain"
+                  />
+                </div>
+                <DialogFooter className="flex-wrap gap-2">
+                  {canCompare && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setCompareIds([v.id, otherSelected[0]]);
+                        setCompareOpen(true);
+                        setDetailVersionId(null);
+                      }}
+                    >
+                      Comparer
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => { setDetailVersionId(null); attemptDeleteVersion(v); }}
+                    disabled={!!busy}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />Supprimer…
+                  </Button>
+                  <Button
+                    onClick={() => { restoreVersion(v); setDetailVersionId(null); }}
+                    disabled={isLocked || !!busy || alreadyInUse}
+                    title={busyLabel ?? "Cette version devient l'avatar affiché ET la base pour la prochaine retouche."}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    {alreadyInUse ? "Version déjà utilisée" : "Utiliser cette version"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setDetailVersionId(null)}>Fermer</Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation suppression multiple */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer les versions sélectionnées ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkDeletableIds.length} version{bulkDeletableIds.length > 1 ? "s" : ""} seront supprimées définitivement.
+              {selectedVersionIds.size !== bulkDeletableIds.length && (
+                <>
+                  <br />
+                  <span className="text-amber-700">
+                    Les versions actives ou utilisées comme source sont automatiquement protégées et ne seront pas supprimées.
+                  </span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { performDeleteVersions(bulkDeletableIds); setBulkDeleteOpen(false); }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
 
       {selected && displayAvatarUrl(selected) && (
         <AvatarFramingDialog
