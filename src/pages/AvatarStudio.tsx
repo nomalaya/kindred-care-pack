@@ -1501,12 +1501,21 @@ const AvatarStudio = () => {
                                     <MoreHorizontal className="h-3.5 w-3.5" />
                                   </button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuContent align="end" className="w-56">
                                   <DropdownMenuItem
                                     className="text-xs"
                                     onClick={() => setDetailVersionId(v.id)}
                                   >
                                     <Eye className="h-3.5 w-3.5 mr-2" />Voir en grand
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-xs"
+                                    onClick={() => setAsRetouchBase(v)}
+                                    disabled={isLocked || !!busy || isSource}
+                                    title="Prochaine retouche basée sur cette image, sans changer l'avatar affiché."
+                                  >
+                                    <Wand2 className="h-3.5 w-3.5 mr-2" />
+                                    {isSource ? "Base déjà utilisée" : "Définir comme base de retouche"}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     className="text-xs"
