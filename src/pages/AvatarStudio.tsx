@@ -1221,16 +1221,18 @@ const AvatarStudio = () => {
 
                   {/* Unified Generate split-button */}
                   <div className="flex gap-1.5 w-full">
+                  {/* Actions de génération IA — libellés métier */}
+                  <div className="flex gap-1.5 w-full">
                     <Button
                       onClick={() => generate(defaultGenMode)}
                       size="sm"
                       disabled={!!busy || isLocked || dignityBlocked}
                       className="flex-1 justify-start"
-                      aria-label={defaultGenMode === "preview" ? "Générer un aperçu" : "Générer en HD"}
+                      aria-label={defaultGenMode === "preview" ? "Prévisualiser les changements" : "Générer l'avatar final"}
                     >
                       {defaultGenMode === "preview" ? <RefreshCw className="h-3.5 w-3.5 mr-2" /> : <Sparkles className="h-3.5 w-3.5 mr-2" />}
                       <span className="flex-1 text-left">
-                        {defaultGenMode === "preview" ? "Générer un aperçu" : "Générer en HD"}
+                        {defaultGenMode === "preview" ? "Prévisualiser les changements" : "Générer l'avatar final"}
                       </span>
                       <kbd className="ml-2 text-[10px] opacity-70 bg-primary-foreground/10 px-1 rounded">
                         {defaultGenMode === "preview" ? "P" : "G"}
@@ -1238,11 +1240,11 @@ const AvatarStudio = () => {
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" disabled={!!busy} aria-label="Choisir le mode de génération">
+                        <Button variant="outline" size="sm" disabled={!!busy} aria-label="Choisir le type de génération">
                           <ChevronDown className="h-3.5 w-3.5" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuContent align="end" className="w-64">
                         <DropdownMenuItem
                           onClick={() => {
                             setDefaultGenMode("preview");
@@ -1254,8 +1256,8 @@ const AvatarStudio = () => {
                         >
                           <RefreshCw className="h-3.5 w-3.5 mr-2" />
                           <div className="flex-1">
-                            <div>Aperçu rapide</div>
-                            <div className="text-[10px] text-muted-foreground">Nano Banana 2 · économique</div>
+                            <div>Prévisualiser les changements</div>
+                            <div className="text-[10px] text-muted-foreground">Crée un aperçu sans remplacer l'avatar final</div>
                           </div>
                           <kbd className="ml-2 text-[10px] opacity-60">P</kbd>
                         </DropdownMenuItem>
@@ -1270,21 +1272,10 @@ const AvatarStudio = () => {
                         >
                           <Sparkles className="h-3.5 w-3.5 mr-2" />
                           <div className="flex-1">
-                            <div>Portrait HD</div>
-                            <div className="text-[10px] text-muted-foreground">Nano Banana 2 · qualité finale</div>
+                            <div>Générer l'avatar final</div>
+                            <div className="text-[10px] text-muted-foreground">Crée une version HD à valider</div>
                           </div>
                           <kbd className="ml-2 text-[10px] opacity-60">G</kbd>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => importInputRef.current?.click()}
-                          disabled={isLocked}
-                          className="text-xs"
-                        >
-                          <Upload className="h-3.5 w-3.5 mr-2" />
-                          <div className="flex-1">
-                            <div>Importer une image</div>
-                            <div className="text-[10px] text-muted-foreground">PNG/JPG/WEBP — sans contrôle IA</div>
-                          </div>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -1300,6 +1291,19 @@ const AvatarStudio = () => {
                       }}
                     />
                   </div>
+
+                  {/* Import d'image — action non-IA, séparée du menu de génération */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-xs text-muted-foreground"
+                    onClick={() => importInputRef.current?.click()}
+                    disabled={!!busy || isLocked}
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-2" />
+                    Importer une image (PNG/JPG/WEBP — sans contrôle IA)
+                  </Button>
 
 
 
