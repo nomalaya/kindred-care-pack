@@ -55,6 +55,7 @@ import {
 
 import { AvatarFramingDialog } from "@/features/avatar-studio/AvatarFramingDialog";
 import { readFramingFromRow, isDefaultFraming, framingToTransform } from "@/lib/avatarFraming";
+import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 
 
 type Beneficiary = any;
