@@ -1290,7 +1290,7 @@ const AvatarStudio = () => {
                   {/* Versions grid — occupe l'espace restant */}
                   <div className="flex-1 min-h-0 flex flex-col">
 
-                    <div className="flex items-center justify-between mb-1.5 gap-2">
+                    <div className="flex items-center justify-between mb-1.5 gap-2 shrink-0">
                       <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
                         <History className="h-3 w-3" />Versions ({versions.length})
                       </h3>
