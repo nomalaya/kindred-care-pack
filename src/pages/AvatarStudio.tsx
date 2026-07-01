@@ -719,6 +719,23 @@ const AvatarStudio = () => {
     toast.success("Base de retouche définie. Vos modifications d'attributs seront appliquées au prochain aperçu.");
   };
 
+  // Définit v comme source de la prochaine retouche, sans toucher à l'avatar affiché.
+  const setAsRetouchBase = async (v: any) => {
+    if (!selected) return;
+    const { error } = await supabase
+      .from("beneficiaries")
+      .update({ avatar_source_url: v.image_url } as any)
+      .eq("id", selected.id);
+    if (error) {
+      toast.error("Impossible de définir la base de retouche : " + error.message);
+      return;
+    }
+    setBeneficiaries(prev => prev.map(b =>
+      b.id === selected.id ? { ...b, avatar_source_url: v.image_url } as any : b,
+    ));
+    toast.success("Base de retouche mise à jour. L'avatar affiché reste inchangé.");
+  };
+
   const toggleVersionSelect = (id: string) => {
     setSelectedVersionIds(prev => {
       const next = new Set(prev);
