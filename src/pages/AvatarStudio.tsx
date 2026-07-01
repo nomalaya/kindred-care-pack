@@ -2081,6 +2081,16 @@ const AvatarStudio = () => {
                         Nettoyer le fond
                       </Button>
                     )}
+                    {isActive && (
+                      <Button
+                        variant="outline"
+                        onClick={() => { setDetailVersionId(null); setFramingDialogOpen(true); }}
+                        disabled={isLocked}
+                        title="Zoom et position d'affichage — n'affecte pas l'image source."
+                      >
+                        <Crop className="h-4 w-4 mr-2" />Ajuster le cadrage
+                      </Button>
+                    )}
                     {canCompareSelection ? (
                       <Button
                         variant="outline"
