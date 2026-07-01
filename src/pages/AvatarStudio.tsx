@@ -726,16 +726,12 @@ const AvatarStudio = () => {
     });
   };
 
-  const deleteVersions = async (ids: string[]) => {
+  const performDeleteVersions = async (ids: string[]) => {
     if (!ids.length) return;
     const activeUrl = selected?.avatar_url;
     const sourceUrl = (selected as any)?.avatar_source_url ?? null;
-    const targetsActive = versions.some(v => ids.includes(v.id) && v.image_url === activeUrl);
     const targetsSource = !!sourceUrl && versions.some(v => ids.includes(v.id) && v.image_url === sourceUrl);
-    const msg = ids.length === 1
-      ? `Supprimer définitivement cette version ?${targetsActive ? "\n\n⚠ C'est la version actuellement active de l'avatar. L'image affichée restera inchangée mais ne sera plus archivée." : ""}`
-      : `Supprimer définitivement ${ids.length} versions ?${targetsActive ? "\n\n⚠ La version actuellement active fait partie de la sélection." : ""}`;
-    if (!confirm(msg)) return;
+
     const { error } = await supabase.from("avatar_versions" as any).delete().in("id", ids);
     if (error) {
       toast.error("Échec de la suppression : " + error.message);
@@ -763,6 +759,38 @@ const AvatarStudio = () => {
 
     toast.success(ids.length === 1 ? "Version supprimée" : `${ids.length} versions supprimées`);
   };
+
+  // Suppression unitaire avec protections actif / source explicite.
+  const attemptDeleteVersion = (v: any) => {
+    if (!selected) return;
+    const activeUrl = selected.avatar_url;
+    const sourceUrl = (selected as any).avatar_source_url ?? null;
+    if (v.image_url === activeUrl) {
+      toast.error("Cette image est l'avatar actif. Définissez une autre version comme active avant de la supprimer.");
+      return;
+    }
+    if (sourceUrl && v.image_url === sourceUrl) {
+      toast.error("Cette image est utilisée comme source de retouche. Choisissez une autre source avant de la supprimer.");
+      return;
+    }
+    if (!confirm("Supprimer définitivement cette version ? Action irréversible.")) return;
+    performDeleteVersions([v.id]);
+  };
+
+  // IDs supprimables en masse : on filtre l'actif et la source explicite.
+  const bulkDeletableIds = useMemo(() => {
+    if (!selected) return [] as string[];
+    const activeUrl = selected.avatar_url;
+    const sourceUrl = (selected as any).avatar_source_url ?? null;
+    return Array.from(selectedVersionIds).filter(id => {
+      const v = versions.find(x => x.id === id);
+      if (!v) return false;
+      if (v.image_url === activeUrl) return false;
+      if (sourceUrl && v.image_url === sourceUrl) return false;
+      return true;
+    });
+  }, [selected, selectedVersionIds, versions]);
+
 
 
   const workflowHint = (action: "approve" | "lock" | "unlock", status: WorkflowStatus, hasImage: boolean): string | null => {
