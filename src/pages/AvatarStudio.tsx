@@ -1623,27 +1623,6 @@ const AvatarStudio = () => {
 
 
 
-      <Dialog open={compareOpen} onOpenChange={setCompareOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader><DialogTitle>Comparaison de versions</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
-            {compareIds.map((id, i) => {
-              const v = versions.find(x => x.id === id);
-              if (!v) return <div key={i} />;
-              return (
-                <div key={v.id}>
-                  <img src={v.image_url} alt="" className="w-full rounded-lg" />
-                  <div className="text-xs text-muted-foreground mt-2">
-                    {v.model_used?.split("/")[1]} · QA {v.qa_score ? Math.round(v.qa_score) : "—"}
-                    <br />
-                    {new Date(v.created_at).toLocaleString("fr-FR")}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!lightboxUrl} onOpenChange={(o) => !o && setLightboxUrl(null)}>
         <DialogContent className="max-w-2xl p-2">
