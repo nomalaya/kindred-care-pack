@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 // Tabs removed — replaced by SectionAccordion
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -50,7 +50,7 @@ import {
   Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown, ExternalLink,
   PanelLeft, Image as ImageIcon, SlidersHorizontal, Info, Trash2, X,
-  Crop, MoreHorizontal, Download, Copy, GitCompare, CheckCircle2,
+  Crop, MoreHorizontal, CheckCircle2,
 } from "lucide-react";
 
 import { AvatarFramingDialog } from "@/features/avatar-studio/AvatarFramingDialog";
@@ -84,8 +84,6 @@ const AvatarStudio = () => {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [versions, setVersions] = useState<any[]>([]);
-  const [compareOpen, setCompareOpen] = useState(false);
-  const [compareIds, setCompareIds] = useState<[string?, string?]>([]);
   const [modelChoice, setModelChoice] = useState<"preview" | "final">("final");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -1213,7 +1211,7 @@ const AvatarStudio = () => {
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
                     ) : (
                       <>
-                      <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 overflow-y-auto auto-rows-max content-start pr-1 pb-1">
+                      <div className="grid grid-cols-3 gap-1.5 pb-1">
                         {orderedVersions.map(v => {
                           const activeUrl = selected.avatar_url ?? null;
                           const isActive = sameImage(activeUrl, v.image_url);
@@ -1235,20 +1233,18 @@ const AvatarStudio = () => {
                                 <img src={v.image_url} alt="" className="w-full h-full object-cover" />
                               </button>
 
-                              {/* Badge principal — coin haut-gauche */}
-                              <span
-                                className={`absolute top-0 left-0 text-[10px] px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 ${
-                                  isActive ? "bg-primary text-primary-foreground" :
-                                  "bg-background/80 text-muted-foreground border border-border"
-                                }`}
-                                title={isActive ? "C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image." : "Version d'historique"}
-                              >
-                                {isActive && <CheckCircle2 className="h-2.5 w-2.5" />}
-                                {isActive ? "Actif" : "Hist."}
-                              </span>
+                              {/* Badge "Actif" — uniquement sur la vignette active */}
+                              {isActive && (
+                                <span
+                                  className="absolute top-0 left-0 text-[10px] px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 bg-primary text-primary-foreground"
+                                  title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image."
+                                >
+                                  <CheckCircle2 className="h-2.5 w-2.5" />
+                                  Actif
+                                </span>
+                              )}
 
-
-                              {/* Corbeille directe — coin haut-droit, visible en permanence sauf sur l'actif */}
+                              {/* Corbeille directe — coin haut-droit, sauf sur l'actif */}
                               {!isActive && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); attemptDeleteVersion(v); }}
@@ -1261,28 +1257,16 @@ const AvatarStudio = () => {
                                 </button>
                               )}
 
-                              {/* Nature (HD/Aperçu) — bas-centre, couleur distincte du vert "Actif" */}
+                              {/* Nature (HD/Aperçu) — bas-centre */}
                               <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] px-1.5 py-0.5 rounded pointer-events-none font-semibold shadow-sm ${
                                 isHD ? "bg-slate-700 text-white" : "bg-amber-400 text-amber-950"
                               }`}>
                                 {isHD ? "HD" : "Aperçu"}
                               </span>
-
-                              {/* QA — coin bas-droit */}
-                              {v.qa_score && (
-                                <span className="absolute bottom-0 right-0 bg-background/85 text-[9px] px-1 rounded-tl pointer-events-none">
-                                  QA {Math.round(v.qa_score)}
-                                </span>
-                              )}
-                              {/* Date relative — coin bas-gauche */}
-                              {v.created_at && (
-                                <span className="absolute bottom-0 left-0 bg-background/85 text-[9px] px-1 rounded-tr pointer-events-none text-muted-foreground">
-                                  {relativeFrFR(v.created_at)}
-                                </span>
-                              )}
                             </div>
                           );
                         })}
+
 
                       </div>
                       </>
@@ -1625,27 +1609,6 @@ const AvatarStudio = () => {
 
 
 
-      <Dialog open={compareOpen} onOpenChange={setCompareOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader><DialogTitle>Comparaison de versions</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-4">
-            {compareIds.map((id, i) => {
-              const v = versions.find(x => x.id === id);
-              if (!v) return <div key={i} />;
-              return (
-                <div key={v.id}>
-                  <img src={v.image_url} alt="" className="w-full rounded-lg" />
-                  <div className="text-xs text-muted-foreground mt-2">
-                    {v.model_used?.split("/")[1]} · QA {v.qa_score ? Math.round(v.qa_score) : "—"}
-                    <br />
-                    {new Date(v.created_at).toLocaleString("fr-FR")}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!lightboxUrl} onOpenChange={(o) => !o && setLightboxUrl(null)}>
         <DialogContent className="max-w-2xl p-2">
@@ -1663,18 +1626,10 @@ const AvatarStudio = () => {
             const isActive = sameImage(activeUrl, v.image_url);
             const url = v.image_url || "";
             const model: string = v.model_used || "";
-            const isCleanBg = model.startsWith("clean-bg/");
-            const isImport = model === "import" || model.startsWith("import");
-            const isPreview = !isCleanBg && (url.includes("/preview-") || url.includes("/preview/") || model.includes("preview"));
-            const isHD = !isCleanBg && !isImport && !isPreview;
-            const typeLabel = isCleanBg ? "Nettoyage fond" : isImport ? "Import" : isPreview ? "Aperçu rapide" : "Portrait HD";
             const isTransparent = url.includes("/cleaned/") && url.toLowerCase().includes(".png");
-            const canCompareSelection = false;
-            const canCompareActive = !isActive && !!activeUrl;
 
             const qa = v.qa_score ? Math.round(v.qa_score) : null;
             const qaColor = qa == null ? "" : qa >= 85 ? "text-emerald-700" : qa >= 70 ? "text-amber-700" : "text-red-700";
-            const usageLabel = isActive ? "Avatar actif" : "Historique";
 
             const cleanThisVersion = async () => {
               setCleaningVersionId(v.id);
@@ -1684,7 +1639,6 @@ const AvatarStudio = () => {
                 });
                 if (error) throw error;
                 toast.success("Fond nettoyé — nouvelle version ajoutée.");
-                // Refetch versions locally
                 const { data: rows } = await supabase
                   .from("avatar_versions" as any)
                   .select("*")
@@ -1700,24 +1654,49 @@ const AvatarStudio = () => {
               }
             };
 
-            const copyUrl = async () => {
+            // Chips descriptives — attributs sélectionnés (uniquement non-nuls)
+            type ChipDef = { label: string; value: string };
+            const chips: ChipDef[] = [];
+            const pushVocabChip = (vocabKey: string, raw: unknown) => {
+              if (raw == null || raw === "" || raw === "none") return;
               try {
-                await navigator.clipboard.writeText(v.image_url);
-                toast.success("URL copiée");
-              } catch {
-                toast.error("Copie impossible");
-              }
+                const l = labelFor(vocabKey as any)(String(raw));
+                if (l) chips.push({ label: vocabKey, value: l });
+              } catch { /* ignore */ }
             };
+            pushVocabChip("age_range", selected.avatar_age_range);
+            pushVocabChip("skin_tone", selected.avatar_skin_tone);
+            pushVocabChip("body_type", (selected as any).avatar_body_type);
+            pushVocabChip("hair_type", selected.avatar_hair_type);
+            pushVocabChip("hair_color", selected.avatar_hair_color);
+            pushVocabChip("hair_length", selected.avatar_hair_length);
+            const tone = readEmotionalTone(selected as any);
+            if (tone) chips.push({ label: "emotional", value: EMOTIONAL_TONE_LABELS[tone] });
+            const fatigue = readFatigueVisible(selected as any);
+            if (fatigue && fatigue !== "none") chips.push({ label: "fatigue", value: `Fatigue ${FATIGUE_VISIBLE_LABELS[fatigue].toLowerCase()}` });
 
             return (
               <>
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 flex-wrap pr-8">
-                    <span>Version — {absoluteFrFR(v.created_at)}</span>
-                    {isActive && <Badge className="bg-primary text-primary-foreground" title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image.">Actif</Badge>}
-                    <Badge variant="outline">{typeLabel}</Badge>
+                    <span>Version · {selected.alias_first_name ?? "Bénéficiaire"}</span>
+                    {isActive && <Badge className="bg-primary text-primary-foreground" title="C'est l'avatar affiché publiquement.">Actif</Badge>}
                     {qa != null && <Badge variant="outline" className={qaColor}>QA {qa}</Badge>}
                   </DialogTitle>
+                  {selected.short_story && (
+                    <DialogDescription className="text-sm text-muted-foreground pt-1">
+                      {selected.short_story}
+                    </DialogDescription>
+                  )}
+                  {chips.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-2">
+                      {chips.map((c, i) => (
+                        <Badge key={i} variant="secondary" className="text-[10px] font-normal">
+                          {c.value}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </DialogHeader>
 
                 <div className="grid gap-4 md:grid-cols-[1fr_260px]">
@@ -1727,20 +1706,11 @@ const AvatarStudio = () => {
                       alt=""
                       className="max-h-[65vh] w-auto object-contain"
                     />
-                    {/* Overlay QA — visible dans tous les cas où qa est renseigné */}
-                    {qa != null && (
-                      <span
-                        className={`absolute bottom-2 right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-background/90 border ${qaColor}`}
-                        title="Score qualité automatique (0–100). Seuil de passage : 75."
-                      >
-                        QA {qa}
-                      </span>
-                    )}
-                    {/* Aperçu parcours donateur — même rendu que sur les cartes bénéficiaires */}
-                    <div
-                      className="absolute top-2 left-2 flex flex-col items-center gap-1 bg-background/90 border rounded-md px-2 py-2 shadow-sm"
-                      title="Rendu tel qu'affiché dans le parcours donateur (fond aléatoire + cadrage appliqués)."
-                    >
+                  </div>
+
+                  <div className="space-y-4 text-sm bg-background">
+                    {/* Aperçu parcours donateur — rond seul, sans texte */}
+                    <div className="flex justify-center py-2">
                       <BeneficiaryAvatar
                         size="lg"
                         name={selected.alias_first_name ?? "Bénéficiaire"}
@@ -1748,133 +1718,62 @@ const AvatarStudio = () => {
                         backgroundSeed={selected.id}
                         framing={readFramingFromRow(selected)}
                       />
-                      <div className="text-[10px] text-muted-foreground text-center leading-tight max-w-[110px] truncate">
-                        {selected.alias_first_name}
-                        {selected.region ? ` · ${selected.region}` : ""}
-                      </div>
-                      <div className="text-[9px] uppercase tracking-wide text-muted-foreground">Parcours donateur</div>
                     </div>
-                  </div>
 
-
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Statut</div>
-                      <div className="font-medium">{usageLabel}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Type</div>
-                      <div>{typeLabel}</div>
-                    </div>
-                    {qa != null && (
-                      <div>
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Score QA</div>
-                        <div className={`font-medium ${qaColor}`}>{qa} / 100</div>
-                      </div>
-                    )}
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Fond</div>
-                      <div>{isTransparent ? "Transparent ✓" : "Blanc (non détouré)"}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Créée</div>
-                      <div>{absoluteFrFR(v.created_at)}</div>
-                    </div>
-                    {model && (
-                      <div>
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Modèle</div>
-                        <div className="text-xs text-muted-foreground break-all">{model}</div>
-                      </div>
-                    )}
-                    <div className="pt-2 border-t space-y-2">
-                      <Button variant="outline" size="sm" className="w-full justify-start" onClick={copyUrl}>
-                        <Copy className="h-3.5 w-3.5 mr-2" />Copier l'URL
+                    {/* Bloc d'actions — boutons pleine largeur empilés */}
+                    <div className="space-y-2">
+                      {isActive && (
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                          onClick={() => { setDetailVersionId(null); setFramingDialogOpen(true); }}
+                          disabled={isLocked}
+                          title="Zoom et position d'affichage — n'affecte pas l'image source."
+                        >
+                          <Crop className="h-4 w-4 mr-2" />Ajuster le cadrage
+                        </Button>
+                      )}
+                      {!isTransparent && (
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                          onClick={cleanThisVersion}
+                          disabled={!!busy || cleaningVersionId === v.id}
+                          title={busyLabel ?? "Retire le fond blanc et crée une nouvelle version détourée."}
+                        >
+                          {cleaningVersionId === v.id
+                            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            : <Scissors className="h-4 w-4 mr-2" />}
+                          Nettoyer le fond
+                        </Button>
+                      )}
+                      <Button
+                        className="w-full justify-start"
+                        onClick={() => { restoreVersion(v); setDetailVersionId(null); }}
+                        disabled={isLocked || !!busy || isActive || cleaningVersionId === v.id}
+                        title="Remplace l'avatar actif par cette version et en fait la base des futures retouches."
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        {isActive ? "Version déjà utilisée" : "Utiliser cette version"}
                       </Button>
-                      <a
-                        href={v.image_url}
-                        download
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-start w-full h-9 px-3 rounded-md border border-input bg-background hover:bg-accent text-sm"
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-destructive hover:text-destructive"
+                        onClick={() => { setDetailVersionId(null); attemptDeleteVersion(v); }}
+                        disabled={!!busy || cleaningVersionId === v.id || isActive}
+                        title={isActive ? "Impossible de supprimer la version active" : "Supprimer définitivement cette version"}
                       >
-                        <Download className="h-3.5 w-3.5 mr-2" />Télécharger
-                      </a>
-                      <a
-                        href={v.image_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-start w-full h-9 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5 mr-2" />Ouvrir dans un onglet
-                      </a>
+                        <Trash2 className="h-4 w-4 mr-2" />Supprimer
+                      </Button>
                     </div>
                   </div>
                 </div>
-
-                <DialogFooter className="flex-wrap gap-2 sm:justify-between">
-                  <Button
-                    variant="ghost"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => { setDetailVersionId(null); attemptDeleteVersion(v); }}
-                    disabled={!!busy || cleaningVersionId === v.id}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />Supprimer…
-                  </Button>
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    {!isTransparent && (
-                      <Button
-                        variant="outline"
-                        onClick={cleanThisVersion}
-                        disabled={!!busy || cleaningVersionId === v.id}
-                        title={busyLabel ?? "Retire le fond blanc et crée une nouvelle version détourée."}
-                      >
-                        {cleaningVersionId === v.id
-                          ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          : <Scissors className="h-4 w-4 mr-2" />}
-                        Nettoyer le fond
-                      </Button>
-                    )}
-                    {isActive && (
-                      <Button
-                        variant="outline"
-                        onClick={() => { setDetailVersionId(null); setFramingDialogOpen(true); }}
-                        disabled={isLocked}
-                        title="Zoom et position d'affichage — n'affecte pas l'image source."
-                      >
-                        <Crop className="h-4 w-4 mr-2" />Ajuster le cadrage
-                      </Button>
-                    )}
-                    {canCompareActive && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const activeVersion = versions.find(x => sameImage(x.image_url, activeUrl));
-                          if (!activeVersion) { toast.error("Avatar actif introuvable dans l'historique"); return; }
-                          setCompareIds([v.id, activeVersion.id]);
-                          setCompareOpen(true);
-                          setDetailVersionId(null);
-                        }}
-                      >
-                        <GitCompare className="h-4 w-4 mr-2" />Comparer à l'actif
-                      </Button>
-                    )}
-
-                    <Button
-                      onClick={() => { restoreVersion(v); setDetailVersionId(null); }}
-                      disabled={isLocked || !!busy || isActive || cleaningVersionId === v.id}
-                      title="Remplace l'avatar actif par cette version et en fait la base des futures retouches."
-                    >
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                      {isActive ? "Version déjà utilisée" : "Utiliser cette version"}
-                    </Button>
-                    <Button variant="outline" onClick={() => setDetailVersionId(null)}>Fermer</Button>
-                  </div>
-                </DialogFooter>
               </>
             );
           })()}
         </DialogContent>
       </Dialog>
+
 
 
 
