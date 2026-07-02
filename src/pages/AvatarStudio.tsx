@@ -84,8 +84,6 @@ const AvatarStudio = () => {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [versions, setVersions] = useState<any[]>([]);
-  const [compareOpen, setCompareOpen] = useState(false);
-  const [compareIds, setCompareIds] = useState<[string?, string?]>([]);
   const [modelChoice, setModelChoice] = useState<"preview" | "final">("final");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
