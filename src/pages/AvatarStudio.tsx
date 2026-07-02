@@ -1211,7 +1211,7 @@ const AvatarStudio = () => {
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
                     ) : (
                       <>
-                      <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 overflow-y-auto auto-rows-max content-start pr-1 pb-1">
+                      <div className="grid grid-cols-3 gap-1.5 pb-1">
                         {orderedVersions.map(v => {
                           const activeUrl = selected.avatar_url ?? null;
                           const isActive = sameImage(activeUrl, v.image_url);
@@ -1233,20 +1233,18 @@ const AvatarStudio = () => {
                                 <img src={v.image_url} alt="" className="w-full h-full object-cover" />
                               </button>
 
-                              {/* Badge principal — coin haut-gauche */}
-                              <span
-                                className={`absolute top-0 left-0 text-[10px] px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 ${
-                                  isActive ? "bg-primary text-primary-foreground" :
-                                  "bg-background/80 text-muted-foreground border border-border"
-                                }`}
-                                title={isActive ? "C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image." : "Version d'historique"}
-                              >
-                                {isActive && <CheckCircle2 className="h-2.5 w-2.5" />}
-                                {isActive ? "Actif" : "Hist."}
-                              </span>
+                              {/* Badge "Actif" — uniquement sur la vignette active */}
+                              {isActive && (
+                                <span
+                                  className="absolute top-0 left-0 text-[10px] px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 bg-primary text-primary-foreground"
+                                  title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image."
+                                >
+                                  <CheckCircle2 className="h-2.5 w-2.5" />
+                                  Actif
+                                </span>
+                              )}
 
-
-                              {/* Corbeille directe — coin haut-droit, visible en permanence sauf sur l'actif */}
+                              {/* Corbeille directe — coin haut-droit, sauf sur l'actif */}
                               {!isActive && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); attemptDeleteVersion(v); }}
@@ -1259,28 +1257,16 @@ const AvatarStudio = () => {
                                 </button>
                               )}
 
-                              {/* Nature (HD/Aperçu) — bas-centre, couleur distincte du vert "Actif" */}
+                              {/* Nature (HD/Aperçu) — bas-centre */}
                               <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] px-1.5 py-0.5 rounded pointer-events-none font-semibold shadow-sm ${
                                 isHD ? "bg-slate-700 text-white" : "bg-amber-400 text-amber-950"
                               }`}>
                                 {isHD ? "HD" : "Aperçu"}
                               </span>
-
-                              {/* QA — coin bas-droit */}
-                              {v.qa_score && (
-                                <span className="absolute bottom-0 right-0 bg-background/85 text-[9px] px-1 rounded-tl pointer-events-none">
-                                  QA {Math.round(v.qa_score)}
-                                </span>
-                              )}
-                              {/* Date relative — coin bas-gauche */}
-                              {v.created_at && (
-                                <span className="absolute bottom-0 left-0 bg-background/85 text-[9px] px-1 rounded-tr pointer-events-none text-muted-foreground">
-                                  {relativeFrFR(v.created_at)}
-                                </span>
-                              )}
                             </div>
                           );
                         })}
+
 
                       </div>
                       </>
