@@ -806,14 +806,14 @@ const AvatarStudio = () => {
 
   const workflowHint = (action: "approve" | "lock" | "unlock", status: WorkflowStatus, hasImage: boolean): string | null => {
     if (action === "approve") {
-      if (status === "approved") return "Avatar déjà approuvé";
+      if (status === "approved") return "Avatar déjà publié";
       if (status === "locked") return "Avatar verrouillé — déverrouillez d'abord";
-      if (status !== "generated") return hasImage ? "Réutilisez une version ou régénérez pour approuver" : "Générez d'abord un avatar HD";
+      if (status !== "generated") return hasImage ? "Réutilisez une version ou régénérez pour publier" : "Générez d'abord un avatar HD";
       return null;
     }
     if (action === "lock") {
       if (status === "locked") return "Déjà verrouillé";
-      if (status !== "approved") return "Approuvez d'abord l'avatar";
+      if (status !== "approved") return "Publiez d'abord l'avatar";
       return null;
     }
     if (action === "unlock") {
