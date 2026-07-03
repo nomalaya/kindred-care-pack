@@ -91,10 +91,10 @@ export const STATUS_COLOR: Record<AvatarStatus, string> = {
 export type WorkflowStatus = "draft" | "generated" | "approved" | "locked";
 
 export const WORKFLOW_LABEL: Record<WorkflowStatus, string> = {
-  draft: "Brouillon",
-  generated: "Généré",
-  approved: "Approuvé",
-  locked: "Verrouillé",
+  draft: "À générer",
+  generated: "À publier",
+  approved: "Publié",
+  locked: "Publié (verrouillé)",
 };
 
 export const WORKFLOW_COLOR: Record<WorkflowStatus, string> = {
