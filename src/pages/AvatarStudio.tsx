@@ -1321,7 +1321,7 @@ const AvatarStudio = () => {
                                 <RotateCcw className="h-3.5 w-3.5" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent className="text-xs">Retirer l'approbation</TooltipContent>
+                            <TooltipContent className="text-xs">Retirer de la publication</TooltipContent>
                           </Tooltip>
                         )}
                       </div>
