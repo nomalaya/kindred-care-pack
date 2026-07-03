@@ -849,7 +849,7 @@ const AvatarStudio = () => {
       }
       if (e.key.toLowerCase() === "g") { e.preventDefault(); generate("final"); }
       else if (e.key.toLowerCase() === "p") { e.preventDefault(); generate("preview"); }
-      else if (e.key.toLowerCase() === "a" && selected?.avatar_workflow_status === "generated") {
+      else if (e.key.toLowerCase() === "v" && selected?.avatar_workflow_status === "generated") {
         e.preventDefault(); setWorkflow("approved");
       }
       else if (e.key.toLowerCase() === "l" && selected?.avatar_workflow_status === "approved") {
