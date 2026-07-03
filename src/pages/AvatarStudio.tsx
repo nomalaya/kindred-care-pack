@@ -921,9 +921,9 @@ const AvatarStudio = () => {
               <div className="flex gap-0.5 border rounded-md p-0.5" role="group" aria-label="Filtrer par étape">
                 {([
                   { key: "all", label: "Tous", count: beneficiaries.length },
-                  { key: "todo", label: "À faire", count: stats.todo },
-                  { key: "review", label: "À valider", count: stats.review },
-                  { key: "done", label: "Validés", count: stats.done },
+                  { key: "todo", label: "À générer", count: stats.todo },
+                  { key: "review", label: "À publier", count: stats.review },
+                  { key: "done", label: "Publiés", count: stats.done },
                 ] as const).map(f => (
                   <button
                     key={f.key}
