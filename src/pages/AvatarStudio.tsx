@@ -970,7 +970,7 @@ const AvatarStudio = () => {
                   <div><kbd>/</kbd> recherche</div>
                   <div><kbd>↑</kbd>/<kbd>↓</kbd> naviguer</div>
                   <div><kbd>P</kbd> aperçu · <kbd>G</kbd> générer HD</div>
-                  <div><kbd>A</kbd> approuver · <kbd>L</kbd> verrouiller</div>
+                  <div><kbd>V</kbd> publier · <kbd>L</kbd> verrouiller</div>
                 </div>
               </TooltipContent>
             </Tooltip>
