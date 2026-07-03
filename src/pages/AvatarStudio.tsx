@@ -1275,11 +1275,12 @@ const AvatarStudio = () => {
                   } else if (ws === "locked") {
                     main = { label: "Déverrouiller", icon: Unlock, variant: "outline", onClick: () => setWorkflow("draft"), hint: workflowHint("unlock", ws, hasImage) };
                   } else {
-                    // QA >= 75 → auto-approuvé via Realtime : ce cas est rare.
-                    // QA < 75 ou absent (import manuel) → approbation manuelle requise.
+                    // Publication toujours manuelle. Libellé explicite selon
+                    // le score QA pour ne pas laisser passer un avatar douteux
+                    // sans que l'admin le remarque.
                     const qa = Number(selected.avatar_qa_score ?? 0);
-                    const label = qa > 0 && qa < 75 ? "Approuver quand même" : "Approuver";
-                    main = { label, icon: ShieldCheck, variant: "default", onClick: () => setWorkflow("approved"), hint: workflowHint("approve", ws, hasImage), shortcut: "A" };
+                    const label = qa > 0 && qa < 75 ? "Publier malgré un QA faible" : "Publier l'avatar";
+                    main = { label, icon: ShieldCheck, variant: "default", onClick: () => setWorkflow("approved"), hint: workflowHint("approve", ws, hasImage), shortcut: "V" };
                   }
                   const showUndo = ws === "approved";
                   const MainIcon = main.icon;
