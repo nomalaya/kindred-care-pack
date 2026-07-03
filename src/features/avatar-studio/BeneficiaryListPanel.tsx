@@ -65,9 +65,11 @@ export function BeneficiaryListPanel({
                     {b.avatar_qa_score ? ` · QA ${Math.round(b.avatar_qa_score)}` : ""}
                   </div>
                 </div>
-                <span className={`text-[9px] px-1 py-0.5 rounded border ${WORKFLOW_COLOR[ws]}`} aria-label={WORKFLOW_LABEL[ws]}>
-                  {WORKFLOW_LABEL[ws][0]}
-                </span>
+                <span
+                  className={`h-2 w-2 rounded-full border shrink-0 ${WORKFLOW_COLOR[ws]}`}
+                  title={WORKFLOW_LABEL[ws]}
+                  aria-label={WORKFLOW_LABEL[ws]}
+                />
               </button>
               <a
                 href={`/donate/${b.id}`}
