@@ -1,50 +1,82 @@
 
-Modifications ciblées sur `src/pages/AvatarStudio.tsx`. Aucun changement backend, matching, panier ou schéma.
+## Contexte
 
-## 1. Vignettes de la grille (Versions) — nettoyage
+Le workflow actuel a **4 états** : `draft` → `generated` → `approved` → `locked`. La transition `generated → approved` sert de **garde-fou avant publication publique** : seuls les avatars `approved`/`locked` sont considérés "prêts" (utilisés par `hasFinalAvatar`, filtres « Validés », etc.). Aujourd'hui elle est :
+- automatique si QA ≥ 75 (ligne 149),
+- sinon manuelle via raccourci clavier `A` (ligne 863),
+- **sans bouton visible dans l'UI** → d'où votre confusion.
 
-Bloc lignes ~1238–1282.
+**Décision** : garder le garde-fou (c'est bien un contrôle de sécurité éditoriale avant publication publique), mais le rendre **explicite et lisible**, et remplacer le vocabulaire technique par un vocabulaire produit.
 
-- Retirer le badge « Hist. » (haut-gauche vide pour les non-actives ; badge « Actif » conservé pour l'active).
-- Retirer la date relative en bas-gauche.
-- Retirer le badge QA en bas-droit (info toujours accessible dans la modale).
-- Conservés : ring vert « Actif », badge Aperçu/HD en bas-centre, corbeille en haut-droit.
+## Renommage du vocabulaire
 
-## 2. Grille tronquée à 4 vignettes
+Dans `src/lib/avatarTraits.ts` (`WORKFLOW_LABEL`) et `src/lib/avatarVocabLabels.ts` (`workflow_status`) :
 
-Cause : `flex-1 min-h-0 overflow-y-auto` (ligne 1216) écrasé par la hauteur de la sidebar, scroll interne invisible.
+| Clé technique (inchangée en base) | Ancien libellé | Nouveau libellé |
+|---|---|---|
+| `draft` | Brouillon | **À générer** |
+| `generated` | Généré | **À publier** |
+| `approved` | Approuvé | **Publié** |
+| `locked` | Verrouillé | **Publié (verrouillé)** |
 
-Correctif : remplacer `flex-1 min-h-0 overflow-y-auto auto-rows-max content-start pr-1 pb-1` par `pb-1`. La grille s'étend naturellement, le scroll du panneau parent prend le relais — les 9 vignettes deviennent toutes visibles.
+Aucune migration DB. Les valeurs en base restent `draft/generated/approved/locked`.
 
-## 3. Modale de détail — refonte compacte
+## 1. Colonne 1 (BeneficiaryListPanel) — remplacer les initiales A/G
 
-Bloc lignes ~1657–1877.
+Bloc lignes 76–78 de `src/features/avatar-studio/BeneficiaryListPanel.tsx`.
 
-### 3.1 Titre
+Remplacer le badge lettre par un **point de couleur 8×8 px** (dot) coloré selon `WORKFLOW_COLOR`, avec `title` = nouveau libellé complet au survol :
 
-- Ligne 1 (DialogTitle) : `Version · {selected.alias_first_name}` + à droite badges `Actif` (si applicable) et `QA {n}` (unique, coloré). Supprimer le badge Type.
-- Ligne 2 (DialogDescription) : `selected.short_story` complet, `text-sm text-muted-foreground`.
-- Ligne 3 : chips (`Badge variant="secondary"`) des attributs non-nuls, dans l'ordre — Tranche d'âge, Teint, Corpulence, Type de cheveux, Couleur de cheveux, Longueur de cheveux, Tonalité émotionnelle (`avatar_emotional_brightness`), Fatigue visible (`avatar_fatigue_level`). Libellés via `AVATAR_VOCAB`.
+```tsx
+<span
+  className={`h-2 w-2 rounded-full border ${WORKFLOW_COLOR[ws]}`}
+  title={WORKFLOW_LABEL[ws]}
+  aria-label={WORKFLOW_LABEL[ws]}
+/>
+```
 
-### 3.2 Corps — 2 colonnes
+Lisible d'un coup d'œil, cohérent avec les filtres du topbar (Tous / À faire / À valider / Validés), pas d'ambiguïté « A vs G ».
 
-**Gauche** (image ~65vh) : image seule, sans overlay QA, sans cartouche « Parcours donateur ».
+## 2. Bouton « Publier » explicite dans la 2ᵉ colonne
 
-**Droite** (~260px, fond blanc) :
-- **En haut** : rond `<BeneficiaryAvatar size="lg" ...>` seul (fond aléatoire du bucket, cadrage réel), aucun texte, aucun bloc statut/type/QA/fond/date/modèle.
-- **En dessous** : bloc d'actions — boutons pleine largeur empilés dans cet ordre :
-  1. `Ajuster le cadrage` (visible uniquement si `isActive`) — icône `Crop`
-  2. `Nettoyer le fond` (visible si non transparent) — icône `Scissors`
-  3. `Utiliser cette version` (variant primaire par défaut, désactivé si `isActive`) — icône `RotateCcw`
-  4. `Supprimer` (ghost destructive, libellé sans les points de suspension) — icône `Trash2`
+Bloc lignes ~1280–1330 de `src/pages/AvatarStudio.tsx` (la CTA principale « avatar-cta »).
 
-### 3.3 Suppressions
+Actuellement la logique construit un bouton principal dont le libellé change selon `ws`. Ajustements :
 
-- Supprimer entièrement le `DialogFooter` (lignes 1814–1872).
-- Supprimer les boutons `Copier l'URL`, `Télécharger`, `Ouvrir dans un onglet` de la sidebar (lignes 1789–1810) + la fonction `copyUrl`.
-- Supprimer le bouton `Fermer` (la croix native de la modale suffit).
-- Supprimer `Comparer à l'actif` et tout son écosystème : `compareOpen`, `compareIds`, `canCompareActive`, et le `<Dialog open={compareOpen}>` (lignes 1628–1648).
+- Quand `ws === "generated"` (avatar HD prêt mais non publié) : la CTA principale devient **`Publier l'avatar`** (icône `ShieldCheck`, variant `default`), appelant `setWorkflow("approved")`. Raccourci `P` (au lieu de `A`).
+- Quand `ws === "approved"` : CTA désactivée avec libellé **`Publié ✓`** + un lien secondaire discret « Retirer de la publication » (`setWorkflow("generated")`) pour l'undo (déjà présent en `showUndo`, on garde).
+- Quand `ws === "draft"` : la CTA reste **`Générer l'avatar HD`** (comportement actuel inchangé).
+- Quand `ws === "locked"` : CTA désactivée « Publié · Verrouillé ».
+
+Retirer l'auto-approve à QA ≥ 75 (lignes 148–160) — la publication doit toujours être un acte explicite. Remplacer par un simple `toast.success("QA élevé — prêt à publier")` quand `qa >= 75 && ws === "generated"`.
+
+## 3. Badge de statut dans la 2ᵉ colonne (ligne 1054)
+
+Utilise déjà `WORKFLOW_LABEL` / `WORKFLOW_COLOR` → hérite automatiquement du renommage. Aucun changement de code, juste vérifier que le rendu reste lisible avec les nouveaux libellés (plus longs).
+
+## 4. Raccourcis clavier
+
+Dans le handler `keydown` (~ligne 862) :
+- Retirer le raccourci `A` = approuver.
+- Ajouter `P` = publier (`setWorkflow("approved")`) quand `ws === "generated"`.
+- Conserver `L` = verrouiller quand `ws === "approved"`.
+
+Mettre à jour la modale « Raccourcis clavier » en conséquence.
+
+## 5. Filtres du topbar (`À faire` / `À valider` / `Validés`)
+
+Renommer visuellement pour cohérence avec le nouveau vocabulaire :
+- `À faire` → **À générer** (`draft`)
+- `À valider` → **À publier** (`generated`)
+- `Validés` → **Publiés** (`approved` + `locked`)
+
+Fichier : `src/pages/AvatarStudio.tsx` (chercher les libellés des filtres, ~ ligne 250 pour les compteurs).
 
 ## Portée
 
-Fichier unique : `src/pages/AvatarStudio.tsx`. Réutilise `AVATAR_VOCAB`, `FIELD_LABELS`, `BeneficiaryAvatar`, `readFramingFromRow` déjà importés. Aucun changement backend, RLS, migration, edge function, matching, panier ou checkout.
+- `src/lib/avatarTraits.ts` — libellés uniquement.
+- `src/lib/avatarVocabLabels.ts` — libellés uniquement.
+- `src/features/avatar-studio/BeneficiaryListPanel.tsx` — remplacement lettre → dot.
+- `src/pages/AvatarStudio.tsx` — CTA « Publier », suppression auto-approve, raccourci, filtres topbar.
+
+**Aucun changement** : base de données, RLS, edge functions, backend matching/panier, autres pages.

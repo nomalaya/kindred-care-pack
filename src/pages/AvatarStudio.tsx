@@ -140,24 +140,13 @@ const AvatarStudio = () => {
           if (cur === "preview" && next.avatar_status === "preview") setBusy(null);
           if (cur === "final" && next.avatar_status === "validated") {
             setBusy(null);
-            // Auto-approbation : HD généré avec QA >= 75 (QA_PASS backend)
-            // passe automatiquement à "approved" pour éviter le clic manuel.
-            // En dessous du seuil, on reste "generated" et le bouton
-            // "Approuver quand même" reste disponible dans le footer.
+            // Publication toujours manuelle : on notifie simplement quand le QA
+            // est suffisant pour publier, mais l'utilisateur doit cliquer sur
+            // "Publier l'avatar" pour rendre l'avatar visible publiquement.
             const qa = Number(next.avatar_qa_score ?? 0);
             const ws = next.avatar_workflow_status;
-            if (qa >= 75 && ws !== "approved" && ws !== "locked") {
-              supabase
-                .from("beneficiaries")
-                .update({ avatar_workflow_status: "approved" } as any)
-                .eq("id", next.id)
-                .then(({ error }) => {
-                  if (!error) {
-                    setBeneficiaries(prev => prev.map(b =>
-                      b.id === next.id ? { ...b, avatar_workflow_status: "approved" } : b,
-                    ));
-                  }
-                });
+            if (qa >= 75 && ws === "generated") {
+              toast.success("QA élevé — prêt à publier");
             }
           }
           if (next.avatar_status === "failed" && (cur === "preview" || cur === "final")) {
@@ -817,14 +806,14 @@ const AvatarStudio = () => {
 
   const workflowHint = (action: "approve" | "lock" | "unlock", status: WorkflowStatus, hasImage: boolean): string | null => {
     if (action === "approve") {
-      if (status === "approved") return "Avatar déjà approuvé";
+      if (status === "approved") return "Avatar déjà publié";
       if (status === "locked") return "Avatar verrouillé — déverrouillez d'abord";
-      if (status !== "generated") return hasImage ? "Réutilisez une version ou régénérez pour approuver" : "Générez d'abord un avatar HD";
+      if (status !== "generated") return hasImage ? "Réutilisez une version ou régénérez pour publier" : "Générez d'abord un avatar HD";
       return null;
     }
     if (action === "lock") {
       if (status === "locked") return "Déjà verrouillé";
-      if (status !== "approved") return "Approuvez d'abord l'avatar";
+      if (status !== "approved") return "Publiez d'abord l'avatar";
       return null;
     }
     if (action === "unlock") {
@@ -860,7 +849,7 @@ const AvatarStudio = () => {
       }
       if (e.key.toLowerCase() === "g") { e.preventDefault(); generate("final"); }
       else if (e.key.toLowerCase() === "p") { e.preventDefault(); generate("preview"); }
-      else if (e.key.toLowerCase() === "a" && selected?.avatar_workflow_status === "generated") {
+      else if (e.key.toLowerCase() === "v" && selected?.avatar_workflow_status === "generated") {
         e.preventDefault(); setWorkflow("approved");
       }
       else if (e.key.toLowerCase() === "l" && selected?.avatar_workflow_status === "approved") {
@@ -932,9 +921,9 @@ const AvatarStudio = () => {
               <div className="flex gap-0.5 border rounded-md p-0.5" role="group" aria-label="Filtrer par étape">
                 {([
                   { key: "all", label: "Tous", count: beneficiaries.length },
-                  { key: "todo", label: "À faire", count: stats.todo },
-                  { key: "review", label: "À valider", count: stats.review },
-                  { key: "done", label: "Validés", count: stats.done },
+                  { key: "todo", label: "À générer", count: stats.todo },
+                  { key: "review", label: "À publier", count: stats.review },
+                  { key: "done", label: "Publiés", count: stats.done },
                 ] as const).map(f => (
                   <button
                     key={f.key}
@@ -981,7 +970,7 @@ const AvatarStudio = () => {
                   <div><kbd>/</kbd> recherche</div>
                   <div><kbd>↑</kbd>/<kbd>↓</kbd> naviguer</div>
                   <div><kbd>P</kbd> aperçu · <kbd>G</kbd> générer HD</div>
-                  <div><kbd>A</kbd> approuver · <kbd>L</kbd> verrouiller</div>
+                  <div><kbd>V</kbd> publier · <kbd>L</kbd> verrouiller</div>
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -1286,11 +1275,12 @@ const AvatarStudio = () => {
                   } else if (ws === "locked") {
                     main = { label: "Déverrouiller", icon: Unlock, variant: "outline", onClick: () => setWorkflow("draft"), hint: workflowHint("unlock", ws, hasImage) };
                   } else {
-                    // QA >= 75 → auto-approuvé via Realtime : ce cas est rare.
-                    // QA < 75 ou absent (import manuel) → approbation manuelle requise.
+                    // Publication toujours manuelle. Libellé explicite selon
+                    // le score QA pour ne pas laisser passer un avatar douteux
+                    // sans que l'admin le remarque.
                     const qa = Number(selected.avatar_qa_score ?? 0);
-                    const label = qa > 0 && qa < 75 ? "Approuver quand même" : "Approuver";
-                    main = { label, icon: ShieldCheck, variant: "default", onClick: () => setWorkflow("approved"), hint: workflowHint("approve", ws, hasImage), shortcut: "A" };
+                    const label = qa > 0 && qa < 75 ? "Publier malgré un QA faible" : "Publier l'avatar";
+                    main = { label, icon: ShieldCheck, variant: "default", onClick: () => setWorkflow("approved"), hint: workflowHint("approve", ws, hasImage), shortcut: "V" };
                   }
                   const showUndo = ws === "approved";
                   const MainIcon = main.icon;
@@ -1331,7 +1321,7 @@ const AvatarStudio = () => {
                                 <RotateCcw className="h-3.5 w-3.5" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent className="text-xs">Retirer l'approbation</TooltipContent>
+                            <TooltipContent className="text-xs">Retirer de la publication</TooltipContent>
                           </Tooltip>
                         )}
                       </div>

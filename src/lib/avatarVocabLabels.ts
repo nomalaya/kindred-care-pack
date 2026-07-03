@@ -210,10 +210,10 @@ export const VOCAB_LABELS = {
   },
   workflow_status: {
 
-    draft: "Brouillon",
-    generated: "Généré",
-    approved: "Approuvé",
-    locked: "Verrouillé",
+    draft: "À générer",
+    generated: "À publier",
+    approved: "Publié",
+    locked: "Publié (verrouillé)",
   },
 } as const;
 
