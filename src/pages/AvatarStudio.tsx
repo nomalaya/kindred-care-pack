@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
-import Layout from "@/components/Layout";
+
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -874,11 +874,11 @@ const AvatarStudio = () => {
   if (!user) return <Navigate to="/auth" replace />;
   if (!isAdmin) {
     return (
-      <Layout>
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold mb-4">Accès refusé</h1>
         </div>
-      </Layout>
+      </div>
     );
   }
 
@@ -890,16 +890,16 @@ const AvatarStudio = () => {
 
 
   return (
-    <Layout>
-      <div className="px-4 py-3 max-w-[1700px] mx-auto">
+    <div className="min-h-screen bg-background">
+      <div className="px-4 py-2 max-w-[1700px] mx-auto">
         {/* TOPBAR */}
-        <div className="sticky top-0 z-20 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur border-b">
+        <div className="-mx-4 px-4 py-1 mb-2 border-b border-border/50">
           <div className="flex items-center gap-3 flex-wrap">
             <Link to="/admin">
-              <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Admin</Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" title="Retour Admin"><ArrowLeft className="h-4 w-4" /></Button>
             </Link>
             <div className="flex items-baseline gap-2">
-              <h1 className="text-lg font-bold">Avatar Studio</h1>
+              <h1 className="text-sm font-semibold">Avatar Studio</h1>
               <span className="text-xs text-muted-foreground">{beneficiaries.length} bénéficiaires</span>
             </div>
 
@@ -913,7 +913,7 @@ const AvatarStudio = () => {
                 aria-label="Rechercher un bénéficiaire"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="h-8 pl-7 w-64 text-sm"
+                className="h-7 pl-7 w-48 text-sm"
               />
             </div>
 
@@ -929,7 +929,7 @@ const AvatarStudio = () => {
                     key={f.key}
                     onClick={() => setFilter(f.key)}
                     aria-pressed={filter === f.key}
-                    className={`text-xs px-2.5 py-1 rounded transition-colors ${
+                    className={`text-xs px-2 py-0.5 rounded transition-colors ${
                       filter === f.key ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                     }`}
                   >
@@ -959,11 +959,11 @@ const AvatarStudio = () => {
               onStop={stopBatch}
             />
 
-            <Button variant="ghost" size="sm" onClick={refresh}><RefreshCw className="h-3.5 w-3.5" /></Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={refresh}><RefreshCw className="h-3.5 w-3.5" /></Button>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm"><Keyboard className="h-3.5 w-3.5" /></Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7"><Keyboard className="h-3.5 w-3.5" /></Button>
               </TooltipTrigger>
               <TooltipContent className="text-xs">
                 <div className="space-y-0.5">
@@ -978,7 +978,7 @@ const AvatarStudio = () => {
         </div>
 
         {/* MAIN — 3 columns: list + Visuel + Attributs (always visible) */}
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_320px_1fr] gap-3 h-[calc(100vh-120px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_320px_1fr] gap-3 h-[calc(100dvh-64px)]">
           {/* LEFT — list (desktop only) */}
           <div className="hidden lg:flex flex-col min-h-0">
             <BeneficiaryListPanel
@@ -1114,7 +1114,7 @@ const AvatarStudio = () => {
                           aria-label="Prévisualiser les changements"
                         >
                           <RefreshCw className="h-3.5 w-3.5 mr-1 shrink-0" />
-                          <span className="truncate">Prévisualiser</span>
+                          <span>Prévisualiser</span>
                           <kbd className="ml-1 text-[10px] opacity-70 bg-primary-foreground/10 px-1 rounded">P</kbd>
                         </Button>
                       </TooltipTrigger>
@@ -1131,7 +1131,7 @@ const AvatarStudio = () => {
                           aria-label="Générer l'avatar final"
                         >
                           <Sparkles className="h-3.5 w-3.5 mr-1 shrink-0" />
-                          <span className="truncate">Générer HD</span>
+                          <span>Générer HD</span>
                           <kbd className="ml-1 text-[10px] opacity-70 bg-primary/10 px-1 rounded">G</kbd>
                         </Button>
                       </TooltipTrigger>
@@ -1185,14 +1185,10 @@ const AvatarStudio = () => {
                   {/* Versions grid — occupe l'espace restant */}
                   <div className="flex-1 min-h-0 flex flex-col">
 
-                    <div className="flex items-center justify-between mb-1 gap-2 shrink-0">
+                    <div className="flex items-center mb-1 shrink-0">
                       <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
                         <History className="h-3 w-3" />Versions ({versions.length})
                       </h3>
-                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <span className="inline-block w-2 h-2 rounded-sm ring-2 ring-primary bg-primary/30" />
-                        Publiée
-                      </span>
                     </div>
 
 
@@ -1782,7 +1778,7 @@ const AvatarStudio = () => {
           }}
         />
       )}
-    </Layout>
+    </div>
   );
 };
 
