@@ -1,82 +1,62 @@
-
 ## Contexte
 
-Le workflow actuel a **4 états** : `draft` → `generated` → `approved` → `locked`. La transition `generated → approved` sert de **garde-fou avant publication publique** : seuls les avatars `approved`/`locked` sont considérés "prêts" (utilisés par `hasFinalAvatar`, filtres « Validés », etc.). Aujourd'hui elle est :
-- automatique si QA ≥ 75 (ligne 149),
-- sinon manuelle via raccourci clavier `A` (ligne 863),
-- **sans bouton visible dans l'UI** → d'où votre confusion.
+Ces correctifs avaient été validés lors d'un échange précédent mais n'ont pas été appliqués. Ils portent uniquement sur `src/pages/AvatarStudio.tsx` (frontend, pas de logique backend touchée).
 
-**Décision** : garder le garde-fou (c'est bien un contrôle de sécurité éditoriale avant publication publique), mais le rendre **explicite et lisible**, et remplacer le vocabulaire technique par un vocabulaire produit.
+## 1. Boutons « Prévisualiser » et « Générer HD » — libellés complets
 
-## Renommage du vocabulaire
+Fichier : `src/pages/AvatarStudio.tsx` (lignes 1117 et 1134).
 
-Dans `src/lib/avatarTraits.ts` (`WORKFLOW_LABEL`) et `src/lib/avatarVocabLabels.ts` (`workflow_status`) :
-
-| Clé technique (inchangée en base) | Ancien libellé | Nouveau libellé |
-|---|---|---|
-| `draft` | Brouillon | **À générer** |
-| `generated` | Généré | **À publier** |
-| `approved` | Approuvé | **Publié** |
-| `locked` | Verrouillé | **Publié (verrouillé)** |
-
-Aucune migration DB. Les valeurs en base restent `draft/generated/approved/locked`.
-
-## 1. Colonne 1 (BeneficiaryListPanel) — remplacer les initiales A/G
-
-Bloc lignes 76–78 de `src/features/avatar-studio/BeneficiaryListPanel.tsx`.
-
-Remplacer le badge lettre par un **point de couleur 8×8 px** (dot) coloré selon `WORKFLOW_COLOR`, avec `title` = nouveau libellé complet au survol :
+Retirer la classe `truncate` sur les `<span>` afin que les libellés s'affichent en entier :
 
 ```tsx
-<span
-  className={`h-2 w-2 rounded-full border ${WORKFLOW_COLOR[ws]}`}
-  title={WORKFLOW_LABEL[ws]}
-  aria-label={WORKFLOW_LABEL[ws]}
-/>
+<span>Prévisualiser</span>
+<span>Générer HD</span>
 ```
 
-Lisible d'un coup d'œil, cohérent avec les filtres du topbar (Tous / À faire / À valider / Validés), pas d'ambiguïté « A vs G ».
+## 2. Retirer l'indicateur « Publiée » + point vert (colonne 2, en-tête Versions)
 
-## 2. Bouton « Publier » explicite dans la 2ᵉ colonne
+Fichier : `src/pages/AvatarStudio.tsx` (lignes 1188-1196).
 
-Bloc lignes ~1280–1330 de `src/pages/AvatarStudio.tsx` (la CTA principale « avatar-cta »).
+Supprimer entièrement le `<span>` de droite (« Publiée » avec swatch). La bague `ring-primary` visible sur la vignette active suffit à identifier la version publiée. Le header devient :
 
-Actuellement la logique construit un bouton principal dont le libellé change selon `ws`. Ajustements :
+```tsx
+<div className="flex items-center mb-1 shrink-0">
+  <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
+    <History className="h-3 w-3" />Versions ({versions.length})
+  </h3>
+</div>
+```
 
-- Quand `ws === "generated"` (avatar HD prêt mais non publié) : la CTA principale devient **`Publier l'avatar`** (icône `ShieldCheck`, variant `default`), appelant `setWorkflow("approved")`. Raccourci `P` (au lieu de `A`).
-- Quand `ws === "approved"` : CTA désactivée avec libellé **`Publié ✓`** + un lien secondaire discret « Retirer de la publication » (`setWorkflow("generated")`) pour l'undo (déjà présent en `showUndo`, on garde).
-- Quand `ws === "draft"` : la CTA reste **`Générer l'avatar HD`** (comportement actuel inchangé).
-- Quand `ws === "locked"` : CTA désactivée « Publié · Verrouillé ».
+## 3. Supprimer Navbar + Footer sur `/avatar-studio`
 
-Retirer l'auto-approve à QA ≥ 75 (lignes 148–160) — la publication doit toujours être un acte explicite. Remplacer par un simple `toast.success("QA élevé — prêt à publier")` quand `qa >= 75 && ws === "generated"`.
+Fichier : `src/pages/AvatarStudio.tsx`.
 
-## 3. Badge de statut dans la 2ᵉ colonne (ligne 1054)
+- Ligne 3 : retirer `import Layout from "@/components/Layout";`
+- Lignes 877-881 (état loading) : remplacer `<Layout>…</Layout>` par `<div className="min-h-screen bg-background">…</div>`
+- Lignes 893 et 1785 : remplacer les balises `<Layout>` / `</Layout>` par `<div className="min-h-screen bg-background">` / `</div>`
 
-Utilise déjà `WORKFLOW_LABEL` / `WORKFLOW_COLOR` → hérite automatiquement du renommage. Aucun changement de code, juste vérifier que le rendu reste lisible avec les nouveaux libellés (plus longs).
+Aucune autre page n'est touchée — la Navbar et le footer restent partout ailleurs.
 
-## 4. Raccourcis clavier
+## 4. Compacter la topbar interne (Admin · Avatar Studio)
 
-Dans le handler `keydown` (~ligne 862) :
-- Retirer le raccourci `A` = approuver.
-- Ajouter `P` = publier (`setWorkflow("approved")`) quand `ws === "generated"`.
-- Conserver `L` = verrouiller quand `ws === "approved"`.
+Fichier : `src/pages/AvatarStudio.tsx` (lignes 896-978).
 
-Mettre à jour la modale « Raccourcis clavier » en conséquence.
+Optimisations pour passer d'environ 56 px à environ 36 px de hauteur :
 
-## 5. Filtres du topbar (`À faire` / `À valider` / `Validés`)
+- Ligne 896 : retirer `sticky top-0 z-20`, `backdrop-blur`, réduire à `-mx-4 px-4 py-1 mb-2 border-b border-border/50`.
+- Ligne 899 : bouton Admin icon-only — `<Button variant="ghost" size="icon" className="h-7 w-7"><ArrowLeft className="h-4 w-4" /></Button>` avec `title="Retour Admin"`.
+- Ligne 902 : `text-sm font-semibold` au lieu de `text-lg font-bold`.
+- Ligne 916 : `w-48` au lieu de `w-64`, `h-7` au lieu de `h-8`.
+- Lignes 962, 966 : boutons Refresh et Keyboard en `size="icon" className="h-7 w-7"`.
+- Ligne 932 : boutons filtres `text-xs px-2 py-0.5` (au lieu de `py-1`).
 
-Renommer visuellement pour cohérence avec le nouveau vocabulaire :
-- `À faire` → **À générer** (`draft`)
-- `À valider` → **À publier** (`generated`)
-- `Validés` → **Publiés** (`approved` + `locked`)
+## 5. Ajuster la hauteur de la grille principale
 
-Fichier : `src/pages/AvatarStudio.tsx` (chercher les libellés des filtres, ~ ligne 250 pour les compteurs).
+Fichier : `src/pages/AvatarStudio.tsx` (ligne 981).
+
+`h-[calc(100vh-120px)]` → `h-[calc(100dvh-64px)]` (topbar ~36 px + paddings ~28 px). Cela redonne ~56 px de hauteur aux 3 colonnes, ce qui rend les 9 versions visibles sans scroll interne.
 
 ## Portée
 
-- `src/lib/avatarTraits.ts` — libellés uniquement.
-- `src/lib/avatarVocabLabels.ts` — libellés uniquement.
-- `src/features/avatar-studio/BeneficiaryListPanel.tsx` — remplacement lettre → dot.
-- `src/pages/AvatarStudio.tsx` — CTA « Publier », suppression auto-approve, raccourci, filtres topbar.
-
-**Aucun changement** : base de données, RLS, edge functions, backend matching/panier, autres pages.
+- Un seul fichier modifié : `src/pages/AvatarStudio.tsx`.
+- **Aucun changement** : base de données, RLS, edge functions, backend matching/panier, autres pages, autres composants.
