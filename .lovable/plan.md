@@ -1,62 +1,67 @@
-## Contexte
+## Portée
 
-Ces correctifs avaient été validés lors d'un échange précédent mais n'ont pas été appliqués. Ils portent uniquement sur `src/pages/AvatarStudio.tsx` (frontend, pas de logique backend touchée).
+Un seul fichier : `src/pages/AvatarStudio.tsx`. Aucun changement backend, ni sur les autres pages.
 
-## 1. Boutons « Prévisualiser » et « Générer HD » — libellés complets
+## 1. Toutes les versions visibles (scroll interne)
 
-Fichier : `src/pages/AvatarStudio.tsx` (lignes 1117 et 1134).
+Fichier : `src/pages/AvatarStudio.tsx` (lignes 1186-1259).
 
-Retirer la classe `truncate` sur les `<span>` afin que les libellés s'affichent en entier :
+Le conteneur `flex-1 min-h-0 flex flex-col` existe déjà, mais la grille des vignettes n'a pas de zone scrollable. À l'écran actuel (639 px), 5 vignettes sur 9 sont tronquées.
 
-```tsx
-<span>Prévisualiser</span>
-<span>Générer HD</span>
-```
-
-## 2. Retirer l'indicateur « Publiée » + point vert (colonne 2, en-tête Versions)
-
-Fichier : `src/pages/AvatarStudio.tsx` (lignes 1188-1196).
-
-Supprimer entièrement le `<span>` de droite (« Publiée » avec swatch). La bague `ring-primary` visible sur la vignette active suffit à identifier la version publiée. Le header devient :
+Ajout d'une div de scroll autour de la grille :
 
 ```tsx
-<div className="flex items-center mb-1 shrink-0">
-  <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
-    <History className="h-3 w-3" />Versions ({versions.length})
-  </h3>
+<div className="flex-1 min-h-0 flex flex-col">
+  <div className="flex items-center mb-1 shrink-0">
+    <h3 …>Versions ({versions.length})</h3>
+  </div>
+  {versions.length === 0 ? (
+    <div …>Aucune version archivée.</div>
+  ) : (
+    <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="grid grid-cols-3 gap-1.5 pb-1">
+        {orderedVersions.map(v => …)}
+      </div>
+    </div>
+  )}
 </div>
 ```
 
-## 3. Supprimer Navbar + Footer sur `/avatar-studio`
+Résultat : les 9 vignettes restent accessibles via scroll interne à la colonne « Avatar et variantes », sans casser la mise en page.
 
-Fichier : `src/pages/AvatarStudio.tsx`.
+## 2. « Importer une image » sur la même ligne que Prévisualiser / Générer HD
 
-- Ligne 3 : retirer `import Layout from "@/components/Layout";`
-- Lignes 877-881 (état loading) : remplacer `<Layout>…</Layout>` par `<div className="min-h-screen bg-background">…</div>`
-- Lignes 893 et 1785 : remplacer les balises `<Layout>` / `</Layout>` par `<div className="min-h-screen bg-background">` / `</div>`
+Fichier : `src/pages/AvatarStudio.tsx` (lignes 1105-1165).
 
-Aucune autre page n'est touchée — la Navbar et le footer restent partout ailleurs.
+- Déplacer le bouton `Importer une image` (lignes 1154-1165) à l'intérieur du `<div className="flex gap-1.5 w-full">` (ligne 1106), après « Générer HD » et avant le `<input type="file">`.
+- Rendre le bouton compact pour tenir sur la même ligne : `variant="outline"`, `size="sm"`, `className="shrink-0 px-2"`, icône `Upload` seule + `title="Importer une image (PNG/JPG/WEBP)"` + `aria-label="Importer une image"`.
+- Conserver `onClick={() => importInputRef.current?.click()}` et `disabled={!!busy || isLocked}`.
+- Supprimer le bloc `<Button …>Importer une image</Button>` d'origine (lignes 1154-1165).
 
-## 4. Compacter la topbar interne (Admin · Avatar Studio)
+## 3. Bouton « Publier l'avatar » avec une couleur dédiée du design system
 
-Fichier : `src/pages/AvatarStudio.tsx` (lignes 896-978).
+Fichier : `src/pages/AvatarStudio.tsx` (lignes 1279-1295).
 
-Optimisations pour passer d'environ 56 px à environ 36 px de hauteur :
+Le design system expose la couleur `cta` (rose corail, utilisée pour les CTA de don). Elle n'est utilisée nulle part dans Avatar Studio → parfaite pour distinguer visuellement l'action de publication des actions IA (primary/secondary).
 
-- Ligne 896 : retirer `sticky top-0 z-20`, `backdrop-blur`, réduire à `-mx-4 px-4 py-1 mb-2 border-b border-border/50`.
-- Ligne 899 : bouton Admin icon-only — `<Button variant="ghost" size="icon" className="h-7 w-7"><ArrowLeft className="h-4 w-4" /></Button>` avec `title="Retour Admin"`.
-- Ligne 902 : `text-sm font-semibold` au lieu de `text-lg font-bold`.
-- Ligne 916 : `w-48` au lieu de `w-64`, `h-7` au lieu de `h-8`.
-- Lignes 962, 966 : boutons Refresh et Keyboard en `size="icon" className="h-7 w-7"`.
-- Ligne 932 : boutons filtres `text-xs px-2 py-0.5` (au lieu de `py-1`).
+Modifications :
 
-## 5. Ajuster la hauteur de la grille principale
+- Ligne 1279 : retirer `variant: "default"` du descriptor `main` pour `Publier l'avatar` / `Publier malgré un QA faible`.
+- Ligne 1284-1295 (le `mainBtn`) : appliquer une classe conditionnelle quand l'action est « publier » :
 
-Fichier : `src/pages/AvatarStudio.tsx` (ligne 981).
+```tsx
+const isPublish = ws === "generated";
+const mainBtn = (
+  <Button
+    onClick={main.onClick}
+    size="sm"
+    variant={isPublish ? undefined : main.variant}
+    disabled={!!main.hint}
+    className={`flex-1 ${isPublish ? "bg-cta hover:bg-cta/90 text-cta-foreground" : ""}`}
+  >
+    …
+  </Button>
+);
+```
 
-`h-[calc(100vh-120px)]` → `h-[calc(100dvh-64px)]` (topbar ~36 px + paddings ~28 px). Cela redonne ~56 px de hauteur aux 3 colonnes, ce qui rend les 9 versions visibles sans scroll interne.
-
-## Portée
-
-- Un seul fichier modifié : `src/pages/AvatarStudio.tsx`.
-- **Aucun changement** : base de données, RLS, edge functions, backend matching/panier, autres pages, autres composants.
+Les autres états (Verrouiller, Déverrouiller) gardent leurs variants actuels (`secondary`, `outline`).

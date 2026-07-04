@@ -1137,6 +1137,22 @@ const AvatarStudio = () => {
                       </TooltipTrigger>
                       <TooltipContent className="text-xs">Générer l'avatar final — version HD à valider.</TooltipContent>
                     </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 px-2"
+                          onClick={() => importInputRef.current?.click()}
+                          disabled={!!busy || isLocked}
+                          aria-label="Importer une image"
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="text-xs">Importer une image (PNG/JPG/WEBP) — sans contrôle IA.</TooltipContent>
+                    </Tooltip>
                     <input
                       ref={importInputRef}
                       type="file"
@@ -1150,19 +1166,7 @@ const AvatarStudio = () => {
                     />
                   </div>
 
-                  {/* Import d'image — action non-IA, séparée du menu de génération */}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-xs text-muted-foreground"
-                    onClick={() => importInputRef.current?.click()}
-                    disabled={!!busy || isLocked}
-                    title="Importer une image PNG/JPG/WEBP — sans contrôle IA"
-                  >
-                    <Upload className="h-3.5 w-3.5 mr-2" />
-                    Importer une image
-                  </Button>
+
 
 
 
@@ -1195,67 +1199,66 @@ const AvatarStudio = () => {
                     {versions.length === 0 ? (
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
                     ) : (
-                      <>
-                      <div className="grid grid-cols-3 gap-1.5 pb-1">
-                        {orderedVersions.map(v => {
-                          const activeUrl = selected.avatar_url ?? null;
-                          const isActive = sameImage(activeUrl, v.image_url);
-                          const url = v.image_url || "";
-                          const isPreview = url.includes("/preview-") || url.includes("/preview/");
-                          const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
-                          return (
-                            <div
-                              key={v.id}
-                              className={`relative w-full aspect-square rounded overflow-hidden bg-muted group ${
-                                isActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md" : "hover:ring-2 hover:ring-primary/40"
-                              }`}
-                            >
-                              <button
-                                onClick={() => setDetailVersionId(v.id)}
-                                className="block w-full h-full"
-                                aria-label="Voir cette version en grand"
+                      <div className="flex-1 min-h-0 overflow-y-auto">
+                        <div className="grid grid-cols-3 gap-1.5 pb-1">
+                          {orderedVersions.map(v => {
+                            const activeUrl = selected.avatar_url ?? null;
+                            const isActive = sameImage(activeUrl, v.image_url);
+                            const url = v.image_url || "";
+                            const isPreview = url.includes("/preview-") || url.includes("/preview/");
+                            const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
+                            return (
+                              <div
+                                key={v.id}
+                                className={`relative w-full aspect-square rounded overflow-hidden bg-muted group ${
+                                  isActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md" : "hover:ring-2 hover:ring-primary/40"
+                                }`}
                               >
-                                <img src={v.image_url} alt="" className="w-full h-full object-cover" />
-                              </button>
-
-                              {/* Badge "Actif" — uniquement sur la vignette active */}
-                              {isActive && (
-                                <span
-                                  className="absolute top-0 left-0 text-[10px] px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 bg-primary text-primary-foreground"
-                                  title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image."
-                                >
-                                  <CheckCircle2 className="h-2.5 w-2.5" />
-                                  Actif
-                                </span>
-                              )}
-
-                              {/* Corbeille directe — coin haut-droit, sauf sur l'actif */}
-                              {!isActive && (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); attemptDeleteVersion(v); }}
-                                  disabled={!!busy}
-                                  className="absolute top-0.5 right-0.5 w-6 h-6 rounded bg-background/80 hover:bg-destructive hover:text-destructive-foreground text-foreground flex items-center justify-center opacity-80 group-hover:opacity-100 transition-colors"
-                                  aria-label="Supprimer cette version"
-                                  title="Supprimer cette version"
+                                  onClick={() => setDetailVersionId(v.id)}
+                                  className="block w-full h-full"
+                                  aria-label="Voir cette version en grand"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <img src={v.image_url} alt="" className="w-full h-full object-cover" />
                                 </button>
-                              )}
 
-                              {/* Nature (HD/Aperçu) — bas-centre */}
-                              <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] px-1.5 py-0.5 rounded pointer-events-none font-semibold shadow-sm ${
-                                isHD ? "bg-slate-700 text-white" : "bg-amber-400 text-amber-950"
-                              }`}>
-                                {isHD ? "HD" : "Aperçu"}
-                              </span>
-                            </div>
-                          );
-                        })}
+                                {/* Badge "Actif" — uniquement sur la vignette active */}
+                                {isActive && (
+                                  <span
+                                    className="absolute top-0 left-0 text-[10px] px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 bg-primary text-primary-foreground"
+                                    title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image."
+                                  >
+                                    <CheckCircle2 className="h-2.5 w-2.5" />
+                                    Actif
+                                  </span>
+                                )}
 
+                                {/* Corbeille directe — coin haut-droit, sauf sur l'actif */}
+                                {!isActive && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); attemptDeleteVersion(v); }}
+                                    disabled={!!busy}
+                                    className="absolute top-0.5 right-0.5 w-6 h-6 rounded bg-background/80 hover:bg-destructive hover:text-destructive-foreground text-foreground flex items-center justify-center opacity-80 group-hover:opacity-100 transition-colors"
+                                    aria-label="Supprimer cette version"
+                                    title="Supprimer cette version"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
 
+                                {/* Nature (HD/Aperçu) — bas-centre */}
+                                <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] px-1.5 py-0.5 rounded pointer-events-none font-semibold shadow-sm ${
+                                  isHD ? "bg-slate-700 text-white" : "bg-amber-400 text-amber-950"
+                                }`}>
+                                  {isHD ? "HD" : "Aperçu"}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                      </>
                     )}
+
                   </div>
 
                 </div>
@@ -1280,13 +1283,14 @@ const AvatarStudio = () => {
                   }
                   const showUndo = ws === "approved";
                   const MainIcon = main.icon;
+                  const isPublish = ws === "generated";
                   const mainBtn = (
                     <Button
                       onClick={main.onClick}
                       size="sm"
-                      variant={main.variant}
+                      variant={isPublish ? undefined : main.variant}
                       disabled={!!main.hint}
-                      className="flex-1"
+                      className={`flex-1 ${isPublish ? "bg-cta hover:bg-cta/90 text-cta-foreground" : ""}`}
                     >
                       <MainIcon className="h-3.5 w-3.5 mr-1" />{main.label}
                       {main.shortcut && !main.hint && (
@@ -1294,6 +1298,7 @@ const AvatarStudio = () => {
                       )}
                     </Button>
                   );
+
                   return (
                     <div className="px-3 py-2 border-t bg-card/95 backdrop-blur shrink-0">
                       <div className="flex gap-1.5">
