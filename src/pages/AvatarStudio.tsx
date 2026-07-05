@@ -795,8 +795,12 @@ const AvatarStudio = () => {
     const activeUrl = selected.avatar_url ?? null;
     const pinned: any[] = [];
     const rest: any[] = [];
+    let activePinned = false;
     for (const v of versions) {
-      if (activeUrl && sameImage(v.image_url, activeUrl)) pinned.push(v);
+      if (activeUrl && sameImage(v.image_url, activeUrl) && !activePinned) {
+        pinned.push(v);
+        activePinned = true;
+      }
       else rest.push(v);
     }
     return [...pinned, ...rest];
@@ -1112,12 +1116,11 @@ const AvatarStudio = () => {
                           onClick={() => generate("preview")}
                           size="sm"
                           disabled={!!busy || isLocked || dignityBlocked}
-                          className="flex-1 min-w-0 overflow-hidden px-2"
+                          className="flex-1 min-w-0 overflow-hidden px-2 gap-1 text-xs"
                           aria-label="Prévisualiser les changements"
                         >
                           <RefreshCw className="h-3.5 w-3.5 shrink-0" />
-                          <span className="min-w-0 truncate">Prévisualiser</span>
-                          <kbd className="hidden min-[380px]:inline-flex shrink-0 text-[10px] opacity-70 bg-primary-foreground/10 px-1 rounded">P</kbd>
+                          <span className="whitespace-nowrap">Prévisualiser</span>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="text-xs">Prévisualiser les changements — aperçu sans remplacer l'avatar final.</TooltipContent>
@@ -1129,12 +1132,11 @@ const AvatarStudio = () => {
                           size="sm"
                           variant="secondary"
                           disabled={!!busy || isLocked || dignityBlocked}
-                          className="flex-1 min-w-0 overflow-hidden px-2"
+                          className="flex-1 min-w-0 overflow-hidden px-2 gap-1 text-xs"
                           aria-label="Générer l'avatar final"
                         >
                           <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                          <span className="min-w-0 truncate">Générer HD</span>
-                          <kbd className="hidden min-[380px]:inline-flex shrink-0 text-[10px] opacity-70 bg-primary/10 px-1 rounded">G</kbd>
+                          <span className="whitespace-nowrap">Générer HD</span>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="text-xs">Générer l'avatar final — version HD à valider.</TooltipContent>
@@ -1203,9 +1205,11 @@ const AvatarStudio = () => {
                     ) : (
                       <div className="flex-1 min-h-[180px] max-h-full overflow-y-auto overscroll-contain pr-1">
                         <div className="grid grid-cols-2 min-[360px]:grid-cols-3 gap-1.5 pb-12">
-                          {orderedVersions.map(v => {
+                          {orderedVersions.map((v, index) => {
                             const activeUrl = selected.avatar_url ?? null;
-                            const isActive = sameImage(activeUrl, v.image_url);
+                            const isActive = !!activeUrl
+                              && sameImage(activeUrl, v.image_url)
+                              && !orderedVersions.slice(0, index).some(prev => sameImage(activeUrl, prev.image_url));
                             const url = v.image_url || "";
                             const isPreview = url.includes("/preview-") || url.includes("/preview/");
                             const isHD = !isPreview && (!!v.qa_score || url.includes("/final-"));
