@@ -1021,7 +1021,7 @@ const AvatarStudio = () => {
           ) : (
             <>
               {/* ===== MIDDLE — VISUEL ===== */}
-              <section className="bg-card border rounded-xl overflow-hidden flex flex-col min-h-0">
+              <section className="bg-card border rounded-xl overflow-hidden grid grid-rows-[auto_minmax(0,1fr)_auto] min-h-0">
                 {/* Sticky header — bénéficiaire + badges + fiche */}
                 <div className="sticky top-0 z-10 px-3 py-2 border-b bg-card flex items-center gap-2 shrink-0">
                   <Button
@@ -1055,7 +1055,7 @@ const AvatarStudio = () => {
                   </a>
                 </div>
 
-                <div className="flex-1 min-h-0 flex flex-col p-3 gap-2">
+                <div className="min-h-0 flex flex-col p-3 gap-2 overflow-hidden">
 
                   {/* Aperçu fraîchement généré — badge + bascule comparaison */}
                   {isShowingFreshPreview && (
@@ -1103,19 +1103,19 @@ const AvatarStudio = () => {
                   )}
 
                   {/* Actions de génération IA — deux boutons distincts */}
-                  <div className="flex gap-1.5 w-full">
+                  <div className="flex gap-1.5 w-full min-w-0">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
                           onClick={() => generate("preview")}
                           size="sm"
                           disabled={!!busy || isLocked || dignityBlocked}
-                          className="flex-1 min-w-0"
+                          className="flex-1 min-w-0 overflow-hidden px-2"
                           aria-label="Prévisualiser les changements"
                         >
-                          <RefreshCw className="h-3.5 w-3.5 mr-1 shrink-0" />
-                          <span>Prévisualiser</span>
-                          <kbd className="ml-1 text-[10px] opacity-70 bg-primary-foreground/10 px-1 rounded">P</kbd>
+                          <RefreshCw className="h-3.5 w-3.5 shrink-0" />
+                          <span className="min-w-0 truncate">Prévisualiser</span>
+                          <kbd className="hidden min-[380px]:inline-flex shrink-0 text-[10px] opacity-70 bg-primary-foreground/10 px-1 rounded">P</kbd>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="text-xs">Prévisualiser les changements — aperçu sans remplacer l'avatar final.</TooltipContent>
@@ -1127,12 +1127,12 @@ const AvatarStudio = () => {
                           size="sm"
                           variant="secondary"
                           disabled={!!busy || isLocked || dignityBlocked}
-                          className="flex-1 min-w-0"
+                          className="flex-1 min-w-0 overflow-hidden px-2"
                           aria-label="Générer l'avatar final"
                         >
-                          <Sparkles className="h-3.5 w-3.5 mr-1 shrink-0" />
-                          <span>Générer HD</span>
-                          <kbd className="ml-1 text-[10px] opacity-70 bg-primary/10 px-1 rounded">G</kbd>
+                          <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                          <span className="min-w-0 truncate">Générer HD</span>
+                          <kbd className="hidden min-[380px]:inline-flex shrink-0 text-[10px] opacity-70 bg-primary/10 px-1 rounded">G</kbd>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="text-xs">Générer l'avatar final — version HD à valider.</TooltipContent>
@@ -1187,7 +1187,7 @@ const AvatarStudio = () => {
                   )}
 
                   {/* Versions grid — occupe l'espace restant */}
-                  <div className="flex-1 min-h-0 flex flex-col">
+                  <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
 
                     <div className="flex items-center mb-1 shrink-0">
                       <h3 className="text-xs font-medium flex items-center gap-1 text-muted-foreground uppercase tracking-wide">
@@ -1199,8 +1199,8 @@ const AvatarStudio = () => {
                     {versions.length === 0 ? (
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
                     ) : (
-                      <div className="flex-1 min-h-0 overflow-y-auto">
-                        <div className="grid grid-cols-3 gap-1.5 pb-1">
+                      <div className="flex-1 min-h-[180px] max-h-full overflow-y-auto overscroll-contain pr-1">
+                        <div className="grid grid-cols-2 min-[360px]:grid-cols-3 gap-1.5 pb-12">
                           {orderedVersions.map(v => {
                             const activeUrl = selected.avatar_url ?? null;
                             const isActive = sameImage(activeUrl, v.image_url);
