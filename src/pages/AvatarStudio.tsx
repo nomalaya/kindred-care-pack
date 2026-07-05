@@ -788,16 +788,18 @@ const AvatarStudio = () => {
   };
 
   // Actif épinglé en tête, puis reste trié par date desc (déjà l'ordre côté DB).
+  // Ne pas dédupliquer par URL : plusieurs lignes peuvent pointer vers la même
+  // image, mais le compteur affiche bien le nombre de versions archivées.
   const orderedVersions = useMemo(() => {
     if (!selected || versions.length === 0) return versions;
     const activeUrl = selected.avatar_url ?? null;
     const pinned: any[] = [];
     const rest: any[] = [];
     for (const v of versions) {
-      if (activeUrl && sameImage(v.image_url, activeUrl)) pinned[0] = v;
+      if (activeUrl && sameImage(v.image_url, activeUrl)) pinned.push(v);
       else rest.push(v);
     }
-    return [...pinned.filter(Boolean), ...rest];
+    return [...pinned, ...rest];
   }, [selected, versions]);
 
 
