@@ -1203,8 +1203,11 @@ const AvatarStudio = () => {
                     {versions.length === 0 ? (
                       <div className="text-xs text-muted-foreground py-3 text-center border border-dashed rounded-md">Aucune version archivée.</div>
                     ) : (
-                      <div className="flex-1 min-h-[180px] max-h-full overflow-y-auto overscroll-contain pr-1">
-                        <div className="grid grid-cols-2 min-[360px]:grid-cols-3 gap-1.5 pb-12">
+                      <div className="flex-1 min-h-0 max-h-[46vh] lg:max-h-full overflow-y-auto overscroll-contain pr-1">
+                        <div
+                          className="grid gap-1.5 pb-2"
+                          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(88px, 1fr))" }}
+                        >
                           {orderedVersions.map((v, index) => {
                             const activeUrl = selected.avatar_url ?? null;
                             const isActive = !!activeUrl
@@ -1216,6 +1219,7 @@ const AvatarStudio = () => {
                             return (
                               <div
                                 key={v.id}
+                                aria-current={isActive ? "true" : undefined}
                                 className={`relative w-full aspect-square rounded overflow-hidden bg-muted group ${
                                   isActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md" : "hover:ring-2 hover:ring-primary/40"
                                 }`}
@@ -1231,7 +1235,7 @@ const AvatarStudio = () => {
                                 {/* Badge "Actif" — uniquement sur la vignette active */}
                                 {isActive && (
                                   <span
-                                    className="absolute top-0 left-0 text-[10px] px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 bg-primary text-primary-foreground"
+                                    className="absolute top-0 left-0 text-[10px] leading-none whitespace-nowrap px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 bg-primary text-primary-foreground"
                                     title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image."
                                   >
                                     <CheckCircle2 className="h-2.5 w-2.5" />
@@ -1296,7 +1300,7 @@ const AvatarStudio = () => {
                       size="sm"
                       variant={isPublish ? undefined : main.variant}
                       disabled={!!main.hint}
-                      className={`flex-1 ${isPublish ? "bg-cta hover:bg-cta/90 text-cta-foreground" : ""}`}
+                      className={`flex-1 sm:flex-none sm:min-w-[180px] sm:max-w-[280px] ${isPublish ? "bg-cta hover:bg-cta/90 text-cta-foreground" : ""}`}
                     >
                       <MainIcon className="h-3.5 w-3.5 mr-1" />{main.label}
                       {main.shortcut && !main.hint && (
