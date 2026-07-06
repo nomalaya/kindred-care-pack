@@ -1,83 +1,74 @@
-## Diagnostic
+## Objectif
 
-Le compteur affiche bien `Versions (9)`, donc les données existent. Le problème vient de la mise en page de la colonne 2 :
+Rendre la zone **Versions** de l'Avatar Studio cohérente et lisible en desktop, tablette et mobile, en prenant la taille des vignettes desktop (~96 px) comme référence, avec un scroll interne stable et au moins 9 vignettes visibles sans scroll excessif. Modifications UI uniquement dans `src/pages/AvatarStudio.tsx`. Aucune modification du back-end, des prompts, des modèles, des attributs, du cadrage, du SQL ou des RPC.
 
-1. La colonne est très étroite (`320px`) et la grille force `3` colonnes. Chaque vignette devient petite, mais la zone disponible restante est aussi très réduite à cause du header, des boutons et du footer sticky.
-2. Le conteneur de scroll ajouté est probablement dans une chaîne flex/grid qui ne reçoit pas une hauteur stable dans certains contextes desktop/tablet. Résultat : `overflow-y-auto` existe dans le code, mais il n’a pas assez de hauteur calculable pour déclencher un vrai scroll visible/actif.
-3. Les boutons `Prévisualiser` et `Générer HD` sont en `flex-1 min-w-0`, mais leur contenu interne ne peut pas se compresser proprement : icône + texte + touche clavier restent sur une seule ligne dans une largeur trop faible, donc le contenu déborde visuellement.
+## Constat
 
-## Plan de correction
+- La colonne 2 fait `320px` en desktop (`lg`), mais en tablette/mobile la grille passe en pleine largeur : les vignettes en `grid-cols-2/3` deviennent énormes.
+- Le scroll (`flex-1 min-h-[180px] overflow-y-auto`) ne s'active pas fiablement car la colonne n'a pas de hauteur stable en dessous de `lg`.
+- Le bouton `Publier l'avatar` est en `flex-1` sans plafond → prend toute la largeur en tablette.
+- Le badge « Actif » et le ring paraissent différents selon la taille de vignette (perception), pas selon le code.
 
-### 1. Rendre les 9 versions réellement accessibles
+## Plan (UI uniquement, un seul fichier)
 
-Dans `src/pages/AvatarStudio.tsx`, remplacer la zone des versions par une structure à hauteur garantie :
+### 1. Grille Versions à taille de vignette fixe (référence desktop ~96 px)
 
-- garder l’en-tête `Versions (9)` fixe ;
-- donner à la zone scroll une hauteur minimale et maximale calculée ;
-- ajouter `overscroll-contain` et un padding de fin pour éviter que le footer sticky masque la dernière ligne ;
-- rendre la grille adaptative au lieu de forcer systématiquement 3 colonnes.
-
-Approche prévue :
+Dans `src/pages/AvatarStudio.tsx` (lignes ~1206-1207), remplacer la grille `grid-cols-2 min-[360px]:grid-cols-3` par une grille auto-fill qui garde la taille desktop comme référence sur les 3 modes :
 
 ```tsx
-<div className="flex-1 min-h-[180px] max-h-full overflow-y-auto overscroll-contain pr-1">
-  <div className="grid grid-cols-2 min-[360px]:grid-cols-3 gap-1.5 pb-12">
-    ...
-  </div>
-</div>
+<div
+  className="grid gap-1.5 pb-2"
+  style={{ gridTemplateColumns: "repeat(auto-fill, minmax(88px, 1fr))" }}
+>
 ```
 
-Sur une colonne très étroite, 2 colonnes permettront de mieux répartir les vignettes et de rendre le scroll plus évident. Dès que la largeur le permet, on revient à 3 colonnes.
+Effet :
+- desktop (colonne 320 px) → 3 colonnes, vignettes ~96 px ;
+- tablette (pleine largeur) → 6–8 colonnes de ~88–100 px ;
+- mobile (~360 px) → 3–4 colonnes de ~88 px.
 
-### 2. Activer le scroll en desktop view
+Plus jamais de vignettes géantes ou serrées.
 
-Ajuster les parents directs de la colonne 2 pour éviter les conflits `sticky + flex + overflow-hidden` :
+### 2. Scroll interne fiable sur les 3 modes
 
-- conserver `min-h-0` sur les parents flex ;
-- ajouter une hauteur interne explicite à la section visuelle ;
-- éviter que le contenu des versions soit calculé comme une simple hauteur automatique ;
-- si nécessaire, remplacer la répartition actuelle par `grid-rows-[auto_minmax(0,1fr)_auto]` pour que le centre soit la seule zone scrollable.
+- Sur le wrapper interne des vignettes (ligne 1206), utiliser `flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1` (au lieu de `min-h-[180px] max-h-full`).
+- S'assurer que la chaîne `flex flex-col min-h-0` remonte bien jusqu'au `<section>` colonne 2, pour que la hauteur bornée par `h-[calc(100dvh-64px)]` (ligne 987) descende correctement en desktop.
+- En dessous de `lg`, ajouter un plafond explicite `max-h-[46vh]` sur le wrapper scrollable pour garantir qu'au moins 9 vignettes (3×3 ≈ 280 px) tiennent sans pousser le footer sticky hors écran, et que le scroll interne s'active au lieu de scroller toute la page.
 
-Structure cible de la colonne 2 :
+### 3. Bouton « Publier l'avatar » — largeur raisonnable en tablette
 
-```text
-section colonne 2
-  header fixe
-  contenu central scrollable/flexible
-    alertes éventuelles
-    actions
-    versions avec scroll interne actif
-  footer fixe
-```
-
-### 3. Empêcher tout débordement dans les boutons
-
-Modifier les deux boutons d’action pour que le contenu reste toujours à l’intérieur :
-
-- retirer les marges manuelles `mr-1`/`ml-1` qui s’ajoutent au `gap` du composant Button ;
-- ajouter `overflow-hidden` sur le bouton ;
-- mettre le texte dans un `<span className="min-w-0 truncate">...` ;
-- masquer la touche clavier `P` / `G` quand la largeur est trop faible ;
-- garder l’icône en `shrink-0` ;
-- réduire légèrement le padding horizontal dans cette rangée.
-
-Approche prévue :
+Ligne ~1299, remplacer `flex-1 …` par une largeur bornée à partir de `sm` :
 
 ```tsx
-<Button className="flex-1 min-w-0 overflow-hidden px-2">
-  <RefreshCw className="h-3.5 w-3.5 shrink-0" />
-  <span className="min-w-0 truncate">Prévisualiser</span>
-  <kbd className="hidden min-[380px]:inline-flex shrink-0 ...">P</kbd>
-</Button>
+className={`flex-1 sm:flex-none sm:min-w-[180px] sm:max-w-[280px] ${
+  isPublish ? "bg-cta hover:bg-cta/90 text-cta-foreground" : ""
+}`}
 ```
 
-Même logique pour `Générer HD`.
+Le bouton reste pleine largeur en mobile étroit, mais est plafonné dès `sm` (≥640 px) — plus de bouton « Publier » disproportionné en tablette.
 
-### 4. Vérification visuelle
+### 4. Marqueur « avatar actif » strictement identique sur les 3 modes
 
-Après implémentation, vérifier `/avatar-studio` en desktop étroit proche du cas observé (`1070x639`) :
+Le code du marqueur est unique (ring primary + badge « Actif » top-left) ; l'incohérence perçue vient de la taille des vignettes. Une fois la taille normalisée (point 1) :
 
-- `Versions (9)` reste affiché ;
-- les versions au-delà des 4 premières sont accessibles via scroll interne ;
-- aucun contenu de bouton ne dépasse ;
-- `Importer une image` reste sur la même ligne.
+- conserver `ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md` ;
+- forcer le badge « Actif » à `text-[10px] leading-none whitespace-nowrap` pour qu'il ne se coupe jamais, quelle que soit la vignette ;
+- ajouter `aria-current="true"` sur la vignette active pour l'accessibilité.
+
+### 5. Vérification
+
+Tester `/avatar-studio` via Playwright à 3 tailles et lire les captures :
+
+- 1440×900 (desktop) ;
+- 820×1180 (tablette) ;
+- 375×800 (mobile).
+
+Vérifier sur chaque capture :
+- 9 vignettes visibles sans scroll de page (scroll interne uniquement) ;
+- taille de vignette ~88–100 px identique sur les 3 modes ;
+- bouton « Publier » plafonné en tablette ;
+- ring + badge « Actif » identiques et bien visibles.
+
+## Hors périmètre
+
+Aucune modification de : génération IA, prompts, modèles, attributs, fonds, cadrage, SQL, RPC, edge functions, RLS, ni d'autres pages que `src/pages/AvatarStudio.tsx`.
