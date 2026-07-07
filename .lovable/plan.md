@@ -1,74 +1,68 @@
-## Objectif
+## Problèmes
 
-Rendre la zone **Versions** de l'Avatar Studio cohérente et lisible en desktop, tablette et mobile, en prenant la taille des vignettes desktop (~96 px) comme référence, avec un scroll interne stable et au moins 9 vignettes visibles sans scroll excessif. Modifications UI uniquement dans `src/pages/AvatarStudio.tsx`. Aucune modification du back-end, des prompts, des modèles, des attributs, du cadrage, du SQL ou des RPC.
+1. **Cadre (ring) de l'avatar actif coupé en haut et à gauche**
+   - La vignette utilise `ring-2 ring-primary ring-offset-2` → le contour s'étend d'environ **4 px à l'extérieur** de la vignette.
+   - Le conteneur scrollable parent (`src/pages/AvatarStudio.tsx` ligne 1206) n'a **aucun padding** côté haut/gauche (`pr-1` uniquement) et applique `overflow-y-auto`, qui coupe tout ce qui dépasse.
+   - Résultat : sur la vignette de la 1re ligne / 1re colonne, seuls les côtés droit et bas du cadre restent visibles.
 
-## Constat
+2. **Badge « Actif » trop chargé**
+   - L'icône `CheckCircle2` précédant le texte « Actif » réduit l'espace disponible dans le badge et alourdit visuellement la petite vignette.
 
-- La colonne 2 fait `320px` en desktop (`lg`), mais en tablette/mobile la grille passe en pleine largeur : les vignettes en `grid-cols-2/3` deviennent énormes.
-- Le scroll (`flex-1 min-h-[180px] overflow-y-auto`) ne s'active pas fiablement car la colonne n'a pas de hauteur stable en dessous de `lg`.
-- Le bouton `Publier l'avatar` est en `flex-1` sans plafond → prend toute la largeur en tablette.
-- Le badge « Actif » et le ring paraissent différents selon la taille de vignette (perception), pas selon le code.
+## Correctifs (UI uniquement, `src/pages/AvatarStudio.tsx`)
 
-## Plan (UI uniquement, un seul fichier)
+### 1. Padding autour de la grille pour éviter de couper le ring
 
-### 1. Grille Versions à taille de vignette fixe (référence desktop ~96 px)
-
-Dans `src/pages/AvatarStudio.tsx` (lignes ~1206-1207), remplacer la grille `grid-cols-2 min-[360px]:grid-cols-3` par une grille auto-fill qui garde la taille desktop comme référence sur les 3 modes :
-
-```tsx
-<div
-  className="grid gap-1.5 pb-2"
-  style={{ gridTemplateColumns: "repeat(auto-fill, minmax(88px, 1fr))" }}
->
-```
-
-Effet :
-- desktop (colonne 320 px) → 3 colonnes, vignettes ~96 px ;
-- tablette (pleine largeur) → 6–8 colonnes de ~88–100 px ;
-- mobile (~360 px) → 3–4 colonnes de ~88 px.
-
-Plus jamais de vignettes géantes ou serrées.
-
-### 2. Scroll interne fiable sur les 3 modes
-
-- Sur le wrapper interne des vignettes (ligne 1206), utiliser `flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1` (au lieu de `min-h-[180px] max-h-full`).
-- S'assurer que la chaîne `flex flex-col min-h-0` remonte bien jusqu'au `<section>` colonne 2, pour que la hauteur bornée par `h-[calc(100dvh-64px)]` (ligne 987) descende correctement en desktop.
-- En dessous de `lg`, ajouter un plafond explicite `max-h-[46vh]` sur le wrapper scrollable pour garantir qu'au moins 9 vignettes (3×3 ≈ 280 px) tiennent sans pousser le footer sticky hors écran, et que le scroll interne s'active au lieu de scroller toute la page.
-
-### 3. Bouton « Publier l'avatar » — largeur raisonnable en tablette
-
-Ligne ~1299, remplacer `flex-1 …` par une largeur bornée à partir de `sm` :
+Ligne 1206, remplacer :
 
 ```tsx
-className={`flex-1 sm:flex-none sm:min-w-[180px] sm:max-w-[280px] ${
-  isPublish ? "bg-cta hover:bg-cta/90 text-cta-foreground" : ""
-}`}
+<div className="flex-1 min-h-0 max-h-[46vh] lg:max-h-full overflow-y-auto overscroll-contain pr-1">
 ```
 
-Le bouton reste pleine largeur en mobile étroit, mais est plafonné dès `sm` (≥640 px) — plus de bouton « Publier » disproportionné en tablette.
+par :
 
-### 4. Marqueur « avatar actif » strictement identique sur les 3 modes
+```tsx
+<div className="flex-1 min-h-0 max-h-[46vh] lg:max-h-full overflow-y-auto overscroll-contain p-1">
+```
 
-Le code du marqueur est unique (ring primary + badge « Actif » top-left) ; l'incohérence perçue vient de la taille des vignettes. Une fois la taille normalisée (point 1) :
+Effet : 4 px de padding sur les 4 côtés du conteneur scrollable → le ring de 2 px + offset 2 px de la vignette active en bord de grille est intégralement visible sur desktop, tablette et mobile.
 
-- conserver `ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md` ;
-- forcer le badge « Actif » à `text-[10px] leading-none whitespace-nowrap` pour qu'il ne se coupe jamais, quelle que soit la vignette ;
-- ajouter `aria-current="true"` sur la vignette active pour l'accessibilité.
+### 2. Supprimer l'icône du badge « Actif »
 
-### 5. Vérification
+Lignes 1236-1244, remplacer le bloc actuel :
 
-Tester `/avatar-studio` via Playwright à 3 tailles et lire les captures :
+```tsx
+{isActive && (
+  <span
+    className="absolute top-0 left-0 text-[10px] leading-none whitespace-nowrap px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 bg-primary text-primary-foreground"
+    title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image."
+  >
+    <CheckCircle2 className="h-2.5 w-2.5" />
+    Actif
+  </span>
+)}
+```
 
-- 1440×900 (desktop) ;
-- 820×1180 (tablette) ;
-- 375×800 (mobile).
+par :
 
-Vérifier sur chaque capture :
-- 9 vignettes visibles sans scroll de page (scroll interne uniquement) ;
-- taille de vignette ~88–100 px identique sur les 3 modes ;
-- bouton « Publier » plafonné en tablette ;
-- ring + badge « Actif » identiques et bien visibles.
+```tsx
+{isActive && (
+  <span
+    className="absolute top-0 left-0 text-[10px] leading-none whitespace-nowrap px-1.5 py-0.5 rounded-br pointer-events-none font-semibold bg-primary text-primary-foreground"
+    title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image."
+  >
+    Actif
+  </span>
+)}
+```
+
+Effet : le badge affiche uniquement le texte « Actif », plus lisible et moins encombré sur les petites vignettes.
+
+## Vérification
+
+Playwright sur `/avatar-studio` à 1440×900, 820×1180, 375×800 → capture de la zone Versions, confirmer :
+- le cadre de l'avatar actif est visible sur les 4 côtés (même en 1re ligne / 1re colonne) ;
+- le badge « Actif » n'affiche plus l'icône ronde avec coche.
 
 ## Hors périmètre
 
-Aucune modification de : génération IA, prompts, modèles, attributs, fonds, cadrage, SQL, RPC, edge functions, RLS, ni d'autres pages que `src/pages/AvatarStudio.tsx`.
+Aucune modification : génération IA, prompts, modèles, attributs, fonds, cadrage, SQL, RPC, edge functions, autres pages.
