@@ -1,3 +1,4 @@
+// sync
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 import type { FieldReason } from "@/lib/avatarAutoInfer";

@@ -1,3 +1,4 @@
+// sync
 // Mappe approx_age vers la valeur exacte du vocabulaire AVATAR_VOCAB.age_range.
 // Distinct de getAgeRange() qui renvoie un libellé d'affichage avec « ans ».
 export function mapApproxAgeToVocab(age: number | null | undefined): string | null {

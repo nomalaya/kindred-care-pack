@@ -1,3 +1,4 @@
+// sync
 import { AlertTriangle } from "lucide-react";
 import type { RuleWarning } from "@/lib/avatarRules";
 

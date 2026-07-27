@@ -1,3 +1,4 @@
+// sync
 // Traduction française fine des valeurs de AVATAR_VOCAB pour l'affichage.
 // Les valeurs techniques (clés) restent inchangées en base ; seul le texte affiché est francisé.
 

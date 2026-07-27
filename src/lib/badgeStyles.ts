@@ -1,3 +1,4 @@
+// sync
 import type React from "react";
 
 /**

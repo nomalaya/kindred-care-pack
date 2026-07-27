@@ -1,3 +1,4 @@
+// sync
 /**
  * Avatar Framing — non-destructive display transformation for beneficiary avatars.
  *

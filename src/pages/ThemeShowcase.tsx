@@ -1,3 +1,4 @@
+// sync
 import { useState, useEffect, useRef, useCallback } from "react";
 import { themes, applyTheme, type ThemeDefinition } from "@/lib/themes";
 import { Button } from "@/components/ui/button";

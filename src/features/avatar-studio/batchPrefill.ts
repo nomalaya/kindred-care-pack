@@ -1,3 +1,4 @@
+// sync
 import { AVATAR_VOCAB } from "@/lib/avatarTraits";
 import { inferStudioDefaultsWithReasons } from "@/lib/avatarAutoInfer";
 

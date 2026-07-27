@@ -1,3 +1,4 @@
+// sync
 // Dictionnaire pays/gentilés → groupe phénotypique → defaults visuels (H/F).
 // Source : tableau classification_phenotypes_humains (Hommes + Femmes).
 // Valeurs alignées sur AVATAR_VOCAB (src/lib/avatarTraits.ts).

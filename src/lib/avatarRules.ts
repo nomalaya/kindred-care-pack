@@ -1,3 +1,4 @@
+// sync
 // Suggestive rule engine for Avatar Studio.
 // Returns non-blocking warnings (except dignity_level < 3 which is blocking).
 

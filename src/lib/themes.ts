@@ -1,3 +1,4 @@
+// sync
 export interface ThemeDefinition {
   name: string;
   colors: Record<string, string>;
