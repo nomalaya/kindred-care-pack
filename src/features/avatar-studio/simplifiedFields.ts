@@ -1,3 +1,4 @@
+// sync
 // Simplified Avatar Studio controls — pure helpers, no IA, no DB writes.
 // Maps a small set of user-facing values to the underlying base avatar_* fields.
 

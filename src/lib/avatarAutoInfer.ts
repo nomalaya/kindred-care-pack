@@ -1,3 +1,4 @@
+// sync
 // Moteur de pré-filtrage psychosocial pour Avatar Studio.
 // Détecte des signaux fins (handicap, maladie, deuil, parentalité solo, exil…)
 // dans short_story + emotional_sentence et déduit des attributs visuels et émotionnels.

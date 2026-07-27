@@ -1,3 +1,4 @@
+// sync
 // Frontend mirror of the avatar trait vocabularies (read-only, for admin UI).
 // The authoritative inference engine lives in supabase/functions/_shared/avatarTraits.ts
 // and runs server-side. This file just exposes the vocabularies so the admin

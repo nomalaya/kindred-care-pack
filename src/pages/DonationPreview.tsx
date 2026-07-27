@@ -1,3 +1,4 @@
+// sync
 import Layout from "@/components/Layout";
 import DonationConfirmation from "@/components/DonationConfirmation";
 

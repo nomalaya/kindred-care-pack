@@ -1,3 +1,4 @@
+// sync
 // Maps an avatar generation failure code (stored in beneficiaries.avatar_qa_report.reason
 // or .code) to a precise French operator-facing message.
 //

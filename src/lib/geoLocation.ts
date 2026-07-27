@@ -1,3 +1,4 @@
+// sync
 /**
  * IP-based geolocation for anonymous donors.
  * Uses ip-api.com (free, 45 req/min) to get region-level location.
