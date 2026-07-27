@@ -74,3 +74,5 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/c
 
 ---
 *Test de synchronisation GitHub — 27 juillet 2026*
+
+<!-- sync check: 2026-07-27 (Admin.tsx + AvatarStudio.tsx) -->
