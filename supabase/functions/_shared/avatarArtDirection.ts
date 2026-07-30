@@ -114,10 +114,16 @@ DIGNITY (GLOBAL, NON-NEGOTIABLE): Always portray the person with dignity, respec
 // Strict framing block. Short, repeated, capitalized — image models obey these much better than long paragraphs.
 export const FRAMING_BLOCK = `
 IMAGE FORMAT — STRICT: square 1:1 canvas. Full-bleed illustration. The white background MUST extend all the way to the four edges of the image.
-FRAMING — STRICT: the subject shows HEAD + NECK + FULL SHOULDERS + UPPER ARMS. Both shoulders are complete, and the TOP OF THE ARMS (down to the upper biceps, sleeves included) IS visible on each side. The bottom edge of the canvas crops at the UPPER CHEST, just below the armholes — clearly above the waist, clearly above the mid-torso. The garment (sweater, shirt, jacket) is fully drawn, opaque, with visible sleeves on both sides. Full torso, ribcage, waist and hips MUST NOT be visible. No deep cleavage, no exposed chest skin beyond a normal neckline.
-SUBJECT SIZE — STRICT (NON-NEGOTIABLE): the subject FILLS the canvas. Tight, generous, edge-to-edge framing like a passport/profile close-up. The top of the hair sits close to the top edge (a thin white band of about 5% at most). The SHOULDERS AND UPPER ARMS REACH the left and right edges and bleed out of them. The garment MUST reach and bleed out through the BOTTOM edge of the canvas across its FULL WIDTH — there must be NO white band, NO white gap, NO white corner and NO empty space between the body and the bottom edge.
-FORBIDDEN SIZING: small subject, distant subject, subject floating in the middle of a large white area, wide white margins, white border around the subject, white band under the bust, head-and-shoulders vignette, medium/long shot. The subject must NEVER occupy less than 90% of the canvas width.
-COMPOSITION: subject centered horizontally. The eyes sit in the UPPER THIRD of the canvas, at roughly 32% of the canvas height from the top. The head height is roughly 60% of the canvas height. Looking softly toward the camera.
+CANONICAL PROPORTIONS — STRICT (NON-NEGOTIABLE, measured on the reference portrait):
+  - the EYES sit at 38% of the canvas height from the top;
+  - the CHIN sits at 50% of the canvas height — exactly mid-canvas;
+  - the head (hair included) is about 44% of the canvas height;
+  - therefore the HEAD IS ROUGHLY AS TALL AS THE BODY VISIBLE UNDER IT. The whole lower half of the canvas is neck, shoulders, upper arms and garment.
+  - the head must NEVER take more than half of the canvas height. This is not a face close-up.
+FRAMING — STRICT: the subject shows HEAD + NECK + FULL SHOULDERS + UPPER ARMS. Both shoulders are complete and the TOP OF THE ARMS (down to the upper biceps, sleeves included) IS visible on each side. The bottom edge of the canvas crops at the UPPER CHEST, clearly above the waist. The garment (sweater, shirt, jacket) is fully drawn, opaque, with visible sleeves on both sides. Full torso, ribcage, waist and hips MUST NOT be visible. No deep cleavage, no exposed chest skin beyond a normal neckline.
+SUBJECT SIZE — STRICT: the top of the hair sits close to the top edge (a thin white band of about 5% at most). The SHOULDERS AND UPPER ARMS REACH the left and right edges and bleed out of them. The garment MUST reach and bleed out through the BOTTOM edge across its FULL WIDTH — NO white band, NO white gap, NO white corner under the body.
+FORBIDDEN SIZING: face close-up, head filling the canvas, chin below mid-canvas, eyes below 45% of the canvas height, cropped forehead, cropped ears, small distant subject floating in a large white area, wide white margins, white border around the subject, head-and-shoulders vignette. The subject must NEVER occupy less than 90% of the canvas width.
+COMPOSITION: subject centered horizontally, looking softly toward the camera.
 COMPLETE SHOULDERS AND UPPER ARMS — STRICT (NON-NEGOTIABLE):
 The portrait must show complete solid shoulders, visible upper arms and a continuous body outline that runs off the left, right and bottom edges.
 The clothing, shoulders and sleeves must remain fully drawn and fully opaque all the way to the bottom edge of the canvas.
@@ -125,6 +131,7 @@ The body simply leaves the canvas through the bottom edge. Do NOT add a thick ho
 Do not fade, dissolve, wash out, blur, mask, vignette or watercolor-fade the body. No circular crop, no cut-off shoulders, no narrow floating bust, no disappearing body, no soft fade-out at the bottom.
 ABSOLUTELY FORBIDDEN: full torso visible, waist visible, ribcage visible, hips, arms hanging full-length, hands, narrow bust with white on both sides, white margin under the bust, subject not touching the bottom edge, paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair, thick dark line under the bust, horizontal bar under the shoulders, table or shelf under the subject.
 `.trim();
+
 
 
 
