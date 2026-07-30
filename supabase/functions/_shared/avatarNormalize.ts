@@ -218,8 +218,12 @@ export type NormalizeReport = {
   landmarks: { eyeYPct: number; centerXPct: number; headHPct: number } | null;
   /** Resulting framing on the 1024 canvas, in % (landmarks mode only). */
   output?: { headHPct: number; eyeYPct: number; centerXPct: number; bottomMarginPct: number };
-
+  /** True when the source lacks material below the chin to fill the canvas. */
+  needsRegeneration?: boolean;
+  /** Human-readable reason attached to needsRegeneration. */
+  regenerationReason?: string;
 };
+
 
 /**
  * Recompose the avatar into the canonical framing. Returns the new PNG bytes and
