@@ -106,18 +106,22 @@ serve(async (req) => {
           beneficiary_id: b.id,
           image_url: u.publicUrl,
           model_used: "normalize-framing/deterministic",
-          prompt: `bbox-normalize scale=${report.scale} source_margins=${JSON.stringify(report.sourceMargins)}`,
+          prompt: `framing=${report.mode} scale=${report.scale} landmarks=${JSON.stringify(report.landmarks)}`,
         });
 
         results.push({
           id: b.id,
           name: b.alias_first_name,
           changed: true,
+          from_archive: fromArchive,
+          mode: report.mode,
+          landmarks: report.landmarks,
           source_margins: report.sourceMargins,
           scale: report.scale,
           transparent: report.transparent,
           newUrl,
         });
+
       } catch (e: any) {
         results.push({ id: b.id, name: b.alias_first_name, error: e.message });
       }
