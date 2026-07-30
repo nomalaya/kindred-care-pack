@@ -238,8 +238,18 @@ export async function normalizeAvatarFraming(
   const lm = detectLandmarks(spans, bbox);
 
   if (lm) {
-    // Same camera distance for everyone: shoulders always span SHOULDER_FILL.
-    const scale = (S * SHOULDER_FILL) / lm.shoulderW;
+    // Same camera distance for everyone: the head always spans HEAD_FILL.
+    let scale = (S * HEAD_FILL) / lm.headH;
+
+    // Anti-crop guarantee: the bust must bleed out through the bottom edge.
+    // We zoom around the eye line (which stays pinned at EYE_LINE) until the
+    // bottom of the silhouette reaches the bottom of the canvas.
+    const bustDepth = bbox.y + bbox.h - lm.eyeY; // source px, eye line -> bust bottom
+    if (bustDepth > 0) {
+      const needed = (S * (1 - EYE_LINE)) / bustDepth;
+      if (needed > scale) scale = Math.min(needed, scale * MAX_BLEED_ZOOM);
+    }
+
     const scaledW = Math.max(1, Math.round(img.width * scale));
     const scaledH = Math.max(1, Math.round(img.height * scale));
     const scaled = img.clone().resize(scaledW, scaledH);
@@ -260,6 +270,7 @@ export async function normalizeAvatarFraming(
       const visible = scaled.clone().crop(srcX, srcY, srcW, srcH);
       canvas.composite(visible, Math.max(0, -winX), Math.max(0, -winY));
       const bytes = await canvas.encode();
+      const outBottom = (bbox.y + bbox.h) * scale - winY;
       return {
         bytes,
         report: {
@@ -272,8 +283,13 @@ export async function normalizeAvatarFraming(
           landmarks: {
             eyeYPct: Math.round((lm.eyeY / img.height) * 1000) / 10,
             centerXPct: Math.round((lm.centerX / img.width) * 1000) / 10,
-            shoulderWPct: Math.round((lm.shoulderW / img.width) * 1000) / 10,
             headHPct: Math.round((lm.headH / img.height) * 1000) / 10,
+          },
+          output: {
+            headHPct: Math.round(((lm.headH * scale) / S) * 1000) / 10,
+            eyeYPct: Math.round(EYE_LINE * 1000) / 10,
+            centerXPct: 50,
+            bottomMarginPct: Math.max(0, Math.round(((S - outBottom) / S) * 1000) / 10),
           },
         },
       };
@@ -281,6 +297,7 @@ export async function normalizeAvatarFraming(
   }
 
   // ---- Fallback: legacy bust framing (unchanged behaviour) ----
+
   let scale = (S * HEIGHT_FILL) / bbox.h;
   if (bbox.w * scale < S * MIN_WIDTH_FILL) {
     scale = (S * MIN_WIDTH_FILL) / bbox.w;
