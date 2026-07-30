@@ -330,7 +330,10 @@ export async function normalizeAvatarFraming(
             centerXPct: 50,
             bottomMarginPct: Math.max(0, Math.round(((S - outBottom) / S) * 1000) / 10),
           },
+          needsRegeneration,
+          regenerationReason,
         },
+
       };
     }
   }
