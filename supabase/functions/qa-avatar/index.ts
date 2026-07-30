@@ -53,8 +53,10 @@ serve(async (req) => {
     if (!imgUrl) throw new Error("image_url or image_base64 required");
     const transforms: string[] = Array.isArray(transformative_traits) ? transformative_traits : [];
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    if (!usingGoogleDirect() && !Deno.env.get("LOVABLE_API_KEY")) {
+      throw new Error("No AI provider configured (GOOGLE_AI_API_KEY or LOVABLE_API_KEY)");
+    }
+
 
     const transformNotice = transforms.length
       ? `
