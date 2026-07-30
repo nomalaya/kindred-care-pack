@@ -70,9 +70,13 @@ serve(async (req) => {
             from_archive: fromArchive,
             mode: report.mode,
             landmarks: report.landmarks,
+            output: report.output,
+            needs_regeneration: report.needsRegeneration === true,
+            regeneration_reason: report.regenerationReason,
             source_margins: report.sourceMargins,
             scale: report.scale,
           });
+
           continue;
         }
 
@@ -119,11 +123,15 @@ serve(async (req) => {
           from_archive: fromArchive,
           mode: report.mode,
           landmarks: report.landmarks,
+          output: report.output,
+          needs_regeneration: report.needsRegeneration === true,
+          regeneration_reason: report.regenerationReason,
           source_margins: report.sourceMargins,
           scale: report.scale,
           transparent: report.transparent,
           newUrl,
         });
+
 
       } catch (e: any) {
         results.push({ id: b.id, name: b.alias_first_name, error: e.message });

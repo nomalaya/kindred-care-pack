@@ -43,8 +43,17 @@ const NECK_TO = 0.7;
 /** Head height / head width ratio, used when the neck is hidden (scarf, hood). */
 const HEAD_ASPECT = 1.35;
 
-/** Max extra zoom allowed to guarantee the bust bleeds through the bottom. */
-const MAX_BLEED_ZOOM = 1.35;
+/**
+ * Arbitration when the source is too short to fill the canvas:
+ *   1. the eye line stays at EYE_LINE — never negotiable;
+ *   2. no white band under the bust;
+ *   3. head size (HEAD_FILL) is the soft target and gives way first.
+ * The head is allowed to grow up to HEAD_FILL_MAX to close a bottom gap.
+ * Beyond that the crop would look absurd: the avatar is flagged for
+ * regeneration with a wider source framing instead.
+ */
+export const HEAD_FILL_MAX = 0.72;
+
 
 /** Fallback (legacy) framing constants — used when landmarks are unavailable. */
 export const TOP_MARGIN = 0.06;
@@ -209,8 +218,12 @@ export type NormalizeReport = {
   landmarks: { eyeYPct: number; centerXPct: number; headHPct: number } | null;
   /** Resulting framing on the 1024 canvas, in % (landmarks mode only). */
   output?: { headHPct: number; eyeYPct: number; centerXPct: number; bottomMarginPct: number };
-
+  /** True when the source lacks material below the chin to fill the canvas. */
+  needsRegeneration?: boolean;
+  /** Human-readable reason attached to needsRegeneration. */
+  regenerationReason?: string;
 };
+
 
 /**
  * Recompose the avatar into the canonical framing. Returns the new PNG bytes and
@@ -251,17 +264,30 @@ export async function normalizeAvatarFraming(
   const lm = detectLandmarks(spans, bbox);
 
   if (lm) {
-    // Same camera distance for everyone: the head always spans HEAD_FILL.
+    // (1) Eye line first: it is pinned at EYE_LINE whatever the scale.
+    // (3) Head size is the soft target — same camera distance as Léa.
     let scale = (S * HEAD_FILL) / lm.headH;
 
-    // Anti-crop guarantee: the bust must bleed out through the bottom edge.
-    // We zoom around the eye line (which stays pinned at EYE_LINE) until the
-    // bottom of the silhouette reaches the bottom of the canvas.
+    // (2) No white band under the bust. Zoom around the eye line until the
+    // bottom of the silhouette leaves the canvas. Head size gives way, up to
+    // HEAD_FILL_MAX; beyond that we flag the avatar instead of over-cropping.
+    let needsRegeneration = false;
+    let regenerationReason: string | undefined;
     const bustDepth = bbox.y + bbox.h - lm.eyeY; // source px, eye line -> bust bottom
     if (bustDepth > 0) {
       const needed = (S * (1 - EYE_LINE)) / bustDepth;
-      if (needed > scale) scale = Math.min(needed, scale * MAX_BLEED_ZOOM);
+      if (needed > scale) {
+        const capped = (S * HEAD_FILL_MAX) / lm.headH;
+        scale = Math.min(needed, capped);
+        if (needed > capped) {
+          needsRegeneration = true;
+          regenerationReason =
+            "source trop courte sous le menton : impossible de remplir le bas du cadre en gardant les yeux à " +
+            `${Math.round(EYE_LINE * 1000) / 10} % — régénérer avec épaules + haut des bras`;
+        }
+      }
     }
+
 
     const scaledW = Math.max(1, Math.round(img.width * scale));
     const scaledH = Math.max(1, Math.round(img.height * scale));
@@ -304,7 +330,10 @@ export async function normalizeAvatarFraming(
             centerXPct: 50,
             bottomMarginPct: Math.max(0, Math.round(((S - outBottom) / S) * 1000) / 10),
           },
+          needsRegeneration,
+          regenerationReason,
         },
+
       };
     }
   }
