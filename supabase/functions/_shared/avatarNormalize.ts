@@ -190,10 +190,13 @@ export type NormalizeReport = {
   sourceMargins: [number, number, number, number] | null;
   scale: number;
   transparent: boolean;
-  /** "landmarks" = shoulders + eye line, "bust" = legacy fallback. */
+  /** "landmarks" = head + eye line, "bust" = legacy fallback. */
   mode: "landmarks" | "bust";
   /** Measured landmarks, in % of the source size (for reporting/dry-runs). */
-  landmarks: { eyeYPct: number; centerXPct: number; shoulderWPct: number; headHPct: number } | null;
+  landmarks: { eyeYPct: number; centerXPct: number; headHPct: number } | null;
+  /** Resulting framing on the 1024 canvas, in % (landmarks mode only). */
+  output?: { headHPct: number; eyeYPct: number; centerXPct: number; bottomMarginPct: number };
+
 };
 
 /**
