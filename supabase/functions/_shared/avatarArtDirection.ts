@@ -2,6 +2,7 @@
 // Locked: not editable from admin panel. Guarantees premium homogeneous catalog.
 
 import { AvatarTraits, TraitDiff } from "./avatarTraits.ts";
+import { STYLE_ANCHOR_BLOCK, STYLE_ANCHOR_BLOCK_EDIT } from "./avatarStyleAnchors.ts";
 
 // EXPRESSION_DESCRIPTIONS — fragments aligned with the 4 user-facing tonalities
 // of the simplified Avatar Studio (Réservée / Chaleureuse / Fatiguée / Inquiète).
@@ -104,7 +105,7 @@ const BODY_TYPE_DESC: Record<string, string> = {
 // Compact, focused art direction. Style + dignity + anonymity only.
 // Framing is enforced separately right after the subject for maximum weight.
 export const ART_DIRECTION_INVARIANTS = `
-STYLE: clean modern editorial illustration. Smooth soft shading with simple, restrained outlines — no heavy ink strokes, no cross-hatching, no pencil scribbles, no visible brush texture, no painterly wash bleeding into the background. Hair drawn as soft uniform masses (not as many individual dark inked strands), facial details kept smooth and clean (no scribbled marks around eyes, no signature-like strokes). Realistic human proportions, clearly non-photographic, gently stylized.
+STYLE: hand-drawn editorial illustration, matching the house style of the catalog reference portraits. Thin, readable ink contour lines (clean and controlled, never heavy or scratchy), soft smooth shading with a subtle pencil grain, hair drawn as soft masses with a few visible drawn strands, gently textured garment fabric. Realistic human proportions, clearly non-photographic, gently stylized. NOT a flat vector illustration, NOT a smooth gradient/corporate vector look, NOT a 3D render, NOT a photograph, NOT anime, NOT a heavy painterly watercolor wash bleeding into the background.
 COLOR: warm, slightly desaturated, harmonious. Muted earth and warm pastel tones. No neon, no oversaturation.
 ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure, actor, actress, model, athlete or celebrity. Do NOT base the face on any known person. Build the face from ordinary, average, unremarkable everyday features: neutral bone structure, ordinary nose, ordinary mouth, ordinary eye shape, no striking "movie-star" beauty, no glamour, no fashion-editorial look. Fictional respectful stand-in only.
 DIGNITY (GLOBAL, NON-NEGOTIABLE): Always portray the person with dignity, respect, and humanity. Never make the portrait humiliating, miserable, grotesque, exaggerated, caricatural, or stereotyped. Quiet humanity, no pathos.
@@ -146,7 +147,7 @@ export const NEGATIVE_PROMPT = [
   "no photograph", "no photorealism", "no 3D render", "no CGI", "no Pixar style",
   "no flat vector sticker", "no anime", "no manga", "no oil painting", "no saturated watercolor",
   "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture",
-  "no vignette", "no faded edges", "no watercolor edges", "no soft fade at bottom", "no thick line under the bust", "no horizontal bar under the shoulders", "no table edge under the subject", "no heavy ink strokes", "no cross-hatching", "no pencil scribbles", "no scribbled marks on the face", "no signature-like strokes",
+  "no vignette", "no faded edges", "no watercolor edges", "no soft fade at bottom", "no thick line under the bust", "no horizontal bar under the shoulders", "no table edge under the subject", "no heavy black ink strokes", "no cross-hatching", "no pencil scribbles", "no scribbled marks on the face", "no signature-like strokes", "no flat vector shading", "no smooth gradient vector look",
   "no head-only portrait", "no floating bust", "no drop shadow under chin",
   "no full torso", "no waist visible", "no mid-chest visible", "no ribcage visible", "no hips", "no full-length arms", "no deep cleavage", "no exposed chest skin",
   "no ghosted edges", "no soft halo around hair",
@@ -275,7 +276,9 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
     "",
     FRAMING_BLOCK,
     "",
-    ART_DIRECTION_INVARIANTS,
+ART_DIRECTION_INVARIANTS,
+    "",
+    STYLE_ANCHOR_BLOCK,
     "",
     buildBackgroundBlock(t.avatar_seed ?? ""),
     "",
@@ -532,7 +535,9 @@ export function buildEditPrompt(diff: TraitDiff[], traits: AvatarTraits): string
     ``,
     FRAMING_BLOCK,
     ``,
-    ART_DIRECTION_INVARIANTS,
+ART_DIRECTION_INVARIANTS,
+    ``,
+    STYLE_ANCHOR_BLOCK_EDIT,
     ``,
     buildBackgroundBlock(String(traits.avatar_seed ?? "")),
     ``,

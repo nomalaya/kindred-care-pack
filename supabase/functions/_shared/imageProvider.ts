@@ -95,11 +95,11 @@ function splitDataUrl(dataUrl: string): { mimeType: string; data: string } {
 async function googleGenerateContent(
   model: string,
   prompt: string,
-  sourceDataUrl?: string,
+  imageDataUrls: string[] = [],
 ): Promise<Uint8Array> {
   const parts: any[] = [{ text: prompt }];
-  if (sourceDataUrl) {
-    const { mimeType, data } = splitDataUrl(sourceDataUrl);
+  for (const dataUrl of imageDataUrls) {
+    const { mimeType, data } = splitDataUrl(dataUrl);
     parts.push({ inlineData: { mimeType, data } });
   }
 
@@ -141,12 +141,12 @@ async function googleGenerateContent(
 async function lovableGenerate(
   model: string,
   prompt: string,
-  sourceDataUrl?: string,
+  imageDataUrls: string[] = [],
 ): Promise<Uint8Array> {
-  const content = sourceDataUrl
+  const content = imageDataUrls.length
     ? [
         { type: "text", text: prompt },
-        { type: "image_url", image_url: { url: sourceDataUrl } },
+        ...imageDataUrls.map((url) => ({ type: "image_url", image_url: { url } })),
       ]
     : prompt;
 
@@ -174,16 +174,19 @@ async function lovableGenerate(
 // ---------------------------------------------------------------- Public API
 
 /**
- * Text-to-image, or image-to-image when `sourceDataUrl` is provided.
+ * Text-to-image, or image-to-image when reference images are provided.
+ * `images` accepts a single data URL or an ordered list: in edit mode the
+ * FIRST entry is the subject to retouch, the following ones are style anchors.
  * Returns raw PNG bytes, identical shape on both routes.
  */
 export async function generateAvatarImage(
   prompt: string,
   model: string,
-  sourceDataUrl?: string,
+  images?: string | string[],
 ): Promise<Uint8Array> {
-  if (usingGoogleDirect()) return googleGenerateContent(model, prompt, sourceDataUrl);
-  return lovableGenerate(model, prompt, sourceDataUrl);
+  const list = images == null ? [] : Array.isArray(images) ? images.filter(Boolean) : [images];
+  if (usingGoogleDirect()) return googleGenerateContent(model, prompt, list);
+  return lovableGenerate(model, prompt, list);
 }
 
 /**
