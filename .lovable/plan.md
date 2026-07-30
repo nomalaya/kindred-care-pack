@@ -1,35 +1,57 @@
-## Objectif corrigé
-On ne cherche **pas** à donner la même taille de tête à tout le monde — ce serait justement incohérent (une personne corpulente a un visage plus large, une autre un visage allongé). On cherche à donner à tous **la même « prise de vue »** : même distance de caméra, même hauteur de regard. Les morphologies restent visibles, mais rien ne saute à l'œil quand le donateur fait défiler les profils.
+## Confirmation — l'ancrage stylistique est bien actif
 
-## La règle unique
-Un seul repère anatomique stable, identique pour tous : **la largeur des épaules** (donne l'échelle) et **la ligne des yeux** (donne la hauteur).
+Vérifié dans le code, la génération repartira bien de tout le travail d'homogénéité stylistique :
+
+- `_shared/avatarStyleAnchors.ts` : références = **Léa, Nguyen, Fatima** uniquement (copies figées dans `avatars/style-anchors/`, Amadou explicitement exclu).
+- `generate-avatar/index.ts` : `STYLE_ANCHOR_URLS` est chargé et envoyé comme **images de référence à chaque génération**.
+- `_shared/avatarArtDirection.ts` : `STYLE_ANCHOR_BLOCK` (texte→image) et `STYLE_ANCHOR_BLOCK_EDIT` (édition) sont injectés dans les prompts, avec l'autorisation explicite des contours d'encre et le rejet du rendu vectoriel lisse côté QA.
+
+Aucune de ces briques n'est modifiée par ce plan.
+
+## Ce qui change par rapport au plan précédent
+
+Le retraitement des 131 avatars depuis les originaux archivés est **abandonné** : ces originaux ne correspondent plus au style de référence. Le cadrage sera désormais validé sur de **nouvelles générations**, style anchors compris.
+
+## 1. Cadrage calé sur le visage (au lieu des épaules)
+
+La normalisation actuelle cale l'échelle sur la largeur des épaules — repère instable (vêtement, coiffure volumineuse, pose), d'où les tailles de tête et lignes de regard hétérogènes.
+
+Nouvelle règle unique, appliquée à la génération :
 
 ```text
-canvas 1024 x 1024
-largeur des épaules   -> 95 % de la largeur du canvas   (échelle)
-ligne des yeux        -> 38 % de la hauteur du canvas    (position verticale)
-centre horizontal     -> milieu des épaules
-bas du buste          -> déborde par le bord bas (inchangé)
+hauteur de tête  -> 46 % de la hauteur du canvas   (échelle)
+ligne des yeux   -> 38 % de la hauteur du canvas   (position verticale)
+centre du visage -> 50 % de la largeur             (position horizontale)
 ```
 
-Conséquence : deux personnes cadrées à la même distance ; un visage plein reste plein, un visage allongé reste allongé. Aucune déformation, aucun redimensionnement du visage entre bénéficiaires.
+Détection déterministe (zéro crédit IA), plus robuste :
+- haut du crâne = première ligne non vide ;
+- bas de la tête = **cou** détecté comme la ligne la plus étroite entre 25 % et 70 % de la silhouette (remplace le « saut de largeur » qui se déclenche trop tôt sur les coiffures volumineuses) ;
+- centre horizontal = centre de la bande du visage autour de la ligne des yeux ;
+- **repli** sur le mode actuel si le cou n'est pas détectable — aucune erreur levée, aucun impact QA.
 
-Détection sans IA, sur la silhouette déjà calculée (bbox alpha) :
-- largeur des épaules = largeur maximale de la silhouette dans sa moitié haute ;
-- ligne des yeux ≈ 40 % de la hauteur de la tête, la tête s'arrêtant là où la largeur augmente brusquement (naissance des épaules).
+Garantie anti-coupure : si le bas de la silhouette retombe au-dessus du bord bas, l'image est descendue puis légèrement agrandie jusqu'à débordement franc. Plus de trait rectiligne ni de blanc sous le buste.
 
-Si l'un des deux repères n'est pas détectable, on garde exactement le comportement actuel — jamais d'erreur, jamais de rejet.
+## 2. Test comparatif sur 3 nouveaux avatars
 
-## Ce qui change (3 points, rien de plus)
-1. `supabase/functions/_shared/avatarNormalize.ts` : la cible « hauteur du buste » devient « épaules à 95 % / yeux à 38 % », avec repli sur la logique actuelle. Même fonction, même signature : aucun appelant à modifier.
-2. Rejouer `normalize-avatar-framing` sur les **131 avatars détourés uniquement**, en repartant des originaux archivés dans `pre-normalize/` (pas de double recadrage). Les nouveaux avatars passent automatiquement par la même règle à la génération.
-3. `src/components/BeneficiaryAvatar.tsx` : le cadrage étant dans les pixels, l'affichage passe en `object-cover` centré neutre, pour que le rond profil montre la même zone partout.
+Sélection de 3 bénéficiaires dont l'avatar actuel est hors-style (générés avant l'ancrage, rendu vectoriel lisse), morphologies et coiffures volontairement différentes pour éprouver la détection (dont au moins une coiffure volumineuse et un profil âgé).
 
-## Ce qui ne change pas
-- Aucun nouveau critère QA, aucun seuil, aucun hard-fail : `qa-avatar` n'est pas touché.
-- Aucun appel IA, aucun crédit consommé (Lovable comme Google).
-- Les 55 avatars à fond opaque ne sont pas traités.
-- Matching, panier, tunnel de don : intacts. Originaux toujours archivés.
+Pour chacun : génération complète via `generate-avatar` (prompts + ancres Léa/Nguyen/Fatima + QA existant), puis nouveau cadrage visage.
 
-## Contrôle avant/après
-Dry-run sur un échantillon (Léa + 5 profils de morphologies différentes) affichant largeur d'épaules et hauteur de regard avant/après, puis vérification visuelle de plusieurs ronds profil côte à côte, avant de lancer les 131.
+Livrables :
+- avant / après par bénéficiaire ;
+- rendu en rond profil (taille donateur réelle) côte à côte avec Léa, Nguyen et Fatima pour juger la cohérence de style **et** de cadrage ;
+- métriques : hauteur de tête (%), ligne des yeux (%), centre horizontal (%), marge basse (%) ;
+- score QA de chaque génération.
+
+**Aucune généralisation** tant que ces 3 cas ne sont pas validés par vous.
+
+## 3. Hors périmètre
+
+Pas de modification du QA, des prompts artistiques, des ancres de style ni du parcours donateur. Pas de retraitement de masse. Les 55 avatars à fond opaque restent hors sujet. `BeneficiaryAvatar.tsx` reste en `object-cover` centré neutre.
+
+## Détails techniques
+
+- `supabase/functions/_shared/avatarNormalize.ts` : `SHOULDER_FILL` → `HEAD_FILL = 0.46`, réécriture de `detectLandmarks` (cou + centre facial), garantie de débordement bas, repli sûr.
+- `supabase/functions/generate-avatar/index.ts` : la normalisation post-génération utilise le nouveau mode visage.
+- Rapport de test : `.lovable/audit-coverage/framing-test-3.md`.
