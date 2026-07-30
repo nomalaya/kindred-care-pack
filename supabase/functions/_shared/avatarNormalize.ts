@@ -141,13 +141,17 @@ export function detectLandmarks(spans: RowSpan[], bbox: Box): Landmarks | null {
       neckY = y;
     }
   }
-  if (neckY < 0 || !isFinite(neckW)) return null;
+  // Head height. Preferred source: the neck narrowing. When the neck is hidden
+  // (headscarf, hood, long hair, beard), fall back to the anatomical head
+  // width -> height ratio so veiled subjects stay framed like everyone else.
+  let headH: number;
+  if (neckY >= 0 && isFinite(neckW) && neckW <= headWidth * 0.95) {
+    headH = neckY - bbox.y;
+  } else {
+    headH = headWidth * HEAD_ASPECT;
+  }
+  if (headH < bbox.h * 0.15 || headH > bbox.h * 0.8) return null;
 
-  // The neck must actually be a narrowing, and shoulders must widen below it.
-  if (neckW > headWidth * 0.95) return null;
-
-  const headH = neckY - bbox.y;
-  if (headH < bbox.h * 0.15 || headH > bbox.h * 0.75) return null;
 
   // Horizontal center: middle of the face band around the eye line.
   const eyeY = bbox.y + headH * EYE_IN_HEAD;
