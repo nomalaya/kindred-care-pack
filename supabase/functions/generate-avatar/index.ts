@@ -31,6 +31,8 @@ import {
 } from "../_shared/avatarArtDirection.ts";
 import { generateAvatarImage, usingGoogleDirect } from "../_shared/imageProvider.ts";
 import { STYLE_ANCHOR_URLS } from "../_shared/avatarStyleAnchors.ts";
+import { normalizeAvatarFraming } from "../_shared/avatarNormalize.ts";
+
 
 
 
@@ -75,9 +77,29 @@ function loadStyleAnchors(): Promise<string[]> {
   return styleAnchorCache;
 }
 
+/**
+ * Deterministic post-generation framing normalization (zero AI credit).
+ * Guarantees every persisted avatar has the exact same subject size/position,
+ * so the donor-facing circle is always filled edge-to-edge.
+ */
+async function normalize(bytes: Uint8Array, label: string): Promise<Uint8Array> {
+  try {
+    const { bytes: out, report } = await normalizeAvatarFraming(bytes);
+    console.log(
+      `[generate-avatar] normalize(${label}) changed=${report.changed} ` +
+      `scale=${report.scale} source_margins=${JSON.stringify(report.sourceMargins)}`,
+    );
+    return out;
+  } catch (e) {
+    console.error(`[generate-avatar] normalize(${label}) failed — keeping raw bytes`, e);
+    return bytes;
+  }
+}
+
 async function generateImage(prompt: string, model: string): Promise<Uint8Array> {
   const anchors = await loadStyleAnchors();
-  return generateAvatarImage(prompt, model, anchors);
+  const raw = await generateAvatarImage(prompt, model, anchors);
+  return normalize(raw, "text2img");
 }
 
 
@@ -102,8 +124,10 @@ async function fetchSourceImageAsDataUrl(sourceUrl: string): Promise<string> {
 async function generateEditedImage(prompt: string, sourceUrl: string, model: string): Promise<Uint8Array> {
   const dataUrl = await fetchSourceImageAsDataUrl(sourceUrl);
   const anchors = await loadStyleAnchors();
-  return generateAvatarImage(prompt, model, [dataUrl, ...anchors]);
+  const raw = await generateAvatarImage(prompt, model, [dataUrl, ...anchors]);
+  return normalize(raw, "edit");
 }
+
 
 
 async function runQA(

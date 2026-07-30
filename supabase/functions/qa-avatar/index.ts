@@ -14,6 +14,7 @@ const corsHeaders = {
 const WEIGHTS: Record<string, number> = {
   single_face: 1.3,
   framing: 1.0,
+  framing_fill: 1.4, // the subject must fill the square, bust bleeding out of the bottom edge
   no_watermark: 1.0,
   artifact_freedom: 1.2,
   style_match: 2.0, // hand-drawn semi-realistic cartoon illustration — hard requirement
@@ -34,7 +35,9 @@ const HARD_FAIL_THRESHOLDS: Record<string, number> = {
   // rejection costs a full regeneration.
   anonymity: 50,
   bust_completeness: 55,
+  framing_fill: 55,
 };
+
 
 function weightedScore(scores: Record<string, number>): number {
   let total = 0, wsum = 0;
@@ -73,7 +76,7 @@ Do NOT penalise identity for these natural transformations. Only penalise if the
       : "";
 
     const systemPrompt = `You are a strict QA reviewer for an NGO beneficiary portrait catalog.
-For each of the 11 dimensions you must return ONE verdict among:
+For each of the 12 dimensions you must return ONE verdict among:
 - "excellent" — the dimension is fully satisfied, nothing to fix.
 - "good" — satisfied, only a negligible nitpick.
 - "borderline" — a real but minor issue that a reviewer might accept.
@@ -88,6 +91,8 @@ Add a short note for every dimension rated "borderline", "fail" or "critical".${
 Dimensions (return a verdict for each):
 - single_face: exactly ONE character face fully visible? (0 = multiple faces or no face)
 - framing: the portrait shows head + neck + shoulders + UPPER BUST with the garment fully drawn, cropped just below the upper-bust line. The upper bust IS expected to be visible — do NOT penalise that. Score 0 ONLY if: full torso visible, waist visible, mid-chest or ribcage visible, hips visible, full-length arms hanging, deep cleavage, exposed chest skin beyond a normal neckline, shoulders cropped, or subject not centered.
+- framing_fill: the subject FILLS the square canvas. Required: the bust reaches and is cut off by the BOTTOM edge of the image (no white band under the bust), the shoulders reach the left and right edges or come very close to them, and only a thin white band (about 5% or less) remains above the hair. Rate "excellent"/"good" when the subject is large and cut off at the bottom edge. Rate "fail"/"critical" whenever: there is any visible white gap or white band between the bust and the bottom edge, the subject looks small or distant, the subject floats inside a large white area, or wide white margins surround the subject on all sides. Being cropped by the canvas edges is REQUIRED and must NEVER be penalised here.
+
 - no_watermark: free of any text, watermark, logo, signature?
 - artifact_freedom: free of AI artifacts (warped features, melted shapes, extra fingers)?
 - style_match: a HAND-DRAWN editorial illustration — thin readable ink contour lines, soft smooth shading with a subtle pencil grain, hair drawn as soft masses with a few visible drawn strands, gently textured fabric, warm desaturated palette, realistic human proportions, clearly non-photographic. Score 90-100 when the image matches that description. Score "fail"/"critical" for: flat vector illustration, smooth gradient corporate/vector look with no drawn line texture (Storyset/unDraw/Notion style), photograph, photorealistic, 3D/Pixar/Disney render, anime, manga, chibi, comic book, oil painting, or heavy saturated painterly watercolor. Visible fine ink lines and light pencil grain are REQUIRED and must never be penalised.
