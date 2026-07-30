@@ -19,17 +19,32 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
 const GOOGLE_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const LOVABLE_CHAT = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-/** Last-resort image model that is always available on AI Studio keys. */
-const GOOGLE_IMAGE_FALLBACK = "gemini-2.5-flash-image";
+/** Last-resort image model on AI Studio keys (Nano Banana). */
+const GOOGLE_IMAGE_FALLBACK = Deno.env.get("GOOGLE_IMAGE_MODEL") ?? "gemini-2.5-flash-image";
+
+/**
+ * Gateway model ids -> Google AI Studio model ids.
+ * AI Studio does not expose the gateway's "-preview" image aliases, and the
+ * legacy 2.5 text ids are closed to new API keys, so map them explicitly.
+ */
+const GOOGLE_MODEL_MAP: Record<string, string> = {
+  "gemini-3.1-flash-image-preview": GOOGLE_IMAGE_FALLBACK,
+  "gemini-3.1-flash-image": GOOGLE_IMAGE_FALLBACK,
+  "gemini-2.5-flash": "gemini-flash-latest",
+  "gemini-2.5-flash-lite": "gemini-flash-lite-latest",
+  "gemini-2.5-pro": "gemini-pro-latest",
+};
 
 export function usingGoogleDirect(): boolean {
   return GOOGLE_KEY.length > 0;
 }
 
-/** "google/gemini-3.1-flash-image-preview" -> "gemini-3.1-flash-image-preview" */
+/** "google/gemini-2.5-flash" -> "gemini-flash-latest" */
 function toGoogleModel(model: string): string {
-  return model.replace(/^google\//, "");
+  const bare = model.replace(/^google\//, "");
+  return GOOGLE_MODEL_MAP[bare] ?? bare;
 }
+
 
 function providerError(status: number, body: string, label: string): Error {
   const err: any = new Error(`${label} ${status}: ${body}`);
