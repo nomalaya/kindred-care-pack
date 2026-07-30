@@ -43,8 +43,17 @@ const NECK_TO = 0.7;
 /** Head height / head width ratio, used when the neck is hidden (scarf, hood). */
 const HEAD_ASPECT = 1.35;
 
-/** Max extra zoom allowed to guarantee the bust bleeds through the bottom. */
-const MAX_BLEED_ZOOM = 1.35;
+/**
+ * Arbitration when the source is too short to fill the canvas:
+ *   1. the eye line stays at EYE_LINE — never negotiable;
+ *   2. no white band under the bust;
+ *   3. head size (HEAD_FILL) is the soft target and gives way first.
+ * The head is allowed to grow up to HEAD_FILL_MAX to close a bottom gap.
+ * Beyond that the crop would look absurd: the avatar is flagged for
+ * regeneration with a wider source framing instead.
+ */
+export const HEAD_FILL_MAX = 0.72;
+
 
 /** Fallback (legacy) framing constants — used when landmarks are unavailable. */
 export const TOP_MARGIN = 0.06;
