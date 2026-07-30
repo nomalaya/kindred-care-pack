@@ -95,11 +95,11 @@ function splitDataUrl(dataUrl: string): { mimeType: string; data: string } {
 async function googleGenerateContent(
   model: string,
   prompt: string,
-  sourceDataUrl?: string,
+  imageDataUrls: string[] = [],
 ): Promise<Uint8Array> {
   const parts: any[] = [{ text: prompt }];
-  if (sourceDataUrl) {
-    const { mimeType, data } = splitDataUrl(sourceDataUrl);
+  for (const dataUrl of imageDataUrls) {
+    const { mimeType, data } = splitDataUrl(dataUrl);
     parts.push({ inlineData: { mimeType, data } });
   }
 
