@@ -1,35 +1,37 @@
 ## Objectif
 
-Générer les **139 bénéficiaires sans avatar** (sur 200) sans consommer de crédits Lovable.
+Vérifier que la facturation Google est bien active sur la clé `GOOGLE_AI_API_KEY`, puis générer les avatars manquants (139 bénéficiaires) sans consommer de crédits Lovable.
 
-Aujourd'hui, `generate-avatar` et `qa-avatar` appellent la passerelle IA de Lovable (`ai.gateway.lovable.dev` + `LOVABLE_API_KEY`) : chaque image et chaque contrôle QA est facturé en crédits Lovable. La seule façon de ne pas les consommer est de router ces appels vers **votre propre clé Google AI Studio** : la facturation part alors sur votre compte Google (avec son quota gratuit), et le modèle reste de la même famille (Gemini / Nano Banana), donc le rendu et les prompts actuels restent valables.
+## Étape 1 — Test de vérification (1 seule image)
 
-## Ce qui sera fait
+Lancer `generate-avatar` sur un seul bénéficiaire test (Éloïse, déjà remise en `pending`).
 
-### 1. Clé et bascule de fournisseur
-- Vous créez une clé sur Google AI Studio (aistudio.google.com → Get API key), je vous la demanderai ensuite via le formulaire sécurisé sous le nom `GOOGLE_AI_API_KEY`.
-- Nouveau module partagé `supabase/functions/_shared/imageProvider.ts` :
-  - si `GOOGLE_AI_API_KEY` est présent → appel direct à l'API Google Generative Language (`generativelanguage.googleapis.com`), **aucun crédit Lovable** ;
-  - sinon → repli automatique sur la passerelle Lovable (comportement actuel, rien ne casse).
-- Mapping des modèles actuels vers leurs équivalents Google directs (Nano Banana 2 / Gemini image), en conservant exactement les mêmes prompts, seeds, et le mode édition image-to-image.
+Deux issues possibles :
+- **Succès** → la facturation est active, on enchaîne sur l'étape 2. Coût de ce test : ~0,04 $ chez Google.
+- **`429 RESOURCE_EXHAUSTED / free_tier_requests, limit: 0`** → la facturation n'est pas encore propagée sur la clé. Dans ce cas je vous indique précisément quoi vérifier :
+  - le compte de facturation est bien rattaché **au projet Google Cloud qui possède cette clé** (et pas à un autre projet) ;
+  - l'API « Generative Language » est activée sur ce même projet ;
+  - la propagation peut prendre quelques minutes — on refait le test.
 
-### 2. Fonctions concernées
-- `generate-avatar/index.ts` : `generateImage()` et `generateEditedImage()` passent par le nouveau module. Aucune modification des prompts, du cadrage, ni du pipeline QA/rollback.
-- `qa-avatar/index.ts` : le scoring qualité (appel texte+image) passe aussi par la clé Google, sinon il resterait facturé en crédits.
-- `generate-avatar-batch/index.ts` : inchangé côté logique, il bénéficie automatiquement de la bascule.
+Aucun autre appel IA n'est fait avant que ce test passe.
 
-### 3. Génération des 139 avatars
-- Lancement en vagues automatiques (par lots de ~10, séquencées) pour rester sous les limites de débit de l'API Google et éviter les échecs en cascade.
-- Suivi dans l'Avatar Studio / l'onglet Portraits : statut, score QA, échecs.
-- Reprise automatique proposée sur les échecs à la fin du passage.
+## Étape 2 — Génération par vagues
+
+- Vague pilote : 10 bénéficiaires via `generate-avatar-batch` (mode `final`, pacing 2,5 s déjà en place).
+- Contrôle du résultat : nombre de succès, scores QA, échecs éventuels.
+- Si la vague pilote est propre : les vagues suivantes par lots de ~25 jusqu'à couvrir les 139.
+- Reprise ciblée sur les seuls échecs à la fin.
+
+Suivi visible dans l'Avatar Studio (statut, score QA) après chaque vague.
 
 ## Détails techniques
 
-- Endpoint direct utilisé : `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent` avec `responseModalities: ["TEXT","IMAGE"]`, image renvoyée en base64 `inlineData` — même format binaire que celui déjà stocké dans le bucket `avatars`.
-- Aucun changement de schéma de base, aucun changement d'UI, aucune modification de la logique de matching ou de panier.
-- Le secret `GOOGLE_AI_API_KEY` reste côté serveur (fonctions edge uniquement).
+- Aucun changement de code prévu : le routage Google direct est déjà en place dans `supabase/functions/_shared/imageProvider.ts` et utilisé par `generate-avatar` et `qa-avatar`.
+- Si Google renvoie une erreur de modèle (404) sur la clé passée en payant, l'override `GOOGLE_IMAGE_MODEL` permet de pointer un autre id de modèle image sans toucher au code.
+- Aucun changement de schéma, d'UI, ni de la logique de matching / panier.
 
 ## À noter
 
-- « Zéro crédit » signifie zéro crédit **Lovable** : la génération d'images reste facturée par Google au-delà de son palier gratuit. Le quota gratuit d'AI Studio est limité en requêtes/minute et par jour — le batch de 139 sera donc étalé, et pourra devoir être repris le lendemain si le quota journalier est atteint.
-- Les messages de chat que j'échange avec vous pour piloter tout ça consomment, eux, des crédits Lovable (c'est indépendant de la génération d'images).
+- Coût estimé côté Google : ~5–6 $ pour les 139 avatars, facturé par Google, zéro crédit Lovable pour la génération.
+- Les échanges de chat pour piloter les vagues consomment, eux, des crédits Lovable.
+- Le quota de requêtes/minute reste limité même en payant : les vagues sont volontairement séquencées.

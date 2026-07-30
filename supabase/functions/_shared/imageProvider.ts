@@ -54,6 +54,32 @@ function providerError(status: number, body: string, label: string): Error {
   return err;
 }
 
+/**
+ * Retries transient provider failures (503 overload, 429 rate limit, network
+ * errors) with exponential backoff. Permanent errors are returned as-is.
+ */
+const RETRY_STATUS = new Set([429, 500, 502, 503, 504]);
+const RETRY_DELAYS_MS = [4000, 10000, 20000];
+
+async function callWithRetry(fn: () => Promise<Response>): Promise<Response> {
+  let last: Response | null = null;
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    if (attempt > 0) {
+      const wait = RETRY_DELAYS_MS[attempt - 1];
+      console.warn(`[imageProvider] transient provider error, retry ${attempt} in ${wait}ms`);
+      await new Promise((r) => setTimeout(r, wait));
+    }
+    try {
+      last = await fn();
+    } catch (e) {
+      if (attempt === RETRY_DELAYS_MS.length) throw e;
+      continue;
+    }
+    if (!RETRY_STATUS.has(last.status)) return last;
+  }
+  return last!;
+}
+
 function b64ToBytes(base64: string): Uint8Array {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 }
@@ -92,11 +118,11 @@ async function googleGenerateContent(
     return resp;
   };
 
-  let resp = await call(toGoogleModel(model));
+  let resp = await callWithRetry(() => call(toGoogleModel(model)));
   if (resp.status === 404 && toGoogleModel(model) !== GOOGLE_IMAGE_FALLBACK) {
     // Model id not exposed on this AI Studio key — retry on the stable one.
     console.warn(`[imageProvider] model ${model} unavailable on Google direct, falling back to ${GOOGLE_IMAGE_FALLBACK}`);
-    resp = await call(GOOGLE_IMAGE_FALLBACK);
+    resp = await callWithRetry(() => call(GOOGLE_IMAGE_FALLBACK));
   }
   if (!resp.ok) {
     throw providerError(resp.status, await resp.text(), "Google AI");
@@ -168,14 +194,16 @@ export async function generateAvatarImage(
 export async function chatCompletion(body: Record<string, unknown>): Promise<any> {
   if (usingGoogleDirect()) {
     const model = toGoogleModel(String(body.model ?? ""));
-    const resp = await fetch(`${GOOGLE_BASE}/openai/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GOOGLE_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ ...body, model }),
-    });
+    const resp = await callWithRetry(() =>
+      fetch(`${GOOGLE_BASE}/openai/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GOOGLE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...body, model }),
+      })
+    );
     if (!resp.ok) throw providerError(resp.status, await resp.text(), "Google AI");
     return resp.json();
   }
