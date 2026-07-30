@@ -29,6 +29,8 @@ import {
   MODEL_FINAL,
   MODEL_EDIT,
 } from "../_shared/avatarArtDirection.ts";
+import { generateAvatarImage, usingGoogleDirect } from "../_shared/imageProvider.ts";
+
 
 
 const corsHeaders = {
@@ -38,7 +40,9 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+
+console.log(`[generate-avatar] image provider: ${usingGoogleDirect() ? "google-direct (no Lovable credits)" : "lovable-gateway"}`);
+
 
 const QA_PASS = 75;
 const QA_BORDERLINE = 60;
@@ -52,32 +56,9 @@ const MAX_EDIT_DIFF = 8;
 type GenMode = "preview" | "final" | "edit" | "edit_hd";
 
 async function generateImage(prompt: string, model: string): Promise<Uint8Array> {
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "user", content: prompt }],
-      modalities: ["image", "text"],
-    }),
-  });
-  if (!resp.ok) {
-    const t = await resp.text();
-    const err: any = new Error(`AI gateway ${resp.status}: ${t}`);
-    err.gatewayStatus = resp.status;
-    if (resp.status === 402) err.code = "no_credits";
-    else if (resp.status === 429) err.code = "rate_limited";
-    throw err;
-  }
-  const data = await resp.json();
-  const url = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-  if (!url) throw new Error("No image returned");
-  const base64 = url.replace(/^data:image\/\w+;base64,/, "");
-  return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  return generateAvatarImage(prompt, model);
 }
+
 
 async function fetchSourceImageAsDataUrl(sourceUrl: string): Promise<string> {
   const cleanUrl = sourceUrl.split("?")[0];
@@ -99,38 +80,9 @@ async function fetchSourceImageAsDataUrl(sourceUrl: string): Promise<string> {
  */
 async function generateEditedImage(prompt: string, sourceUrl: string, model: string): Promise<Uint8Array> {
   const dataUrl = await fetchSourceImageAsDataUrl(sourceUrl);
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{
-        role: "user",
-        content: [
-          { type: "text", text: prompt },
-          { type: "image_url", image_url: { url: dataUrl } },
-        ],
-      }],
-      modalities: ["image", "text"],
-    }),
-  });
-  if (!resp.ok) {
-    const t = await resp.text();
-    const err: any = new Error(`AI gateway ${resp.status}: ${t}`);
-    err.gatewayStatus = resp.status;
-    if (resp.status === 402) err.code = "no_credits";
-    else if (resp.status === 429) err.code = "rate_limited";
-    throw err;
-  }
-  const data = await resp.json();
-  const url = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-  if (!url) throw new Error("No image returned from edit");
-  const base64 = url.replace(/^data:image\/\w+;base64,/, "");
-  return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  return generateAvatarImage(prompt, model, dataUrl);
 }
+
 
 async function runQA(
   supabase: any,

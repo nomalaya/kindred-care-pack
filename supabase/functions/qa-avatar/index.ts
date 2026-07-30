@@ -3,6 +3,8 @@
 // Uses gemini-2.5-flash vision with structured tool calling
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { MODEL_QA } from "../_shared/avatarArtDirection.ts";
+import { chatCompletion, usingGoogleDirect } from "../_shared/imageProvider.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,8 +53,10 @@ serve(async (req) => {
     if (!imgUrl) throw new Error("image_url or image_base64 required");
     const transforms: string[] = Array.isArray(transformative_traits) ? transformative_traits : [];
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    if (!usingGoogleDirect() && !Deno.env.get("LOVABLE_API_KEY")) {
+      throw new Error("No AI provider configured (GOOGLE_AI_API_KEY or LOVABLE_API_KEY)");
+    }
+
 
     const transformNotice = transforms.length
       ? `
@@ -85,56 +89,44 @@ Dimensions (0=terrible, 100=excellent):
 - human_warmth: emotionally credible, warm, kind (not commercial smile, not cold)?
 - bust_completeness: the UPPER bust is drawn cleanly with a complete garment line and fully visible shoulders, and the canvas crops at a clean horizontal line just below the upper bust. Score HIGH (>=80) when shoulders + upper bust are fully drawn and the bottom crop is clean. Score 0 ONLY if: the body dissolves or fades into white, watercolor fade-out at the bottom, circular crop, vignette mask over the body, shoulders cropped or unfinished, clothing transparent at the bottom, or the upper bust itself is missing/incomplete. Do NOT penalise simply because the upper bust is visible — that is the required composition.`;
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL_QA,
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: userPrompt },
-              { type: "image_url", image_url: { url: imgUrl } },
-            ],
-          },
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "submit_qa_scores",
-            description: "Submit per-dimension scores and notes for the avatar.",
-            parameters: {
-              type: "object",
-              properties: {
-                scores: {
-                  type: "object",
-                  properties: Object.fromEntries(
-                    Object.keys(WEIGHTS).map(k => [k, { type: "number", minimum: 0, maximum: 100 }]),
-                  ),
-                  required: Object.keys(WEIGHTS),
-                  additionalProperties: false,
-                },
-                notes: { type: "array", items: { type: "string" } },
+    const aiData = await chatCompletion({
+      model: MODEL_QA,
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: userPrompt },
+            { type: "image_url", image_url: { url: imgUrl } },
+          ],
+        },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "submit_qa_scores",
+          description: "Submit per-dimension scores and notes for the avatar.",
+          parameters: {
+            type: "object",
+            properties: {
+              scores: {
+                type: "object",
+                properties: Object.fromEntries(
+                  Object.keys(WEIGHTS).map(k => [k, { type: "number", minimum: 0, maximum: 100 }]),
+                ),
+                required: Object.keys(WEIGHTS),
+                additionalProperties: false,
               },
-              required: ["scores", "notes"],
-              additionalProperties: false,
+              notes: { type: "array", items: { type: "string" } },
             },
+            required: ["scores", "notes"],
+            additionalProperties: false,
           },
-        }],
-        tool_choice: { type: "function", function: { name: "submit_qa_scores" } },
-      }),
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "submit_qa_scores" } },
     });
 
-    if (!aiResp.ok) {
-      const t = await aiResp.text();
-      throw new Error(`QA AI error ${aiResp.status}: ${t}`);
-    }
-    const aiData = await aiResp.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) throw new Error("No QA tool call returned");
     const args = JSON.parse(toolCall.function.arguments);
