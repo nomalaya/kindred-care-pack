@@ -142,7 +142,23 @@ serve(async (req) => {
     const whitePng = await geminiWhiteBackground(sourceUrl);
 
     // 2) Server-side chroma-key: white → transparent
-    const { bytes: transparentPng, transparentRatio } = await whiteToAlpha(whitePng);
+    const { bytes: keyedPng, transparentRatio } = await whiteToAlpha(whitePng);
+
+    // 2b) Deterministic framing normalization (zero AI credit): the subject is
+    // recomposed to fill the square identically for every avatar, so the donor
+    // profile circle never shows a white gap under the bust.
+    let transparentPng = keyedPng;
+    try {
+      const { bytes: normalized, report } = await normalizeAvatarFraming(keyedPng);
+      transparentPng = normalized;
+      console.log(
+        `[clean-avatar-background] normalize changed=${report.changed} scale=${report.scale} ` +
+        `source_margins=${JSON.stringify(report.sourceMargins)}`,
+      );
+    } catch (e) {
+      console.error("[clean-avatar-background] normalize failed — keeping keyed bytes", e);
+    }
+
 
     const mode = explicitSourceUrl ? "version" : targetMode;
     console.log(`[clean-avatar-background] ${beneficiary_id} (${mode}) transparent_ratio=${transparentRatio.toFixed(3)}`);
