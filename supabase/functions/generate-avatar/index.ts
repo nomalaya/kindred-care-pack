@@ -30,6 +30,7 @@ import {
   MODEL_EDIT,
 } from "../_shared/avatarArtDirection.ts";
 import { generateAvatarImage, usingGoogleDirect } from "../_shared/imageProvider.ts";
+import { STYLE_ANCHOR_URLS } from "../_shared/avatarStyleAnchors.ts";
 
 
 
