@@ -3,6 +3,8 @@
 // Uses gemini-2.5-flash vision with structured tool calling
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { MODEL_QA } from "../_shared/avatarArtDirection.ts";
+import { chatCompletion, usingGoogleDirect } from "../_shared/imageProvider.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
