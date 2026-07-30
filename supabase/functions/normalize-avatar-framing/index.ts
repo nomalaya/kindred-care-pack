@@ -38,10 +38,23 @@ serve(async (req) => {
 
     for (const b of rows ?? []) {
       try {
-        const sourceUrl = (b.avatar_url as string).split("?")[0];
-        const resp = await fetch(sourceUrl);
-        if (!resp.ok) throw new Error(`fetch ${resp.status}`);
-        const raw = new Uint8Array(await resp.arrayBuffer());
+        // Always renormalize from the archived ORIGINAL when it exists, so
+        // repeated runs never stack crops on top of each other.
+        const archivePath = `pre-normalize/${b.id}.png`;
+        const { data: archived } = supabase.storage.from("avatars").getPublicUrl(archivePath);
+        let raw: Uint8Array | null = null;
+        let fromArchive = false;
+
+        const archResp = await fetch(`${archived.publicUrl}?t=${Date.now()}`);
+        if (archResp.ok) {
+          raw = new Uint8Array(await archResp.arrayBuffer());
+          fromArchive = true;
+        } else {
+          const sourceUrl = (b.avatar_url as string).split("?")[0];
+          const resp = await fetch(sourceUrl);
+          if (!resp.ok) throw new Error(`fetch ${resp.status}`);
+          raw = new Uint8Array(await resp.arrayBuffer());
+        }
 
         const { bytes, report } = await normalizeAvatarFraming(raw);
 
@@ -51,6 +64,9 @@ serve(async (req) => {
             name: b.alias_first_name,
             changed: false,
             dry_run: dryRun,
+            from_archive: fromArchive,
+            mode: report.mode,
+            landmarks: report.landmarks,
             source_margins: report.sourceMargins,
             scale: report.scale,
           });
@@ -58,9 +74,12 @@ serve(async (req) => {
         }
 
         // 1) Archive the original once (never overwritten).
-        await supabase.storage
-          .from("avatars")
-          .upload(`pre-normalize/${b.id}.png`, raw, { contentType: "image/png", upsert: false });
+        if (!fromArchive) {
+          await supabase.storage
+            .from("avatars")
+            .upload(archivePath, raw, { contentType: "image/png", upsert: false });
+        }
+
 
         // 2) Upload the normalized render.
         const fileName = `normalized/${b.id}.png`;
@@ -87,18 +106,22 @@ serve(async (req) => {
           beneficiary_id: b.id,
           image_url: u.publicUrl,
           model_used: "normalize-framing/deterministic",
-          prompt: `bbox-normalize scale=${report.scale} source_margins=${JSON.stringify(report.sourceMargins)}`,
+          prompt: `framing=${report.mode} scale=${report.scale} landmarks=${JSON.stringify(report.landmarks)}`,
         });
 
         results.push({
           id: b.id,
           name: b.alias_first_name,
           changed: true,
+          from_archive: fromArchive,
+          mode: report.mode,
+          landmarks: report.landmarks,
           source_margins: report.sourceMargins,
           scale: report.scale,
           transparent: report.transparent,
           newUrl,
         });
+
       } catch (e: any) {
         results.push({ id: b.id, name: b.alias_first_name, error: e.message });
       }
