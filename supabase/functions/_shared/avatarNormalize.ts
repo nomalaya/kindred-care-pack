@@ -8,16 +8,16 @@
  * normalized.
  *
  * Canonical framing (canvas 1024x1024):
- *   - shoulder width  -> SHOULDER_FILL of the canvas width  (sets the scale)
+ *   - head height     -> HEAD_FILL of the canvas height     (sets the scale)
  *   - eye line        -> EYE_LINE of the canvas height      (sets the position)
- *   - horizontal      -> centered on the middle of the shoulders
- *   - bust            -> bleeds out through the bottom edge
+ *   - horizontal      -> centered on the middle of the face
+ *   - bust            -> always bleeds out through the bottom edge
  *
  * Landmarks are derived from the alpha/white silhouette only (no AI, no model):
- *   - head bottom = first row (from the top) whose width jumps above
- *     SHOULDER_JUMP x the head width -> start of the shoulders
- *   - eye line    = head top + EYE_IN_HEAD x head height
- *   - shoulders   = widest row of the upper half of the silhouette
+ *   - neck      = narrowest row between NECK_FROM and NECK_TO of the silhouette
+ *   - head      = skull top -> neck
+ *   - eye line  = head top + EYE_IN_HEAD x head height
+ *   - center    = middle of the face band around the eye line
  *
  * If a landmark can't be detected, we fall back to the previous bust-based
  * framing. Never throws, never rejects.
@@ -25,19 +25,23 @@
 import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 export const NORMALIZE_CANVAS = 1024;
-/** Share of the canvas width taken by the shoulders. */
-export const SHOULDER_FILL = 0.95;
+/** Share of the canvas height taken by the head (skull top -> neck). */
+export const HEAD_FILL = 0.46;
 /** Vertical position of the eye line, in % of the canvas height. */
 export const EYE_LINE = 0.38;
 /** Eye line inside the head, in % of the head height (anatomical average). */
 const EYE_IN_HEAD = 0.4;
-/** Width ratio that marks the transition head -> shoulders. */
-const SHOULDER_JUMP = 1.45;
+/** Search window for the neck, in % of the silhouette height. */
+const NECK_FROM = 0.25;
+const NECK_TO = 0.7;
+/** Max extra zoom allowed to guarantee the bust bleeds through the bottom. */
+const MAX_BLEED_ZOOM = 1.35;
 
 /** Fallback (legacy) framing constants — used when landmarks are unavailable. */
 export const TOP_MARGIN = 0.06;
 const HEIGHT_FILL = 1 - TOP_MARGIN;
 const MIN_WIDTH_FILL = 0.92;
+
 
 type Box = { x: number; y: number; w: number; h: number };
 
