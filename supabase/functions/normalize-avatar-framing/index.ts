@@ -23,6 +23,9 @@ serve(async (req) => {
     const ids: string[] | undefined = Array.isArray(body.beneficiary_ids) ? body.beneficiary_ids : undefined;
     const limit: number = typeof body.limit === "number" ? body.limit : 50;
     const dryRun: boolean = body.dry_run === true;
+    // When true, always renormalize the CURRENTLY PUBLISHED avatar instead of the
+    // archived original (useful when the archive predates the current art style).
+    const useCurrent: boolean = body.use_current === true;
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
@@ -45,13 +48,13 @@ serve(async (req) => {
         let raw: Uint8Array | null = null;
         let fromArchive = false;
 
-        const archResp = await fetch(`${archived.publicUrl}?t=${Date.now()}`);
-        if (archResp.ok) {
+        const archResp = useCurrent ? null : await fetch(`${archived.publicUrl}?t=${Date.now()}`);
+        if (archResp?.ok) {
           raw = new Uint8Array(await archResp.arrayBuffer());
           fromArchive = true;
         } else {
           const sourceUrl = (b.avatar_url as string).split("?")[0];
-          const resp = await fetch(sourceUrl);
+          const resp = await fetch(`${sourceUrl}?t=${Date.now()}`);
           if (!resp.ok) throw new Error(`fetch ${resp.status}`);
           raw = new Uint8Array(await resp.arrayBuffer());
         }
