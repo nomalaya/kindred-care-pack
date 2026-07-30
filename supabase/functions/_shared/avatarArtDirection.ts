@@ -115,15 +115,17 @@ DIGNITY (GLOBAL, NON-NEGOTIABLE): Always portray the person with dignity, respec
 export const FRAMING_BLOCK = `
 IMAGE FORMAT — STRICT: square 1:1 canvas. Full-bleed illustration. The white background MUST extend all the way to the four edges of the image.
 FRAMING — STRICT: the subject shows HEAD + NECK + SHOULDERS + UPPER BUST, with the garment fully drawn. The bottom edge of the canvas crops just BELOW the upper-bust line — clearly above the waist, clearly above the mid-torso. The upper bust IS visible (this is required), but the full torso, mid-chest, ribcage and waist MUST NOT be visible. No deep cleavage, no exposed chest skin beyond a normal neckline.
-SUBJECT SIZE — TARGET: the subject occupies approximately 70% of the canvas (both height and width). Preferred range: 65%–75%. AT LEAST 12% of pure white margin MUST remain visible on EACH of the four sides. The subject must NEVER touch any edge of the canvas.
-COMPOSITION: subject perfectly centered horizontally and vertically. The face occupies the upper-middle portion of the framed subject. Looking softly toward the camera.
+SUBJECT SIZE — STRICT (NON-NEGOTIABLE): the subject FILLS the canvas. Tight, generous, edge-to-edge framing like a passport/profile close-up. The top of the hair sits close to the top edge (a thin white band of about 5% at most). The shoulders REACH the left and right edges and may bleed slightly out of them. The bottom of the upper bust MUST reach and bleed out through the BOTTOM edge of the canvas — there must be NO white band, NO white gap and NO empty space between the bust and the bottom edge.
+FORBIDDEN SIZING: small subject, distant subject, subject floating in the middle of a large white area, wide white margins, white border around the subject, white band under the bust, medium/long shot. The subject must NEVER occupy less than 90% of the canvas width.
+COMPOSITION: subject centered horizontally. The face occupies the upper portion of the canvas. Looking softly toward the camera.
 COMPLETE UPPER BUST — STRICT (NON-NEGOTIABLE):
-The portrait must show a complete, solid upper bust with fully visible shoulders and a continuous torso outline down to the cropping line.
-The clothing and shoulders must remain fully drawn and fully opaque until the bottom crop line.
-The lower edge of the upper bust must simply leave the canvas naturally at the bottom crop, with the garment fully drawn and opaque up to that crop. Do NOT add a thick horizontal line, ruler line, underline, dark band, table edge or any visible drawn border under the bust. The crop is just the canvas edge — not a drawn line.
+The portrait must show a complete, solid upper bust with fully visible shoulders and a continuous torso outline that runs off the bottom edge.
+The clothing and shoulders must remain fully drawn and fully opaque all the way to the bottom edge of the canvas.
+The upper bust simply leaves the canvas through the bottom edge, with the garment fully drawn and opaque up to that edge. Do NOT add a thick horizontal line, ruler line, underline, dark band, table edge or any visible drawn border under the bust. The crop is just the canvas edge — not a drawn line.
 Do not fade, dissolve, wash out, blur, mask, vignette or watercolor-fade the bust. No circular crop, no cut-off shoulders, no disappearing body, no soft fade-out at the bottom.
-ABSOLUTELY FORBIDDEN: full torso visible, waist visible, mid-chest visible, ribcage visible, hips, arms hanging full-length, edge-to-edge subject, head touching the top edge, shoulders touching the side edges, paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair, thick dark line under the bust, horizontal bar under the shoulders, table or shelf under the subject.
+ABSOLUTELY FORBIDDEN: full torso visible, waist visible, mid-chest visible, ribcage visible, hips, arms hanging full-length, white margin under the bust, subject not touching the bottom edge, paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair, thick dark line under the bust, horizontal bar under the shoulders, table or shelf under the subject.
 `.trim();
+
 
 
 // ---- Background system --------------------------------------------------------
