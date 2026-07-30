@@ -8,16 +8,16 @@
  * normalized.
  *
  * Canonical framing (canvas 1024x1024):
- *   - shoulder width  -> SHOULDER_FILL of the canvas width  (sets the scale)
+ *   - head height     -> HEAD_FILL of the canvas height     (sets the scale)
  *   - eye line        -> EYE_LINE of the canvas height      (sets the position)
- *   - horizontal      -> centered on the middle of the shoulders
- *   - bust            -> bleeds out through the bottom edge
+ *   - horizontal      -> centered on the middle of the face
+ *   - bust            -> always bleeds out through the bottom edge
  *
  * Landmarks are derived from the alpha/white silhouette only (no AI, no model):
- *   - head bottom = first row (from the top) whose width jumps above
- *     SHOULDER_JUMP x the head width -> start of the shoulders
- *   - eye line    = head top + EYE_IN_HEAD x head height
- *   - shoulders   = widest row of the upper half of the silhouette
+ *   - neck      = narrowest row between NECK_FROM and NECK_TO of the silhouette
+ *   - head      = skull top -> neck
+ *   - eye line  = head top + EYE_IN_HEAD x head height
+ *   - center    = middle of the face band around the eye line
  *
  * If a landmark can't be detected, we fall back to the previous bust-based
  * framing. Never throws, never rejects.
@@ -25,19 +25,26 @@
 import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 export const NORMALIZE_CANVAS = 1024;
-/** Share of the canvas width taken by the shoulders. */
-export const SHOULDER_FILL = 0.95;
+/** Share of the canvas height taken by the head (skull top -> neck). */
+export const HEAD_FILL = 0.46;
 /** Vertical position of the eye line, in % of the canvas height. */
 export const EYE_LINE = 0.38;
 /** Eye line inside the head, in % of the head height (anatomical average). */
 const EYE_IN_HEAD = 0.4;
-/** Width ratio that marks the transition head -> shoulders. */
-const SHOULDER_JUMP = 1.45;
+/** Search window for the neck, in % of the silhouette height. */
+const NECK_FROM = 0.25;
+const NECK_TO = 0.7;
+/** Head height / head width ratio, used when the neck is hidden (scarf, hood). */
+const HEAD_ASPECT = 1.35;
+
+/** Max extra zoom allowed to guarantee the bust bleeds through the bottom. */
+const MAX_BLEED_ZOOM = 1.35;
 
 /** Fallback (legacy) framing constants — used when landmarks are unavailable. */
 export const TOP_MARGIN = 0.06;
 const HEIGHT_FILL = 1 - TOP_MARGIN;
 const MIN_WIDTH_FILL = 0.92;
+
 
 type Box = { x: number; y: number; w: number; h: number };
 
@@ -101,17 +108,17 @@ function median(values: number[]): number {
 export type Landmarks = {
   /** Eye line, in source pixels. */
   eyeY: number;
-  /** Horizontal center of the shoulders, in source pixels. */
+  /** Horizontal center of the face, in source pixels. */
   centerX: number;
-  /** Shoulder width, in source pixels. */
-  shoulderW: number;
-  /** Head height, in source pixels. */
+  /** Head height (skull top -> neck), in source pixels. */
   headH: number;
 };
 
 /**
- * Derive the shoulders + eye line from the silhouette. Returns null when the
- * shape is too ambiguous (e.g. head-only crop, no shoulder transition).
+ * Derive the head + eye line from the silhouette. The neck (narrowest row of
+ * the upper body) is a far more stable anatomical anchor than the shoulders,
+ * which vary with clothing, hair volume and pose.
+ * Returns null when the shape is too ambiguous (e.g. head-only crop).
  */
 export function detectLandmarks(spans: RowSpan[], bbox: Box): Landmarks | null {
   // Head width reference: median width of the rows just under the skull top.
@@ -124,41 +131,49 @@ export function detectLandmarks(spans: RowSpan[], bbox: Box): Landmarks | null {
   const headWidth = median(headWidths);
   if (headWidth <= 0) return null;
 
-  // Shoulders start where the silhouette widens sharply.
-  let shoulderY = -1;
-  const scanEnd = bbox.y + Math.round(bbox.h * 0.85);
-  for (let y = probeEnd; y <= scanEnd && y < spans.length; y++) {
-    if (spans[y].w >= headWidth * SHOULDER_JUMP) {
-      shoulderY = y;
-      break;
+  // Neck = narrowest row of the head -> shoulders transition window.
+  const neckFrom = bbox.y + Math.round(bbox.h * NECK_FROM);
+  const neckTo = Math.min(spans.length - 1, bbox.y + Math.round(bbox.h * NECK_TO));
+  let neckY = -1;
+  let neckW = Infinity;
+  for (let y = neckFrom; y <= neckTo; y++) {
+    const w = spans[y].w;
+    if (w <= 0) continue;
+    if (w < neckW) {
+      neckW = w;
+      neckY = y;
     }
   }
-  if (shoulderY < 0) return null;
-
-  const headH = shoulderY - bbox.y;
-  if (headH < bbox.h * 0.12) return null;
-
-  // Shoulder width + center: widest row from the shoulder line downwards,
-  // limited to the upper part of the bust to avoid arms/props.
-  let bestY = shoulderY;
-  let bestW = spans[shoulderY].w;
-  const shoulderScanEnd = Math.min(spans.length - 1, shoulderY + Math.round(headH * 1.2));
-  for (let y = shoulderY; y <= shoulderScanEnd; y++) {
-    if (spans[y].w > bestW) {
-      bestW = spans[y].w;
-      bestY = y;
-    }
+  // Head height. Preferred source: the neck narrowing. When the neck is hidden
+  // (headscarf, hood, long hair, beard), fall back to the anatomical head
+  // width -> height ratio so veiled subjects stay framed like everyone else.
+  let headH: number;
+  if (neckY >= 0 && isFinite(neckW) && neckW <= headWidth * 0.95) {
+    headH = neckY - bbox.y;
+  } else {
+    headH = headWidth * HEAD_ASPECT;
   }
-  const span = spans[bestY];
-  if (!span || span.w <= 0) return null;
+  if (headH < bbox.h * 0.15 || headH > bbox.h * 0.8) return null;
+
+
+  // Horizontal center: middle of the face band around the eye line.
+  const eyeY = bbox.y + headH * EYE_IN_HEAD;
+  const bandFrom = Math.max(0, Math.round(eyeY - headH * 0.12));
+  const bandTo = Math.min(spans.length - 1, Math.round(eyeY + headH * 0.12));
+  const centers: number[] = [];
+  for (let y = bandFrom; y <= bandTo; y++) {
+    const s = spans[y];
+    if (s.w > 0) centers.push((s.min + s.max) / 2);
+  }
+  if (!centers.length) return null;
 
   return {
-    eyeY: bbox.y + headH * EYE_IN_HEAD,
-    centerX: (span.min + span.max) / 2,
-    shoulderW: span.w,
+    eyeY,
+    centerX: median(centers),
     headH,
   };
 }
+
 
 /** True when the source image uses a transparent (already chroma-keyed) background. */
 function hasTransparentBackground(img: Image): boolean {
@@ -182,10 +197,13 @@ export type NormalizeReport = {
   sourceMargins: [number, number, number, number] | null;
   scale: number;
   transparent: boolean;
-  /** "landmarks" = shoulders + eye line, "bust" = legacy fallback. */
+  /** "landmarks" = head + eye line, "bust" = legacy fallback. */
   mode: "landmarks" | "bust";
   /** Measured landmarks, in % of the source size (for reporting/dry-runs). */
-  landmarks: { eyeYPct: number; centerXPct: number; shoulderWPct: number; headHPct: number } | null;
+  landmarks: { eyeYPct: number; centerXPct: number; headHPct: number } | null;
+  /** Resulting framing on the 1024 canvas, in % (landmarks mode only). */
+  output?: { headHPct: number; eyeYPct: number; centerXPct: number; bottomMarginPct: number };
+
 };
 
 /**
@@ -227,8 +245,18 @@ export async function normalizeAvatarFraming(
   const lm = detectLandmarks(spans, bbox);
 
   if (lm) {
-    // Same camera distance for everyone: shoulders always span SHOULDER_FILL.
-    const scale = (S * SHOULDER_FILL) / lm.shoulderW;
+    // Same camera distance for everyone: the head always spans HEAD_FILL.
+    let scale = (S * HEAD_FILL) / lm.headH;
+
+    // Anti-crop guarantee: the bust must bleed out through the bottom edge.
+    // We zoom around the eye line (which stays pinned at EYE_LINE) until the
+    // bottom of the silhouette reaches the bottom of the canvas.
+    const bustDepth = bbox.y + bbox.h - lm.eyeY; // source px, eye line -> bust bottom
+    if (bustDepth > 0) {
+      const needed = (S * (1 - EYE_LINE)) / bustDepth;
+      if (needed > scale) scale = Math.min(needed, scale * MAX_BLEED_ZOOM);
+    }
+
     const scaledW = Math.max(1, Math.round(img.width * scale));
     const scaledH = Math.max(1, Math.round(img.height * scale));
     const scaled = img.clone().resize(scaledW, scaledH);
@@ -249,6 +277,7 @@ export async function normalizeAvatarFraming(
       const visible = scaled.clone().crop(srcX, srcY, srcW, srcH);
       canvas.composite(visible, Math.max(0, -winX), Math.max(0, -winY));
       const bytes = await canvas.encode();
+      const outBottom = (bbox.y + bbox.h) * scale - winY;
       return {
         bytes,
         report: {
@@ -261,8 +290,13 @@ export async function normalizeAvatarFraming(
           landmarks: {
             eyeYPct: Math.round((lm.eyeY / img.height) * 1000) / 10,
             centerXPct: Math.round((lm.centerX / img.width) * 1000) / 10,
-            shoulderWPct: Math.round((lm.shoulderW / img.width) * 1000) / 10,
             headHPct: Math.round((lm.headH / img.height) * 1000) / 10,
+          },
+          output: {
+            headHPct: Math.round(((lm.headH * scale) / S) * 1000) / 10,
+            eyeYPct: Math.round(EYE_LINE * 1000) / 10,
+            centerXPct: 50,
+            bottomMarginPct: Math.max(0, Math.round(((S - outBottom) / S) * 1000) / 10),
           },
         },
       };
@@ -270,6 +304,7 @@ export async function normalizeAvatarFraming(
   }
 
   // ---- Fallback: legacy bust framing (unchanged behaviour) ----
+
   let scale = (S * HEIGHT_FILL) / bbox.h;
   if (bbox.w * scale < S * MIN_WIDTH_FILL) {
     scale = (S * MIN_WIDTH_FILL) / bbox.w;
