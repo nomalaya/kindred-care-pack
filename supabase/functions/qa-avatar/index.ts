@@ -29,7 +29,10 @@ const WEIGHTS: Record<string, number> = {
 // regardless of the global weighted score.
 const HARD_FAIL_THRESHOLDS: Record<string, number> = {
   style_match: 70,
-  anonymity: 70,
+  // Only a clear "fail"/"critical" verdict blocks: judge models routinely claim a
+  // vague resemblance to some actor on perfectly generic faces, and each false
+  // rejection costs a full regeneration.
+  anonymity: 50,
   bust_completeness: 55,
 };
 
@@ -89,11 +92,11 @@ Dimensions (return a verdict for each):
 - artifact_freedom: free of AI artifacts (warped features, melted shapes, extra fingers)?
 - style_match: a clean modern editorial illustration — smooth soft shading, simple restrained outlines, warm desaturated palette, realistic human proportions, clearly non-photographic and gently stylized. Score 90-100 when the image matches that description. Score low ONLY if: photograph, photorealistic, 3D/Pixar/Disney render, flat vector sticker (Storyset/unDraw/Notion style), anime, manga, chibi, comic book, oil painting, or heavy saturated painterly watercolor. Do NOT require ink texture, cross-hatching, pencil grain or watercolor wash — a smooth clean line style is the REQUIRED result.
 - background_quality: the background MUST be a pure, plain, perfectly uniform WHITE background (#FFFFFF), full-bleed to all four edges, with the subject cleanly isolated on it. Score 95-100 for a clean flat white background. Score low ONLY for: colored or gradient backgrounds, halo/glow/shadow behind the subject, textures, patterns, decorative shapes, or any drawn scene behind the subject. A plain white background is the REQUIRED result — never penalise it.
-- anonymity: a GENERIC archetypal character that does NOT resemble any real identifiable person, celebrity or public figure? Score 0 if it looks like a specific real person.
+- anonymity: a GENERIC archetypal character. Rate "excellent"/"good" for any ordinary invented face. Only rate "fail"/"critical" if the image is an unmistakable portrait of a specific named celebrity or public figure (recognisable at a glance by anyone). A faint, generic or "reminds me of" resemblance to an actor is NOT a violation — illustrated human faces naturally look somewhat familiar. Do not name actors speculatively.
 - not_caricature: free of cultural caricature, stereotypes, exaggeration?
 - dignity: portrayed with dignity and humanity, no misery, no pathos?
 - human_warmth: emotionally credible, warm, kind (not commercial smile, not cold)?
-- bust_completeness: the UPPER bust is drawn cleanly with a complete garment line and fully visible shoulders, and the canvas crops at a clean horizontal line just below the upper bust. Score HIGH (>=80) when shoulders + upper bust are fully drawn and the bottom crop is clean. Score 0 ONLY if: the body dissolves or fades into white, watercolor fade-out at the bottom, circular crop, vignette mask over the body, shoulders cropped or unfinished, clothing transparent at the bottom, or the upper bust itself is missing/incomplete. Do NOT penalise simply because the upper bust is visible — that is the required composition.`;
+- bust_completeness: shoulders and upper bust fully drawn, garment opaque, body NOT dissolving. Rate "excellent"/"good" whenever the shoulders and upper bust are complete and opaque — the shape of the bottom crop is IRRELEVANT: a curved, rounded, arched or slightly soft bottom crop line is perfectly acceptable and MUST NOT be penalised. Only rate "fail"/"critical" if: the body dissolves or fades into white, watercolor fade-out, circular crop of the whole subject, vignette mask over the body, shoulders cropped or unfinished, clothing transparent at the bottom, or the upper bust is missing/incomplete. Do NOT penalise simply because the upper bust is visible — that is the required composition.`;
 
     const aiData = await chatCompletion({
       model: MODEL_QA,

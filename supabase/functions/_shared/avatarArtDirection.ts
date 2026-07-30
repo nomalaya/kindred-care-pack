@@ -106,7 +106,7 @@ const BODY_TYPE_DESC: Record<string, string> = {
 export const ART_DIRECTION_INVARIANTS = `
 STYLE: clean modern editorial illustration. Smooth soft shading with simple, restrained outlines — no heavy ink strokes, no cross-hatching, no pencil scribbles, no visible brush texture, no painterly wash bleeding into the background. Hair drawn as soft uniform masses (not as many individual dark inked strands), facial details kept smooth and clean (no scribbled marks around eyes, no signature-like strokes). Realistic human proportions, clearly non-photographic, gently stylized.
 COLOR: warm, slightly desaturated, harmonious. Muted earth and warm pastel tones. No neon, no oversaturation.
-ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure or celebrity. Fictional respectful stand-in only.
+ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any real person, public figure, actor, actress, model, athlete or celebrity. Do NOT base the face on any known person. Build the face from ordinary, average, unremarkable everyday features: neutral bone structure, ordinary nose, ordinary mouth, ordinary eye shape, no striking "movie-star" beauty, no glamour, no fashion-editorial look. Fictional respectful stand-in only.
 DIGNITY (GLOBAL, NON-NEGOTIABLE): Always portray the person with dignity, respect, and humanity. Never make the portrait humiliating, miserable, grotesque, exaggerated, caricatural, or stereotyped. Quiet humanity, no pathos.
 `.trim();
 
@@ -153,7 +153,7 @@ export const NEGATIVE_PROMPT = [
   "no colored background", "no gradient background", "no halo behind the subject", "no glow behind the subject", "no shadow behind the subject",
   "no textured background", "no patterns", "no geometric shapes in background",
   "no contextual scene", "no interior", "no furniture", "no window", "no objects behind the subject",
-  "no identifiable real person", "no celebrity likeness",
+  "no identifiable real person", "no celebrity likeness", "no actor lookalike", "no actress lookalike", "no famous face", "no movie-star beauty", "no glamour portrait", "no fashion model face",
   "no multiple faces", "no text", "no watermark", "no logo",
   // Bust-completeness — direct tokens (no double negation) per operator brief.
   "watercolor fade-out", "disappearing torso", "fading bust", "dissolved shoulders",
