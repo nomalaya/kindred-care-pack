@@ -55,8 +55,28 @@ const MAX_EDIT_DIFF = 8;
 
 type GenMode = "preview" | "final" | "edit" | "edit_hd";
 
+/**
+ * Style anchors (Léa, Nguyen, Fatima) fetched once per instance and reused for
+ * every generation. They constrain the drawing style only — never identity.
+ */
+let styleAnchorCache: Promise<string[]> | null = null;
+function loadStyleAnchors(): Promise<string[]> {
+  if (!styleAnchorCache) {
+    styleAnchorCache = Promise.all(
+      STYLE_ANCHOR_URLS.map((u) =>
+        fetchSourceImageAsDataUrl(u).catch((e) => {
+          console.error(`[generate-avatar] style anchor unavailable ${u}:`, e.message);
+          return "";
+        }),
+      ),
+    ).then((list) => list.filter(Boolean));
+  }
+  return styleAnchorCache;
+}
+
 async function generateImage(prompt: string, model: string): Promise<Uint8Array> {
-  return generateAvatarImage(prompt, model);
+  const anchors = await loadStyleAnchors();
+  return generateAvatarImage(prompt, model, anchors);
 }
 
 
@@ -75,12 +95,13 @@ async function fetchSourceImageAsDataUrl(sourceUrl: string): Promise<string> {
 }
 
 /**
- * Image-to-image edit call. Sends the existing avatar as a visual reference
- * plus the minimal edit instructions; the model returns a retouched PNG.
+ * Image-to-image edit call. Sends the existing avatar as the FIRST reference
+ * (subject to retouch), then the style anchors as stylistic guides only.
  */
 async function generateEditedImage(prompt: string, sourceUrl: string, model: string): Promise<Uint8Array> {
   const dataUrl = await fetchSourceImageAsDataUrl(sourceUrl);
-  return generateAvatarImage(prompt, model, dataUrl);
+  const anchors = await loadStyleAnchors();
+  return generateAvatarImage(prompt, model, [dataUrl, ...anchors]);
 }
 
 
