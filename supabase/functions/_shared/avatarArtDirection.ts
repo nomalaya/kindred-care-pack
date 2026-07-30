@@ -2,6 +2,7 @@
 // Locked: not editable from admin panel. Guarantees premium homogeneous catalog.
 
 import { AvatarTraits, TraitDiff } from "./avatarTraits.ts";
+import { STYLE_ANCHOR_BLOCK, STYLE_ANCHOR_BLOCK_EDIT } from "./avatarStyleAnchors.ts";
 
 // EXPRESSION_DESCRIPTIONS — fragments aligned with the 4 user-facing tonalities
 // of the simplified Avatar Studio (Réservée / Chaleureuse / Fatiguée / Inquiète).
