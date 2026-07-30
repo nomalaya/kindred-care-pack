@@ -62,9 +62,12 @@ const BeneficiaryAvatar = ({
           loading="lazy"
           className="absolute inset-0 w-full h-full object-cover"
           style={{
-            objectPosition: "center top",
+            // Framing is baked into the pixels (shoulders + eye line normalized),
+            // so the circle shows the same area for every beneficiary.
+            objectPosition: "center center",
             ...(transformStyle ?? {}),
           }}
+
         />
         {isPreview && (
           <span
