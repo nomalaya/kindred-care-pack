@@ -105,17 +105,17 @@ function median(values: number[]): number {
 export type Landmarks = {
   /** Eye line, in source pixels. */
   eyeY: number;
-  /** Horizontal center of the shoulders, in source pixels. */
+  /** Horizontal center of the face, in source pixels. */
   centerX: number;
-  /** Shoulder width, in source pixels. */
-  shoulderW: number;
-  /** Head height, in source pixels. */
+  /** Head height (skull top -> neck), in source pixels. */
   headH: number;
 };
 
 /**
- * Derive the shoulders + eye line from the silhouette. Returns null when the
- * shape is too ambiguous (e.g. head-only crop, no shoulder transition).
+ * Derive the head + eye line from the silhouette. The neck (narrowest row of
+ * the upper body) is a far more stable anatomical anchor than the shoulders,
+ * which vary with clothing, hair volume and pose.
+ * Returns null when the shape is too ambiguous (e.g. head-only crop).
  */
 export function detectLandmarks(spans: RowSpan[], bbox: Box): Landmarks | null {
   // Head width reference: median width of the rows just under the skull top.
@@ -128,41 +128,45 @@ export function detectLandmarks(spans: RowSpan[], bbox: Box): Landmarks | null {
   const headWidth = median(headWidths);
   if (headWidth <= 0) return null;
 
-  // Shoulders start where the silhouette widens sharply.
-  let shoulderY = -1;
-  const scanEnd = bbox.y + Math.round(bbox.h * 0.85);
-  for (let y = probeEnd; y <= scanEnd && y < spans.length; y++) {
-    if (spans[y].w >= headWidth * SHOULDER_JUMP) {
-      shoulderY = y;
-      break;
+  // Neck = narrowest row of the head -> shoulders transition window.
+  const neckFrom = bbox.y + Math.round(bbox.h * NECK_FROM);
+  const neckTo = Math.min(spans.length - 1, bbox.y + Math.round(bbox.h * NECK_TO));
+  let neckY = -1;
+  let neckW = Infinity;
+  for (let y = neckFrom; y <= neckTo; y++) {
+    const w = spans[y].w;
+    if (w <= 0) continue;
+    if (w < neckW) {
+      neckW = w;
+      neckY = y;
     }
   }
-  if (shoulderY < 0) return null;
+  if (neckY < 0 || !isFinite(neckW)) return null;
 
-  const headH = shoulderY - bbox.y;
-  if (headH < bbox.h * 0.12) return null;
+  // The neck must actually be a narrowing, and shoulders must widen below it.
+  if (neckW > headWidth * 0.95) return null;
 
-  // Shoulder width + center: widest row from the shoulder line downwards,
-  // limited to the upper part of the bust to avoid arms/props.
-  let bestY = shoulderY;
-  let bestW = spans[shoulderY].w;
-  const shoulderScanEnd = Math.min(spans.length - 1, shoulderY + Math.round(headH * 1.2));
-  for (let y = shoulderY; y <= shoulderScanEnd; y++) {
-    if (spans[y].w > bestW) {
-      bestW = spans[y].w;
-      bestY = y;
-    }
+  const headH = neckY - bbox.y;
+  if (headH < bbox.h * 0.15 || headH > bbox.h * 0.75) return null;
+
+  // Horizontal center: middle of the face band around the eye line.
+  const eyeY = bbox.y + headH * EYE_IN_HEAD;
+  const bandFrom = Math.max(0, Math.round(eyeY - headH * 0.12));
+  const bandTo = Math.min(spans.length - 1, Math.round(eyeY + headH * 0.12));
+  const centers: number[] = [];
+  for (let y = bandFrom; y <= bandTo; y++) {
+    const s = spans[y];
+    if (s.w > 0) centers.push((s.min + s.max) / 2);
   }
-  const span = spans[bestY];
-  if (!span || span.w <= 0) return null;
+  if (!centers.length) return null;
 
   return {
-    eyeY: bbox.y + headH * EYE_IN_HEAD,
-    centerX: (span.min + span.max) / 2,
-    shoulderW: span.w,
+    eyeY,
+    centerX: median(centers),
     headH,
   };
 }
+
 
 /** True when the source image uses a transparent (already chroma-keyed) background. */
 function hasTransparentBackground(img: Image): boolean {
