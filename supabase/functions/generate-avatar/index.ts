@@ -29,6 +29,8 @@ import {
   MODEL_FINAL,
   MODEL_EDIT,
 } from "../_shared/avatarArtDirection.ts";
+import { generateAvatarImage, usingGoogleDirect } from "../_shared/imageProvider.ts";
+
 
 
 const corsHeaders = {
