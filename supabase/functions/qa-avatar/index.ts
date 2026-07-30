@@ -14,6 +14,7 @@ const corsHeaders = {
 const WEIGHTS: Record<string, number> = {
   single_face: 1.3,
   framing: 1.0,
+  framing_fill: 1.4, // the subject must fill the square, bust bleeding out of the bottom edge
   no_watermark: 1.0,
   artifact_freedom: 1.2,
   style_match: 2.0, // hand-drawn semi-realistic cartoon illustration — hard requirement
@@ -34,7 +35,9 @@ const HARD_FAIL_THRESHOLDS: Record<string, number> = {
   // rejection costs a full regeneration.
   anonymity: 50,
   bust_completeness: 55,
+  framing_fill: 55,
 };
+
 
 function weightedScore(scores: Record<string, number>): number {
   let total = 0, wsum = 0;
