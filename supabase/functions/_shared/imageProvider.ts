@@ -141,12 +141,12 @@ async function googleGenerateContent(
 async function lovableGenerate(
   model: string,
   prompt: string,
-  sourceDataUrl?: string,
+  imageDataUrls: string[] = [],
 ): Promise<Uint8Array> {
-  const content = sourceDataUrl
+  const content = imageDataUrls.length
     ? [
         { type: "text", text: prompt },
-        { type: "image_url", image_url: { url: sourceDataUrl } },
+        ...imageDataUrls.map((url) => ({ type: "image_url", image_url: { url } })),
       ]
     : prompt;
 
