@@ -34,6 +34,9 @@ const EYE_IN_HEAD = 0.4;
 /** Search window for the neck, in % of the silhouette height. */
 const NECK_FROM = 0.25;
 const NECK_TO = 0.7;
+/** Head height / head width ratio, used when the neck is hidden (scarf, hood). */
+const HEAD_ASPECT = 1.35;
+
 /** Max extra zoom allowed to guarantee the bust bleeds through the bottom. */
 const MAX_BLEED_ZOOM = 1.35;
 
