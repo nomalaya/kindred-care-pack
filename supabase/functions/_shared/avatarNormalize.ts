@@ -274,14 +274,27 @@ export async function normalizeAvatarFraming(
 
   if (lm) {
     // (1) Eye line first: it is pinned at EYE_LINE whatever the scale.
-    // (3) Head size is the soft target — same camera distance as Léa.
-    let scale = (S * HEAD_FILL) / lm.headH;
+    // (3) Head size is the soft target — same "camera distance" as Léa.
+    const ideal = (S * HEAD_FILL) / lm.headH;
+    let scale = ideal;
+    let needsRegeneration = false;
+    let regenerationReason: string | undefined;
+
+    // A source framed much tighter than the reference would need a strong zoom
+    // out, which only exposes background where no body was ever drawn. We
+    // refuse to do that: clamp the zoom and flag the avatar for regeneration.
+    if (ideal < MIN_ZOOM) {
+      scale = MIN_ZOOM;
+      needsRegeneration = true;
+      regenerationReason =
+        "cadrage source trop serré : la tête occupe une part du cadre bien " +
+        "supérieure à la référence Léa (tête ≈ corps visible). Impossible de " +
+        "l'élargir sans inventer le buste — régénérer avec épaules + haut des bras.";
+    }
 
     // (2) No white band under the bust. Zoom around the eye line until the
     // bottom of the silhouette leaves the canvas. Head size gives way, up to
     // HEAD_FILL_MAX; beyond that we flag the avatar instead of over-cropping.
-    let needsRegeneration = false;
-    let regenerationReason: string | undefined;
     const bustDepth = bbox.y + bbox.h - lm.eyeY; // source px, eye line -> bust bottom
     if (bustDepth > 0) {
       const needed = (S * (1 - EYE_LINE)) / bustDepth;
@@ -296,6 +309,7 @@ export async function normalizeAvatarFraming(
         }
       }
     }
+
 
 
     const scaledW = Math.max(1, Math.round(img.width * scale));
