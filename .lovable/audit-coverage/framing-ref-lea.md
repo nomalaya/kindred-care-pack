@@ -1,41 +1,55 @@
-# Cadrage homogène — référence Léa
+# Cadrage — référence Léa (mesures visage)
 
-## Règle unique, ordre d'arbitrage
+## Pourquoi les planches précédentes ne correspondaient pas
 
-1. **Ligne des yeux à 31,5 %** de la hauteur du canvas — non négociable, identique pour tous.
-2. **Aucun blanc sous le buste** — le vêtement sort par le bord bas.
-3. **Hauteur de tête 62 %** (mesure de Léa) — cible souple, qui cède en premier, dans la limite de 72 %.
+Les repères étaient calculés sur la **silhouette** (haut des cheveux → point le plus
+étroit du cou). Sur ces illustrations, ce point n'existe presque jamais (col, écharpe,
+cheveux longs) : la hauteur de tête était alors estimée par un ratio. Deux avatars
+annoncés « 62 % de tête » n'avaient donc pas du tout la même tête à l'écran.
 
-Au-delà de 72 % de hauteur de tête, on n'écrase plus l'image : l'avatar est marqué
-`needs_regeneration` avec sa raison, pour être régénéré avec un cadrage source plus large.
+Nouvelle mesure, faite avec un détecteur de visage (repères réels : yeux, boîte du
+visage), hors ligne, sans crédit IA :
 
-Centre du visage : 50 % de la largeur.
+| Avatar | Hauteur du visage | Ligne des yeux | Menton | Zoom requis pour égaler Léa |
+| --- | --- | --- | --- | --- |
+| **Léa (référence)** | **39,8 %** | **38,0 %** | **62 %** | 1,00 |
+| Kwame | 68,1 % | 48,4 % | 89 % | 0,58 |
+| Marius | 55,2 % | 44,2 % | 78 % | 0,72 |
+| Nguyen | 53,1 % | 39,8 % | 70 % | 0,75 |
+| Aïcha | 53,5 % | 43,4 % | 76 % | 0,74 |
 
-## Génération : épaules + haut des bras
+Les quatre avatars ont un visage **1,3 à 1,7 fois plus grand** que Léa dans le cadre.
+C'est exactement l'hétérogénéité visible à l'œil nu.
 
-`FRAMING_BLOCK` demande désormais **tête + cou + épaules entières + haut des bras**
-(jusqu'au biceps, manches visibles), coupe au niveau de la poitrine haute sous les
-emmanchures, vêtement opaque touchant les bords gauche, droit et bas. Les yeux visés
-à ~32 % et la tête à ~60 % sont explicitement écrits dans le prompt.
+## La règle cible (mesurée sur Léa)
 
-Style, ancres Léa/Nguyen/Fatima et QA : inchangés.
+- Ligne des yeux à **38 %** de la hauteur.
+- Menton à **~50 %** : la tête fait la même hauteur que le corps visible.
+- Tête (cheveux compris) ≈ **44 %** de la hauteur.
+- Épaules + haut des bras remplissent toute la moitié basse, vêtement sortant par le bas.
 
-## Résultats (0 crédit IA, re-normalisation depuis la version publiée)
+## Ce qu'un recadrage ne peut pas faire
 
-| Avatar | Zoom | Tête | Yeux | Centre | Marge basse | À régénérer |
-| --- | --- | --- | --- | --- | --- | --- |
-| Léa (réf.) | — | 62,1 % | 31,5 % | 50,7 % | 0 % | non |
-| Kwame | ×1,001 | 62,0 % | 31,5 % | 50,0 % | 0 % | non |
-| Marius | ×1,001 | 62,1 % | 31,5 % | 50,0 % | 0 % | non |
-| Aïcha | ×1,062 | 62,0 % | 31,5 % | 50,0 % | 0 % | non |
-| Nguyen | ×1,001 | 62,1 % | 31,5 % | 50,0 % | 0 % | non |
+Pour ramener Kwame à la proportion de Léa il faudrait dézoomer à 0,58 : il manque alors
+**32 % de hauteur de corps qui n'a jamais été dessinée**. Les deux seuls bouchages
+possibles (répétition de la dernière ligne, miroir du bas) donnent des traînées et des
+reflets grotesques — voir `framing-recrop-impossible.png`.
 
-Aïcha, qui restait à 58,4 % au tour précédent, atteint désormais exactement la cible :
-le plafond de zoom relevé lui permet de combler le bas sans casser la ligne des yeux.
+**Conclusion : ces avatars doivent être régénérés**, pas recadrés.
 
-Aucun des 4 n'est signalé `needs_regeneration`. Les prochaines générations produiront
-directement des sources avec épaules + haut des bras, ce qui élargira la base du sujet
-dans le rond profil.
+## Code livré
 
-Planche : `framing-homogeneite.png` (rangée haute = image avatar, rangée basse = rond
-profil donateur, ligne rouge = ligne des yeux commune).
+- `_shared/avatarNormalize.ts` : cibles remplacées par `EYE_LINE = 0.38`,
+  `CHIN_LINE = 0.50`, `HEAD_FILL = 0.44`. Ajout de `MIN_ZOOM = 0.9` : au-delà, le
+  recadrage est refusé et l'avatar est marqué `needsRegeneration` avec sa raison,
+  au lieu d'être déformé.
+- `_shared/avatarArtDirection.ts` : `FRAMING_BLOCK` impose désormais les proportions
+  chiffrées (yeux 38 %, menton à mi-hauteur, tête ≤ 50 % du cadre) et interdit
+  explicitement le gros plan visage.
+- Fonctions `normalize-avatar-framing` et `generate-avatar` déployées.
+
+## Étape suivante
+
+Régénérer Kwame, Marius, Nguyen et Aïcha avec le nouveau `FRAMING_BLOCK` (ancres de
+style Léa / Nguyen / Fatima inchangées), puis étendre au reste du catalogue signalé
+`needsRegeneration`.

@@ -27,14 +27,17 @@ import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 export const NORMALIZE_CANVAS = 1024;
 /**
  * REFERENCE FRAMING = LÉA (style anchor `avatars/style-anchors/lea.jpg`).
- * Measured on her portrait with the detector below:
- *   head height 62.1 % | eye line 31.5 % | face center 50.7 %
- * Those measurements are the canonical target for the whole catalog.
+ * Re-measured with a face-landmark detector (not the silhouette):
+ *   face box height 39.7 % | eye line 38.1 % | chin ≈ 50 % | face center 49.7 %
+ * Read: on Léa the head is about as tall as the visible body underneath —
+ * the chin sits mid-canvas. That proportion is the catalog target.
  */
-/** Share of the canvas height taken by the head (skull top -> neck). */
-export const HEAD_FILL = 0.62;
 /** Vertical position of the eye line, in % of the canvas height. */
-export const EYE_LINE = 0.315;
+export const EYE_LINE = 0.38;
+/** Chin line = mid canvas: head height == visible body height. */
+export const CHIN_LINE = 0.5;
+/** Share of the canvas height taken by the head, hair included (Léa). */
+export const HEAD_FILL = 0.44;
 /** Eye line inside the head, in % of the head height (anatomical average). */
 const EYE_IN_HEAD = 0.4;
 /** Search window for the neck, in % of the silhouette height. */
@@ -44,15 +47,21 @@ const NECK_TO = 0.7;
 const HEAD_ASPECT = 1.35;
 
 /**
- * Arbitration when the source is too short to fill the canvas:
+ * Arbitration:
  *   1. the eye line stays at EYE_LINE — never negotiable;
  *   2. no white band under the bust;
  *   3. head size (HEAD_FILL) is the soft target and gives way first.
- * The head is allowed to grow up to HEAD_FILL_MAX to close a bottom gap.
- * Beyond that the crop would look absurd: the avatar is flagged for
- * regeneration with a wider source framing instead.
+ *
+ * A source framed tighter than the reference (head too big in its own canvas)
+ * CANNOT be fixed by cropping: zooming out would expose a white band where the
+ * body was never drawn, and stretching or mirroring the garment looks worse
+ * than the original. Such avatars are flagged `needsRegeneration` and left
+ * untouched beyond the safe zoom range below.
  */
-export const HEAD_FILL_MAX = 0.72;
+export const HEAD_FILL_MAX = 0.5;
+/** Never zoom out more than this: beyond it the source lacks body. */
+export const MIN_ZOOM = 0.9;
+
 
 
 /** Fallback (legacy) framing constants — used when landmarks are unavailable. */
@@ -265,14 +274,27 @@ export async function normalizeAvatarFraming(
 
   if (lm) {
     // (1) Eye line first: it is pinned at EYE_LINE whatever the scale.
-    // (3) Head size is the soft target — same camera distance as Léa.
-    let scale = (S * HEAD_FILL) / lm.headH;
+    // (3) Head size is the soft target — same "camera distance" as Léa.
+    const ideal = (S * HEAD_FILL) / lm.headH;
+    let scale = ideal;
+    let needsRegeneration = false;
+    let regenerationReason: string | undefined;
+
+    // A source framed much tighter than the reference would need a strong zoom
+    // out, which only exposes background where no body was ever drawn. We
+    // refuse to do that: clamp the zoom and flag the avatar for regeneration.
+    if (ideal < MIN_ZOOM) {
+      scale = MIN_ZOOM;
+      needsRegeneration = true;
+      regenerationReason =
+        "cadrage source trop serré : la tête occupe une part du cadre bien " +
+        "supérieure à la référence Léa (tête ≈ corps visible). Impossible de " +
+        "l'élargir sans inventer le buste — régénérer avec épaules + haut des bras.";
+    }
 
     // (2) No white band under the bust. Zoom around the eye line until the
     // bottom of the silhouette leaves the canvas. Head size gives way, up to
     // HEAD_FILL_MAX; beyond that we flag the avatar instead of over-cropping.
-    let needsRegeneration = false;
-    let regenerationReason: string | undefined;
     const bustDepth = bbox.y + bbox.h - lm.eyeY; // source px, eye line -> bust bottom
     if (bustDepth > 0) {
       const needed = (S * (1 - EYE_LINE)) / bustDepth;
@@ -287,6 +309,7 @@ export async function normalizeAvatarFraming(
         }
       }
     }
+
 
 
     const scaledW = Math.max(1, Math.round(img.width * scale));
