@@ -70,19 +70,25 @@ Do NOT penalise identity for these natural transformations. Only penalise if the
       : "";
 
     const systemPrompt = `You are a strict QA reviewer for an NGO beneficiary portrait catalog.
-You must score the image on 11 dimensions, each from 0 (terrible) to 100 (excellent).
-Be honest and discriminating — do not inflate scores. Score 50-70 for borderline issues.
-Return concise notes explaining any score below 80.${transformNotice}`;
+For each of the 11 dimensions you must return ONE verdict among:
+- "excellent" — the dimension is fully satisfied, nothing to fix.
+- "good" — satisfied, only a negligible nitpick.
+- "borderline" — a real but minor issue that a reviewer might accept.
+- "fail" — the requirement is clearly not met.
+- "critical" — a blocking defect for publication.
+Judge each dimension independently and only against its own definition below.
+Do NOT hedge: if your own note about a dimension is positive, the verdict MUST be "excellent" or "good".
+Add a short note for every dimension rated "borderline", "fail" or "critical".${transformNotice}`;
 
-    const userPrompt = `Score this avatar. Respond ONLY via the tool call.
+    const userPrompt = `Review this avatar. Respond ONLY via the tool call.
 
-Dimensions (0=terrible, 100=excellent):
+Dimensions (return a verdict for each):
 - single_face: exactly ONE character face fully visible? (0 = multiple faces or no face)
 - framing: the portrait shows head + neck + shoulders + UPPER BUST with the garment fully drawn, cropped just below the upper-bust line. The upper bust IS expected to be visible — do NOT penalise that. Score 0 ONLY if: full torso visible, waist visible, mid-chest or ribcage visible, hips visible, full-length arms hanging, deep cleavage, exposed chest skin beyond a normal neckline, shoulders cropped, or subject not centered.
 - no_watermark: free of any text, watermark, logo, signature?
 - artifact_freedom: free of AI artifacts (warped features, melted shapes, extra fingers)?
-- style_match: STRICTLY a hand-drawn semi-realistic cartoon illustration in editorial storybook style (fine soft ink outlines, colored-pencil + light watercolor shading, warm desaturated palette, realistic human proportions, clearly non-photographic). Score 0 if: photograph, photorealistic, 3D/Pixar/Disney render, flat vector sticker (Storyset/unDraw/Notion style), anime, manga, chibi, comic book, oil painting, heavy saturated watercolor.
-- background_quality: soft, gently BLURRED contextual illustrated background (interior, kitchen, street, etc.) coherent with the subject, in the same hand-drawn style. Score 0 for pure white studio backgrounds, sharp detailed scenes, or busy/cluttered backgrounds.
+- style_match: a clean modern editorial illustration — smooth soft shading, simple restrained outlines, warm desaturated palette, realistic human proportions, clearly non-photographic and gently stylized. Score 90-100 when the image matches that description. Score low ONLY if: photograph, photorealistic, 3D/Pixar/Disney render, flat vector sticker (Storyset/unDraw/Notion style), anime, manga, chibi, comic book, oil painting, or heavy saturated painterly watercolor. Do NOT require ink texture, cross-hatching, pencil grain or watercolor wash — a smooth clean line style is the REQUIRED result.
+- background_quality: the background MUST be a pure, plain, perfectly uniform WHITE background (#FFFFFF), full-bleed to all four edges, with the subject cleanly isolated on it. Score 95-100 for a clean flat white background. Score low ONLY for: colored or gradient backgrounds, halo/glow/shadow behind the subject, textures, patterns, decorative shapes, or any drawn scene behind the subject. A plain white background is the REQUIRED result — never penalise it.
 - anonymity: a GENERIC archetypal character that does NOT resemble any real identifiable person, celebrity or public figure? Score 0 if it looks like a specific real person.
 - not_caricature: free of cultural caricature, stereotypes, exaggeration?
 - dignity: portrayed with dignity and humanity, no misery, no pathos?
@@ -105,21 +111,24 @@ Dimensions (0=terrible, 100=excellent):
         type: "function",
         function: {
           name: "submit_qa_scores",
-          description: "Submit per-dimension scores and notes for the avatar.",
+          description: "Submit a per-dimension verdict and notes for the avatar.",
           parameters: {
             type: "object",
             properties: {
-              scores: {
+              verdicts: {
                 type: "object",
                 properties: Object.fromEntries(
-                  Object.keys(WEIGHTS).map(k => [k, { type: "number", minimum: 0, maximum: 100 }]),
+                  Object.keys(WEIGHTS).map(k => [k, {
+                    type: "string",
+                    enum: ["excellent", "good", "borderline", "fail", "critical"],
+                  }]),
                 ),
                 required: Object.keys(WEIGHTS),
                 additionalProperties: false,
               },
               notes: { type: "array", items: { type: "string" } },
             },
-            required: ["scores", "notes"],
+            required: ["verdicts", "notes"],
             additionalProperties: false,
           },
         },
@@ -130,9 +139,22 @@ Dimensions (0=terrible, 100=excellent):
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) throw new Error("No QA tool call returned");
     const args = JSON.parse(toolCall.function.arguments);
-    const scores = args.scores ?? {};
     const notes: string[] = args.notes ?? [];
+
+    // Verdicts are mapped to numbers server-side: judge models systematically
+    // compress free numeric scales toward the middle of the range.
+    const VERDICT_SCORES: Record<string, number> = {
+      excellent: 97, good: 88, borderline: 65, fail: 35, critical: 0,
+    };
+    const rawVerdicts: Record<string, string> = args.verdicts ?? {};
+    const scores: Record<string, number> = {};
+    for (const k of Object.keys(WEIGHTS)) {
+      const v = rawVerdicts[k];
+      if (typeof v === "string" && v in VERDICT_SCORES) scores[k] = VERDICT_SCORES[v];
+      else if (typeof (args.scores ?? {})[k] === "number") scores[k] = args.scores[k];
+    }
     let global = weightedScore(scores);
+
 
     // Hard-fail: any blocking dimension below its threshold forces a sub-pass global score
     for (const [k, threshold] of Object.entries(HARD_FAIL_THRESHOLDS)) {
