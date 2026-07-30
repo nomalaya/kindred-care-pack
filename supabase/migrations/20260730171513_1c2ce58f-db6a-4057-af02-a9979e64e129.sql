@@ -1,0 +1,1 @@
+UPDATE public.beneficiaries SET avatar_status = 'pending', avatar_qa_report = NULL WHERE id = '8a9c2141-de65-4a67-87d9-2899bef5b188';
