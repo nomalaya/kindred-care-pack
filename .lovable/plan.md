@@ -1,68 +1,35 @@
-## Problèmes
+## Objectif
 
-1. **Cadre (ring) de l'avatar actif coupé en haut et à gauche**
-   - La vignette utilise `ring-2 ring-primary ring-offset-2` → le contour s'étend d'environ **4 px à l'extérieur** de la vignette.
-   - Le conteneur scrollable parent (`src/pages/AvatarStudio.tsx` ligne 1206) n'a **aucun padding** côté haut/gauche (`pr-1` uniquement) et applique `overflow-y-auto`, qui coupe tout ce qui dépasse.
-   - Résultat : sur la vignette de la 1re ligne / 1re colonne, seuls les côtés droit et bas du cadre restent visibles.
+Générer les **139 bénéficiaires sans avatar** (sur 200) sans consommer de crédits Lovable.
 
-2. **Badge « Actif » trop chargé**
-   - L'icône `CheckCircle2` précédant le texte « Actif » réduit l'espace disponible dans le badge et alourdit visuellement la petite vignette.
+Aujourd'hui, `generate-avatar` et `qa-avatar` appellent la passerelle IA de Lovable (`ai.gateway.lovable.dev` + `LOVABLE_API_KEY`) : chaque image et chaque contrôle QA est facturé en crédits Lovable. La seule façon de ne pas les consommer est de router ces appels vers **votre propre clé Google AI Studio** : la facturation part alors sur votre compte Google (avec son quota gratuit), et le modèle reste de la même famille (Gemini / Nano Banana), donc le rendu et les prompts actuels restent valables.
 
-## Correctifs (UI uniquement, `src/pages/AvatarStudio.tsx`)
+## Ce qui sera fait
 
-### 1. Padding autour de la grille pour éviter de couper le ring
+### 1. Clé et bascule de fournisseur
+- Vous créez une clé sur Google AI Studio (aistudio.google.com → Get API key), je vous la demanderai ensuite via le formulaire sécurisé sous le nom `GOOGLE_AI_API_KEY`.
+- Nouveau module partagé `supabase/functions/_shared/imageProvider.ts` :
+  - si `GOOGLE_AI_API_KEY` est présent → appel direct à l'API Google Generative Language (`generativelanguage.googleapis.com`), **aucun crédit Lovable** ;
+  - sinon → repli automatique sur la passerelle Lovable (comportement actuel, rien ne casse).
+- Mapping des modèles actuels vers leurs équivalents Google directs (Nano Banana 2 / Gemini image), en conservant exactement les mêmes prompts, seeds, et le mode édition image-to-image.
 
-Ligne 1206, remplacer :
+### 2. Fonctions concernées
+- `generate-avatar/index.ts` : `generateImage()` et `generateEditedImage()` passent par le nouveau module. Aucune modification des prompts, du cadrage, ni du pipeline QA/rollback.
+- `qa-avatar/index.ts` : le scoring qualité (appel texte+image) passe aussi par la clé Google, sinon il resterait facturé en crédits.
+- `generate-avatar-batch/index.ts` : inchangé côté logique, il bénéficie automatiquement de la bascule.
 
-```tsx
-<div className="flex-1 min-h-0 max-h-[46vh] lg:max-h-full overflow-y-auto overscroll-contain pr-1">
-```
+### 3. Génération des 139 avatars
+- Lancement en vagues automatiques (par lots de ~10, séquencées) pour rester sous les limites de débit de l'API Google et éviter les échecs en cascade.
+- Suivi dans l'Avatar Studio / l'onglet Portraits : statut, score QA, échecs.
+- Reprise automatique proposée sur les échecs à la fin du passage.
 
-par :
+## Détails techniques
 
-```tsx
-<div className="flex-1 min-h-0 max-h-[46vh] lg:max-h-full overflow-y-auto overscroll-contain p-1">
-```
+- Endpoint direct utilisé : `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent` avec `responseModalities: ["TEXT","IMAGE"]`, image renvoyée en base64 `inlineData` — même format binaire que celui déjà stocké dans le bucket `avatars`.
+- Aucun changement de schéma de base, aucun changement d'UI, aucune modification de la logique de matching ou de panier.
+- Le secret `GOOGLE_AI_API_KEY` reste côté serveur (fonctions edge uniquement).
 
-Effet : 4 px de padding sur les 4 côtés du conteneur scrollable → le ring de 2 px + offset 2 px de la vignette active en bord de grille est intégralement visible sur desktop, tablette et mobile.
+## À noter
 
-### 2. Supprimer l'icône du badge « Actif »
-
-Lignes 1236-1244, remplacer le bloc actuel :
-
-```tsx
-{isActive && (
-  <span
-    className="absolute top-0 left-0 text-[10px] leading-none whitespace-nowrap px-1.5 py-0.5 rounded-br pointer-events-none font-semibold flex items-center gap-0.5 bg-primary text-primary-foreground"
-    title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image."
-  >
-    <CheckCircle2 className="h-2.5 w-2.5" />
-    Actif
-  </span>
-)}
-```
-
-par :
-
-```tsx
-{isActive && (
-  <span
-    className="absolute top-0 left-0 text-[10px] leading-none whitespace-nowrap px-1.5 py-0.5 rounded-br pointer-events-none font-semibold bg-primary text-primary-foreground"
-    title="C'est l'avatar affiché publiquement. Les prochaines retouches partiront de cette image."
-  >
-    Actif
-  </span>
-)}
-```
-
-Effet : le badge affiche uniquement le texte « Actif », plus lisible et moins encombré sur les petites vignettes.
-
-## Vérification
-
-Playwright sur `/avatar-studio` à 1440×900, 820×1180, 375×800 → capture de la zone Versions, confirmer :
-- le cadre de l'avatar actif est visible sur les 4 côtés (même en 1re ligne / 1re colonne) ;
-- le badge « Actif » n'affiche plus l'icône ronde avec coche.
-
-## Hors périmètre
-
-Aucune modification : génération IA, prompts, modèles, attributs, fonds, cadrage, SQL, RPC, edge functions, autres pages.
+- « Zéro crédit » signifie zéro crédit **Lovable** : la génération d'images reste facturée par Google au-delà de son palier gratuit. Le quota gratuit d'AI Studio est limité en requêtes/minute et par jour — le batch de 139 sera donc étalé, et pourra devoir être repris le lendemain si le quota journalier est atteint.
+- Les messages de chat que j'échange avec vous pour piloter tout ça consomment, eux, des crédits Lovable (c'est indépendant de la génération d'images).
