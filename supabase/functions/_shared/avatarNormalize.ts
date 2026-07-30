@@ -25,10 +25,16 @@
 import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 export const NORMALIZE_CANVAS = 1024;
+/**
+ * REFERENCE FRAMING = LÉA (style anchor `avatars/style-anchors/lea.jpg`).
+ * Measured on her portrait with the detector below:
+ *   head height 62.1 % | eye line 31.5 % | face center 50.7 %
+ * Those measurements are the canonical target for the whole catalog.
+ */
 /** Share of the canvas height taken by the head (skull top -> neck). */
-export const HEAD_FILL = 0.46;
+export const HEAD_FILL = 0.62;
 /** Vertical position of the eye line, in % of the canvas height. */
-export const EYE_LINE = 0.38;
+export const EYE_LINE = 0.315;
 /** Eye line inside the head, in % of the head height (anatomical average). */
 const EYE_IN_HEAD = 0.4;
 /** Search window for the neck, in % of the silhouette height. */
