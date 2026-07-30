@@ -70,9 +70,13 @@ serve(async (req) => {
             from_archive: fromArchive,
             mode: report.mode,
             landmarks: report.landmarks,
+            output: report.output,
+            needs_regeneration: report.needsRegeneration === true,
+            regeneration_reason: report.regenerationReason,
             source_margins: report.sourceMargins,
             scale: report.scale,
           });
+
           continue;
         }
 
