@@ -174,16 +174,19 @@ async function lovableGenerate(
 // ---------------------------------------------------------------- Public API
 
 /**
- * Text-to-image, or image-to-image when `sourceDataUrl` is provided.
+ * Text-to-image, or image-to-image when reference images are provided.
+ * `images` accepts a single data URL or an ordered list: in edit mode the
+ * FIRST entry is the subject to retouch, the following ones are style anchors.
  * Returns raw PNG bytes, identical shape on both routes.
  */
 export async function generateAvatarImage(
   prompt: string,
   model: string,
-  sourceDataUrl?: string,
+  images?: string | string[],
 ): Promise<Uint8Array> {
-  if (usingGoogleDirect()) return googleGenerateContent(model, prompt, sourceDataUrl);
-  return lovableGenerate(model, prompt, sourceDataUrl);
+  const list = images == null ? [] : Array.isArray(images) ? images.filter(Boolean) : [images];
+  if (usingGoogleDirect()) return googleGenerateContent(model, prompt, list);
+  return lovableGenerate(model, prompt, list);
 }
 
 /**
