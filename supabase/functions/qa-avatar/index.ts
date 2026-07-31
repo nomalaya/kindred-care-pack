@@ -37,6 +37,7 @@ const HARD_FAIL_THRESHOLDS: Record<string, number> = {
   anonymity: 50,
   bust_completeness: 55,
   framing_fill: 55,
+  shoulder_width: 55,
 };
 
 
@@ -77,7 +78,7 @@ Do NOT penalise identity for these natural transformations. Only penalise if the
       : "";
 
     const systemPrompt = `You are a strict QA reviewer for an NGO beneficiary portrait catalog.
-For each of the 12 dimensions you must return ONE verdict among:
+For each of the 13 dimensions you must return ONE verdict among:
 - "excellent" — the dimension is fully satisfied, nothing to fix.
 - "good" — satisfied, only a negligible nitpick.
 - "borderline" — a real but minor issue that a reviewer might accept.
