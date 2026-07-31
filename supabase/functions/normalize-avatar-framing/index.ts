@@ -5,7 +5,7 @@
 // bottom edge with the garment. No head-size target => no deformed morphology.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { normalizeAvatarFraming } from "../_shared/avatarNormalize.ts";
+import { normalizeAvatarFraming, trimToStudioBox } from "../_shared/avatarNormalize.ts";
 import { measureEyeLine, toDataUrl } from "../_shared/avatarEyeLine.ts";
 
 const corsHeaders = {
@@ -27,6 +27,10 @@ serve(async (req) => {
     // When true, always renormalize the CURRENTLY PUBLISHED avatar instead of the
     // archived original (useful when the archive predates the current art style).
     const useCurrent: boolean = body.use_current === true;
+    // TRIM ONLY: no eye measurement, no rescale of the person — just rewrite the
+    // file with the shared trombinoscope geometry (common top headroom, bust
+    // flush with the bottom edge). Fixes the empty band under the bust.
+    const trimOnly: boolean = body.trim_only === true;
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
@@ -42,6 +46,47 @@ serve(async (req) => {
 
     for (const b of rows ?? []) {
       try {
+        if (trimOnly) {
+          const sourceUrl = (b.avatar_url as string).split("?")[0];
+          const resp = await fetch(`${sourceUrl}?t=${Date.now()}`);
+          if (!resp.ok) throw new Error(`fetch ${resp.status}`);
+          const raw = new Uint8Array(await resp.arrayBuffer());
+          const { bytes, report } = await trimToStudioBox(
+            raw,
+            typeof b.avatar_face_center_x === "number" ? Number(b.avatar_face_center_x) : null,
+          );
+          if (dryRun || !report.changed) {
+            results.push({
+              id: b.id, name: b.alias_first_name, changed: false, trim_only: true,
+              dry_run: dryRun, source_margins: report.sourceMargins,
+              bottom_margin_pct: report.bottomMarginPct, reason: report.reason,
+            });
+            continue;
+          }
+          const fileName = `studio-box/${b.id}.png`;
+          const { error: upErr } = await supabase.storage
+            .from("avatars")
+            .upload(fileName, bytes, { contentType: "image/png", upsert: true });
+          if (upErr) throw upErr;
+          const { data: u } = supabase.storage.from("avatars").getPublicUrl(fileName);
+          const newUrl = `${u.publicUrl}?t=${Date.now()}`;
+          await supabase
+            .from("beneficiaries")
+            .update({
+              avatar_url: newUrl,
+              avatar_scale: 1,
+              avatar_offset_x: 0,
+              avatar_offset_y: 0,
+            })
+            .eq("id", b.id);
+          results.push({
+            id: b.id, name: b.alias_first_name, changed: true, trim_only: true,
+            scale: report.scale, source_margins: report.sourceMargins,
+            bottom_margin_pct: report.bottomMarginPct, newUrl,
+          });
+          continue;
+        }
+
         // Always renormalize from the archived ORIGINAL when it exists, so
         // repeated runs never stack crops on top of each other.
         const archivePath = `pre-normalize/${b.id}.png`;

@@ -31,7 +31,7 @@ import {
 } from "../_shared/avatarArtDirection.ts";
 import { generateAvatarImage, usingGoogleDirect } from "../_shared/imageProvider.ts";
 import { STYLE_ANCHOR_URLS } from "../_shared/avatarStyleAnchors.ts";
-import { normalizeAvatarFraming } from "../_shared/avatarNormalize.ts";
+import { normalizeAvatarFraming, trimToStudioBox } from "../_shared/avatarNormalize.ts";
 import { measureEyeLine, toDataUrl } from "../_shared/avatarEyeLine.ts";
 import { cleanAvatarBackground } from "../_shared/avatarBackground.ts";
 
@@ -96,7 +96,13 @@ async function normalize(bytes: Uint8Array, label: string): Promise<Uint8Array> 
       `scale=${report.scale} bottom_fill=${report.bottomWidthFillPct} ` +
       `side_gap=${report.sideGapBottomPct} needs_regen=${report.needsRegeneration === true}`,
     );
-    return out;
+    // Trombinoscope box: common top headroom, bust flush with the bottom edge.
+    const { bytes: boxed, report: trim } = await trimToStudioBox(out, eye?.centerX ?? null);
+    console.log(
+      `[generate-avatar] studio-box(${label}) changed=${trim.changed} ` +
+      `scale=${trim.scale} bottom_margin=${trim.bottomMarginPct}%`,
+    );
+    return trim.changed ? boxed : out;
   } catch (e) {
     console.error(`[generate-avatar] normalize(${label}) failed — keeping raw bytes`, e);
     return bytes;

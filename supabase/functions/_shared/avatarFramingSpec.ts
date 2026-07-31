@@ -26,6 +26,19 @@ export const EYE_LINE = 0.38;
  */
 export const HAIR_HEADROOM = 0.04;
 
+/**
+ * TROMBINOSCOPE BOX — geometry every published avatar file must share so the
+ * donor-facing circle has nothing left to correct.
+ *   - free space above the highest drawn pixel: STUDIO_TOP_HEADROOM
+ *   - the lowest drawn pixel touches the bottom edge (no background band under
+ *     the bust, which is what produced the empty gap seen on Fatima)
+ *   - horizontal centering on the face axis when it is known, bbox center else
+ * A SINGLE uniform scale satisfies both edges — never a non-uniform stretch.
+ */
+export const STUDIO_TOP_HEADROOM = 0.04;
+
+
+
 
 
 /** Required garment coverage on the bottom edge of the canvas (1 = full width). */

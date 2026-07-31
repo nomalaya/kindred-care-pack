@@ -20,6 +20,7 @@ import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import {
   EYE_LINE,
   HAIR_HEADROOM,
+  STUDIO_TOP_HEADROOM,
   BOTTOM_WIDTH_FILL,
   BOTTOM_BAND,
   MIN_ZOOM,
@@ -27,7 +28,8 @@ import {
 } from "./avatarFramingSpec.ts";
 
 export const NORMALIZE_CANVAS = 1024;
-export { EYE_LINE, HAIR_HEADROOM, BOTTOM_WIDTH_FILL, BOTTOM_BAND, MIN_ZOOM, MAX_ZOOM } from "./avatarFramingSpec.ts";
+export { EYE_LINE, HAIR_HEADROOM, STUDIO_TOP_HEADROOM, BOTTOM_WIDTH_FILL, BOTTOM_BAND, MIN_ZOOM, MAX_ZOOM } from "./avatarFramingSpec.ts";
+
 
 type Box = { x: number; y: number; w: number; h: number };
 type RowSpan = { min: number; max: number; w: number };
@@ -284,6 +286,110 @@ export async function normalizeAvatarFraming(
       sideGapBottomPct: Math.round((1 - chosen.worst) * 1000) / 10,
       needsRegeneration,
       regenerationReason,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// TRIM TO STUDIO BOX — geometry of the published file (trombinoscope)
+// ---------------------------------------------------------------------------
+
+export type TrimReport = {
+  changed: boolean;
+  bbox: Box | null;
+  /** Margins of the SOURCE image, in % of its size: [left, top, right, bottom]. */
+  sourceMargins: [number, number, number, number] | null;
+  /** Uniform scale applied (no axis is ever stretched independently). */
+  scale: number;
+  transparent: boolean;
+  /** Background band left under the subject in the OUTPUT, in % of height. */
+  bottomMarginPct: number | null;
+  reason?: string;
+};
+
+/**
+ * Rewrites the file so every avatar shares the SAME internal geometry:
+ *   - STUDIO_TOP_HEADROOM of free space above the highest drawn pixel
+ *     (hair, afro, veil, hat are never cropped)
+ *   - the lowest drawn pixel touches the bottom edge — zero background band
+ *     under the bust, which is what created the empty gap in the donor circle
+ *   - horizontally centered on the face axis when known, on the bbox otherwise
+ *
+ * ONE uniform scale, one translation. No head-size target, no stretching, no
+ * alteration of the person's morphology. Idempotent.
+ */
+export async function trimToStudioBox(
+  pngBytes: Uint8Array,
+  faceCenterX?: number | null,
+): Promise<{ bytes: Uint8Array; report: TrimReport }> {
+  const img = await Image.decode(pngBytes);
+  const bbox = bboxFromSpans(rowSpans(img));
+  const transparent = hasTransparentBackground(img);
+
+  const report: TrimReport = {
+    changed: false,
+    bbox,
+    sourceMargins: null,
+    scale: 1,
+    transparent,
+    bottomMarginPct: null,
+  };
+
+  if (!bbox || bbox.w < 32 || bbox.h < 32) {
+    return { bytes: pngBytes, report: { ...report, reason: "sujet non détecté" } };
+  }
+
+  report.sourceMargins = [
+    Math.round((bbox.x / img.width) * 100),
+    Math.round((bbox.y / img.height) * 100),
+    Math.round(((img.width - (bbox.x + bbox.w)) / img.width) * 100),
+    Math.round(((img.height - (bbox.y + bbox.h)) / img.height) * 100),
+  ];
+
+  // Square window in SOURCE pixels: subject height fills (1 - headroom) of it,
+  // its bottom edge flush with the subject's lowest pixel.
+  const side = bbox.h / (1 - STUDIO_TOP_HEADROOM);
+  const winTop = bbox.y + bbox.h - side;
+  const centerX = typeof faceCenterX === "number" && faceCenterX > 0 && faceCenterX < 1
+    ? faceCenterX * img.width
+    : bbox.x + bbox.w / 2;
+  const winLeft = centerX - side / 2;
+
+  const scale = S / side;
+  const scaledW = Math.max(1, Math.round(img.width * scale));
+  const scaledH = Math.max(1, Math.round(img.height * scale));
+  const scaled = img.clone().resize(scaledW, scaledH);
+
+  const winX = Math.round(winLeft * scale);
+  const winY = Math.round(winTop * scale);
+
+  const srcX = Math.max(0, winX);
+  const srcY = Math.max(0, winY);
+  const srcW = Math.min(scaledW - srcX, S - Math.max(0, -winX));
+  const srcH = Math.min(scaledH - srcY, S - Math.max(0, -winY));
+  if (srcW <= 0 || srcH <= 0) {
+    return { bytes: pngBytes, report: { ...report, reason: "fenêtre hors image" } };
+  }
+
+  const canvas = new Image(S, S);
+  if (!transparent) canvas.fill(0xffffffff);
+  const visible = scaled.clone().crop(srcX, srcY, srcW, srcH);
+  canvas.composite(visible, Math.max(0, -winX), Math.max(0, -winY));
+  const bytes = await canvas.encode();
+
+  // Verify the output really has no band under the subject.
+  const outBox = bboxFromSpans(rowSpans(await Image.decode(bytes)));
+  const bottomMarginPct = outBox
+    ? Math.round(((S - (outBox.y + outBox.h)) / S) * 1000) / 10
+    : null;
+
+  return {
+    bytes,
+    report: {
+      ...report,
+      changed: true,
+      scale: Math.round(scale * 1000) / 1000,
+      bottomMarginPct,
     },
   };
 }

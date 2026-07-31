@@ -11,7 +11,7 @@
 // white-background pass is a fallback only, routed through `imageProvider`
 // (Google direct route when configured, never Lovable credits).
 import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
-import { normalizeAvatarFraming } from "./avatarNormalize.ts";
+import { trimToStudioBox } from "./avatarNormalize.ts";
 import { generateAvatarImage } from "./imageProvider.ts";
 
 const CLEAN_MODEL = "google/gemini-3.1-flash-image-preview";
@@ -176,14 +176,18 @@ export async function cleanAvatarBackground(
     transparentRatio = keyed.transparentRatio;
   }
 
-  // 2b) Deterministic framing normalization (zero AI credit).
+  // 2b) Trombinoscope box (zero AI credit): common top headroom, bust flush with
+  // the bottom edge so the donor circle never shows an empty band.
   let transparentPng = keyedPng;
   try {
-    const { bytes: normalized, report } = await normalizeAvatarFraming(keyedPng);
-    transparentPng = normalized;
-    console.log(`[clean-bg] normalize changed=${report.changed} scale=${report.scale}`);
+    const { bytes: trimmed, report } = await trimToStudioBox(keyedPng);
+    transparentPng = trimmed;
+    console.log(
+      `[clean-bg] studio-box changed=${report.changed} scale=${report.scale} ` +
+      `bottom_margin=${report.bottomMarginPct}%`,
+    );
   } catch (e) {
-    console.error("[clean-bg] normalize failed — keeping keyed bytes", e);
+    console.error("[clean-bg] studio-box failed — keeping keyed bytes", e);
   }
 
   console.log(`[clean-bg] ${beneficiary_id} (${targetMode}) transparent_ratio=${transparentRatio.toFixed(3)}`);
