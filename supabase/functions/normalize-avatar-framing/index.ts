@@ -1,11 +1,12 @@
 // sync
-// Retroactive, deterministic framing normalization — ZERO AI credit.
-// Recomposes existing avatars so every portrait fills the square canvas
-// identically (head near the top edge, bust bleeding through the bottom edge,
-// shoulders reaching the sides). The original file is archived first.
+// Retroactive, deterministic framing normalization.
+// ONE anchor: the eye line (measured once per image, cached on the row) is
+// placed at 38 % of the canvas height; the zoom is the smallest that fills the
+// bottom edge with the garment. No head-size target => no deformed morphology.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { normalizeAvatarFraming } from "../_shared/avatarNormalize.ts";
+import { measureEyeLine, toDataUrl } from "../_shared/avatarEyeLine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
