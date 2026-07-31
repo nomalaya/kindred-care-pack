@@ -77,7 +77,7 @@ Do NOT penalise identity for these natural transformations. Only penalise if the
       : "";
 
     const systemPrompt = `You are a strict QA reviewer for an NGO beneficiary portrait catalog.
-For each of the 13 dimensions you must return ONE verdict among:
+For each of the 12 dimensions you must return ONE verdict among:
 - "excellent" — the dimension is fully satisfied, nothing to fix.
 - "good" — satisfied, only a negligible nitpick.
 - "borderline" — a real but minor issue that a reviewer might accept.
@@ -91,9 +91,9 @@ Add a short note for every dimension rated "borderline", "fail" or "critical".${
 
 Dimensions (return a verdict for each):
 - single_face: exactly ONE character face fully visible? (0 = multiple faces or no face)
-- framing: the portrait shows head + neck + shoulders + UPPER BUST with the garment fully drawn, cropped just below the upper-bust line. The upper bust IS expected to be visible — do NOT penalise that. Score 0 ONLY if: full torso visible, waist visible, mid-chest or ribcage visible, hips visible, full-length arms hanging, deep cleavage, exposed chest skin beyond a normal neckline, shoulders cropped, or subject not centered.
-- framing_fill: judge ONLY against the canonical reference proportions (measured on the reference portrait "Léa"): the EYES sit at about 38% of the canvas height from the top (tolerance ±4 points), the CHIN sits at about 50% of the canvas height — mid-canvas (tolerance ±4 points), and the garment reaches and is cut off by the BOTTOM edge across its full width with ZERO white band or white corner under the body. Rate "excellent"/"good" when the eye line and chin line are within tolerance and there is no white under the body. Rate "fail"/"critical" ONLY when: there is a visible white band/gap/corner under the body, OR the eyes are clearly higher than ~30% or lower than ~46% of the height, OR the chin is clearly above ~44% (face close-up: head fills most of the canvas) or below ~56% (subject too small/distant). Do NOT judge the white band above the hair — any amount of white above the hair is acceptable as long as the eye and chin lines are respected. Being cropped by the canvas edges is REQUIRED and must NEVER be penalised.
-- shoulder_width: horizontal build. The shoulders must be BROAD and nearly HORIZONTAL, reaching and bleeding out of the LEFT and RIGHT edges, and the garment must span at least ~90% of the canvas width at the BOTTOM edge, forming a wide trapezoid base like a loose knitted sweater. Rate "fail"/"critical" when: the shoulders collapse steeply into a narrow inverted "V", the body at the bottom edge spans clearly less than ~80% of the width, white areas appear on both sides at the bottom, or the result looks like a passport photo / floating head with only a small triangle of clothing under the chin. Rate "excellent"/"good" when the shoulders touch both side edges and the garment fills the bottom edge broadly.
+- bottom_fill: the garment/body reaches the BOTTOM edge of the canvas and covers it across its FULL WIDTH, from the left edge to the right edge. Being cropped by the canvas edges is REQUIRED and must NEVER be penalised. Rate "excellent"/"good" when the bottom edge is fully covered by the body/garment. Rate "fail"/"critical" ONLY when a white/transparent band, gap or corner is visible along the bottom edge. Do NOT judge the amount of white above the hair, the head size, the chin height or the vertical position of the subject — those are handled outside QA.
+- no_gap_under_shoulders: zero background visible under the shoulders. Rate "fail"/"critical" when white/background areas appear on either side under the shoulders (narrow inverted "V" collapsing from the neck, floating head with a small triangle of clothing under the chin, background wedges between the arms and the side edges). Rate "excellent"/"good" when the body fills the whole lower area of the image with no background showing under the shoulder line.
+
 
 - no_watermark: free of any text, watermark, logo, signature?
 - artifact_freedom: free of AI artifacts (warped features, melted shapes, extra fingers)?
