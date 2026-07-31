@@ -303,7 +303,7 @@ ART_DIRECTION_INVARIANTS,
 export const MODEL_PREVIEW = "google/gemini-3.1-flash-image-preview";
 export const MODEL_FINAL = "google/gemini-3.1-flash-image-preview";
 export const MODEL_EDIT = "google/gemini-3.1-flash-image-preview";
-export const MODEL_QA = "google/gemini-2.5-flash";
+export const MODEL_QA = "google/gemini-3.6-flash";
 
 // ---------------------------------------------------------------------------
 // EDIT-MODE PROMPT — used when a beneficiary already has an approved avatar
