@@ -53,7 +53,6 @@ const NECK_TO = 0.7;
 /** Head height / head width ratio, used when the neck is hidden (scarf, hood). */
 const HEAD_ASPECT = 1.35;
 
-
 /**
  * Arbitration:
  *   1. the eye line stays at EYE_LINE — never negotiable;
@@ -62,13 +61,10 @@ const HEAD_ASPECT = 1.35;
  *
  * A source framed tighter than the reference (head too big in its own canvas)
  * CANNOT be fixed by cropping: zooming out would expose a white band where the
- * body was never drawn, and stretching or mirroring the garment looks worse
- * than the original. Such avatars are flagged `needsRegeneration` and left
- * untouched beyond the safe zoom range below.
+ * body was never drawn. Such avatars are flagged `needsRegeneration` (see
+ * HEAD_FILL_MAX / MIN_ZOOM in avatarFramingSpec.ts).
  */
-export const HEAD_FILL_MAX = 0.5;
-/** Never zoom out more than this: beyond it the source lacks body. */
-export const MIN_ZOOM = 0.9;
+
 
 
 
