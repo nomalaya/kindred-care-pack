@@ -15,6 +15,7 @@ const WEIGHTS: Record<string, number> = {
   single_face: 1.3,
   framing: 1.0,
   framing_fill: 1.4, // the subject must fill the square, bust bleeding out of the bottom edge
+  shoulder_width: 1.4, // broad horizontal shoulders reaching both side edges (Léa reference)
   no_watermark: 1.0,
   artifact_freedom: 1.2,
   style_match: 2.0, // hand-drawn semi-realistic cartoon illustration — hard requirement
