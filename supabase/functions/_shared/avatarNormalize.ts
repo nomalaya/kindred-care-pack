@@ -20,6 +20,7 @@ import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import {
   EYE_LINE,
   HAIR_HEADROOM,
+  STUDIO_TOP_HEADROOM,
   BOTTOM_WIDTH_FILL,
   BOTTOM_BAND,
   MIN_ZOOM,
@@ -27,7 +28,8 @@ import {
 } from "./avatarFramingSpec.ts";
 
 export const NORMALIZE_CANVAS = 1024;
-export { EYE_LINE, HAIR_HEADROOM, BOTTOM_WIDTH_FILL, BOTTOM_BAND, MIN_ZOOM, MAX_ZOOM } from "./avatarFramingSpec.ts";
+export { EYE_LINE, HAIR_HEADROOM, STUDIO_TOP_HEADROOM, BOTTOM_WIDTH_FILL, BOTTOM_BAND, MIN_ZOOM, MAX_ZOOM } from "./avatarFramingSpec.ts";
+
 
 type Box = { x: number; y: number; w: number; h: number };
 type RowSpan = { min: number; max: number; w: number };
