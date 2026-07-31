@@ -161,8 +161,25 @@ serve(async (req) => {
     // Strip cache-busting query string before fetch
     const sourceUrl = rawUrl.split("?")[0];
 
-    // 1) Ask Gemini for a clean pure-white background
-    const whitePng = await geminiWhiteBackground(sourceUrl);
+    // 1) Background pass. Free path first: if the source already sits on plain
+    // white (or is already cut out), skip the AI entirely.
+    const srcResp = await fetch(sourceUrl);
+    if (!srcResp.ok) throw new Error(`Source image fetch failed: ${srcResp.status}`);
+    const srcBytes = new Uint8Array(await srcResp.arrayBuffer());
+    let whitePng = srcBytes;
+    let aiPass = false;
+    try {
+      const probe = await Image.decode(srcBytes);
+      if (!backgroundAlreadyClean(probe)) {
+        whitePng = await aiWhiteBackground(sourceUrl);
+        aiPass = true;
+      }
+    } catch (_e) {
+      whitePng = await aiWhiteBackground(sourceUrl);
+      aiPass = true;
+    }
+    console.log(`[clean-avatar-background] ${beneficiary_id} ai_pass=${aiPass}`);
+
 
     // 2) Server-side chroma-key: white → transparent
     const { bytes: keyedPng, transparentRatio } = await whiteToAlpha(whitePng);
