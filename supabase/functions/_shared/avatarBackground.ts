@@ -67,7 +67,7 @@ async function aiWhiteBackground(sourceUrl: string): Promise<Uint8Array> {
 }
 
 /** Share of fully transparent pixels — tells whether the PNG is already cut out. */
-async function transparentPixelRatio(pngBytes: Uint8Array): Promise<number> {
+export async function transparentPixelRatio(pngBytes: Uint8Array): Promise<number> {
   try {
     const img = await Image.decode(pngBytes);
     const { width, height } = img;
@@ -86,7 +86,7 @@ async function transparentPixelRatio(pngBytes: Uint8Array): Promise<number> {
   }
 }
 
-async function whiteToAlpha(
+export async function whiteToAlpha(
   pngBytes: Uint8Array,
 ): Promise<{ bytes: Uint8Array; transparentRatio: number }> {
   const img = await Image.decode(pngBytes);
@@ -103,14 +103,20 @@ async function whiteToAlpha(
       const minC = Math.min(r, g, b);
       const chroma = Math.max(r, g, b) - minC;
 
+      const srcA = px & 0xff;
       let alpha = 255;
-      if (minC >= 248 && chroma <= 6) {
+      if (srcA < 16) {
+        // Already transparent upstream — never re-opacify it.
+        alpha = 0;
+        transparent++;
+      } else if (minC >= 248 && chroma <= 6) {
         alpha = 0;
         transparent++;
       } else if (minC >= 225 && chroma <= 14) {
         const t = (minC - 225) / (248 - 225);
         alpha = Math.round(255 * (1 - t));
       }
+
 
       img.setPixelAt(
         x + 1,
@@ -120,9 +126,45 @@ async function whiteToAlpha(
     }
   }
 
+  // Border flood fill: any near-white region CONNECTED to the canvas border is
+  // background, even when it is only off-white (halo left by the generator).
+  // Interior light areas (skin, pale garments) are never touched because they
+  // are not reachable from the border without crossing the silhouette.
+  const seen = new Uint8Array(width * height);
+  const stack: number[] = [];
+  const push = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= width || y >= height) return;
+    const i = y * width + x;
+    if (seen[i]) return;
+    seen[i] = 1;
+    stack.push(i);
+  };
+  for (let x = 0; x < width; x++) { push(x, 0); push(x, height - 1); }
+  for (let y = 0; y < height; y++) { push(0, y); push(width - 1, y); }
+  while (stack.length) {
+    const i = stack.pop()!;
+    const x = i % width;
+    const y = (i - x) / width;
+    const px = img.getPixelAt(x + 1, y + 1);
+    const r = (px >>> 24) & 0xff;
+    const g = (px >>> 16) & 0xff;
+    const b = (px >>> 8) & 0xff;
+    const a = px & 0xff;
+    const minC = Math.min(r, g, b);
+    const chroma = Math.max(r, g, b) - minC;
+    const isBackground = a < 16 || (minC >= 205 && chroma <= 18);
+    if (!isBackground) continue;
+    if (a !== 0) {
+      img.setPixelAt(x + 1, y + 1, ((r & 0xff) << 24) | ((g & 0xff) << 16) | ((b & 0xff) << 8) | 0);
+      transparent++;
+    }
+    push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1);
+  }
+
   const encoded = await img.encode(); // PNG with alpha
   return { bytes: encoded, transparentRatio: transparent / total };
 }
+
 
 /**
  * Cleans the beneficiary's active (`final`) or preview avatar background and
@@ -190,12 +232,27 @@ export async function cleanAvatarBackground(
     console.error("[clean-bg] studio-box failed — keeping keyed bytes", e);
   }
 
+  // 2c) BLOCKING ALPHA GUARD — last step before upload. Whatever happened
+  // upstream (framing, trimming, re-encoding), the uploaded file MUST have a
+  // transparent background, otherwise the donor circle shows a white square
+  // over the imported background asset.
+  const postAlpha = await transparentPixelRatio(transparentPng);
+  if (postAlpha < 0.02) {
+    const rekeyed = await whiteToAlpha(transparentPng);
+    transparentPng = rekeyed.bytes;
+    transparentRatio = rekeyed.transparentRatio;
+    console.log(`[clean-bg] alpha guard re-keyed (post=${postAlpha.toFixed(3)} -> ${transparentRatio.toFixed(3)})`);
+  } else {
+    transparentRatio = Math.max(transparentRatio, postAlpha);
+  }
+
   console.log(`[clean-bg] ${beneficiary_id} (${targetMode}) transparent_ratio=${transparentRatio.toFixed(3)}`);
   if (transparentRatio < 0.05) {
     throw new Error(
       `Détourage raté (seulement ${(transparentRatio * 100).toFixed(1)}% transparent).`,
     );
   }
+
 
   // 3) Upload
   const ts = Date.now();

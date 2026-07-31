@@ -7,6 +7,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { normalizeAvatarFraming, trimToStudioBox } from "../_shared/avatarNormalize.ts";
 import { measureEyeLine, toDataUrl } from "../_shared/avatarEyeLine.ts";
+import { transparentPixelRatio, whiteToAlpha } from "../_shared/avatarBackground.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +32,13 @@ serve(async (req) => {
     // file with the shared trombinoscope geometry (common top headroom, bust
     // flush with the bottom edge). Fixes the empty band under the bust.
     const trimOnly: boolean = body.trim_only === true;
+    // KEY ONLY: repair pass for avatars whose file lost its alpha channel (white
+    // square baked in, hiding the imported background inside the donor circle).
+    // Pure chroma-key + trombinoscope box, no AI call, zero credit.
+    const keyOnly: boolean = body.key_only === true;
+    // Re-key even when some alpha is already present (soft off-white halo case).
+    const forceKey: boolean = body.force_key === true;
+
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
@@ -46,7 +54,67 @@ serve(async (req) => {
 
     for (const b of rows ?? []) {
       try {
+        if (keyOnly) {
+          const sourceUrl = (b.avatar_url as string).split("?")[0];
+          const resp = await fetch(`${sourceUrl}?t=${Date.now()}`);
+          if (!resp.ok) throw new Error(`fetch ${resp.status}`);
+          const raw = new Uint8Array(await resp.arrayBuffer());
+          const before = await transparentPixelRatio(raw);
+          if (before >= 0.02 && !forceKey) {
+            results.push({
+              id: b.id, name: b.alias_first_name, changed: false, key_only: true,
+              alpha_before: Number(before.toFixed(3)), reason: "déjà détouré",
+            });
+            continue;
+          }
+          const keyed = await whiteToAlpha(raw);
+          let out = keyed.bytes;
+          let bottomMargin: number | null = null;
+          try {
+            const { bytes, report } = await trimToStudioBox(
+              out,
+              typeof b.avatar_face_center_x === "number" ? Number(b.avatar_face_center_x) : null,
+            );
+            out = bytes;
+            bottomMargin = report.bottomMarginPct;
+          } catch (_e) { /* keep keyed bytes */ }
+          const after = await transparentPixelRatio(out);
+          if (after < 0.05) {
+            results.push({
+              id: b.id, name: b.alias_first_name, changed: false, key_only: true,
+              alpha_before: Number(before.toFixed(3)), alpha_after: Number(after.toFixed(3)),
+              reason: "détourage insuffisant — fichier conservé",
+            });
+            continue;
+          }
+          if (dryRun) {
+            results.push({
+              id: b.id, name: b.alias_first_name, changed: false, key_only: true, dry_run: true,
+              alpha_before: Number(before.toFixed(3)), alpha_after: Number(after.toFixed(3)),
+            });
+            continue;
+          }
+          const fileName = `alpha-fix/${b.id}.png`;
+          const { error: upErr } = await supabase.storage
+            .from("avatars")
+            .upload(fileName, out, { contentType: "image/png", upsert: true });
+          if (upErr) throw upErr;
+          const { data: u } = supabase.storage.from("avatars").getPublicUrl(fileName);
+          const newUrl = `${u.publicUrl}?t=${Date.now()}`;
+          await supabase
+            .from("beneficiaries")
+            .update({ avatar_url: newUrl, avatar_scale: 1, avatar_offset_x: 0, avatar_offset_y: 0 })
+            .eq("id", b.id);
+          results.push({
+            id: b.id, name: b.alias_first_name, changed: true, key_only: true,
+            alpha_before: Number(before.toFixed(3)), alpha_after: Number(after.toFixed(3)),
+            bottom_margin_pct: bottomMargin, newUrl,
+          });
+          continue;
+        }
+
         if (trimOnly) {
+
           const sourceUrl = (b.avatar_url as string).split("?")[0];
           const resp = await fetch(`${sourceUrl}?t=${Date.now()}`);
           if (!resp.ok) throw new Error(`fetch ${resp.status}`);
