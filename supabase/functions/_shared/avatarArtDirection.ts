@@ -3,7 +3,7 @@
 
 import { AvatarTraits, TraitDiff } from "./avatarTraits.ts";
 import { STYLE_ANCHOR_BLOCK, STYLE_ANCHOR_BLOCK_EDIT } from "./avatarStyleAnchors.ts";
-import { EYE_LINE, CHIN_LINE, HEAD_FILL, FACE_FILL, HAIR_TOP_LINE, framingPct } from "./avatarFramingSpec.ts";
+import { EYE_LINE, framingPct } from "./avatarFramingSpec.ts";
 
 // EXPRESSION_DESCRIPTIONS — fragments aligned with the 4 user-facing tonalities
 // of the simplified Avatar Studio (Réservée / Chaleureuse / Fatiguée / Inquiète).
@@ -112,35 +112,21 @@ ANONYMITY (CRITICAL): generic archetypal character — must NEVER resemble any r
 DIGNITY (GLOBAL, NON-NEGOTIABLE): Always portray the person with dignity, respect, and humanity. Never make the portrait humiliating, miserable, grotesque, exaggerated, caricatural, or stereotyped. Quiet humanity, no pathos.
 `.trim();
 
-// Strict framing block. Short, repeated, capitalized — image models obey these much better than long paragraphs.
-// SINGLE SOURCE OF TRUTH: the four numbers below come from avatarNormalize.ts,
-// which is also what the deterministic normalizer enforces. Prompt and
-// normalization can therefore never drift apart.
-const PCT = (v: number) => `${Math.round(v * 1000) / 10}%`;
-
+// Framing block — SHOT DESCRIPTION ONLY, no geometric numbers.
+// Position (eye line) is enforced deterministically by avatarNormalize.ts, so
+// the model only has to deliver enough shoulders and chest to crop from.
 export const FRAMING_BLOCK = `
 IMAGE FORMAT — STRICT: square 1:1 canvas. Full-bleed illustration. The white background MUST extend all the way to the four edges of the image.
-CANONICAL PROPORTIONS — STRICT (NON-NEGOTIABLE, measured on the reference portrait). Five numbers, all mandatory:
-  1. the FACE (hairline to chin, hair excluded) is about ${PCT(FACE_FILL)} of the canvas height;
-  2. the EYES sit at ${PCT(EYE_LINE)} of the canvas height from the top;
-  3. the CHIN sits at ${PCT(CHIN_LINE)} of the canvas height — exactly mid-canvas;
-  4. the head with the hair included is about ${PCT(HEAD_FILL)} of the canvas height;
-  5. the TOP OF THE HAIR sits at only ${PCT(HAIR_TOP_LINE)} of the canvas height from the top — the head starts VERY HIGH in the frame, there is almost NO empty white space above the hair (never more than ${PCT(HAIR_TOP_LINE + 0.03)}).
-  Consequence: the HEAD IS ROUGHLY AS TALL AS THE BODY VISIBLE UNDER IT. The whole lower half of the canvas is neck, shoulders, upper arms and garment. The head must NEVER take more than half of the canvas height. This is NOT a face close-up.
-FRAMING — STRICT: a MEDIUM BUST PORTRAIT, exactly like a person photographed wearing a knitted sweater: HEAD + NECK + NECKLINE + FULL SHOULDERS + UPPER ARMS down to the upper biceps, sleeves included, visible on each side. The bottom edge of the canvas crops at the UPPER CHEST, clearly above the waist. The garment (sweater, shirt, jacket) is fully drawn and opaque with visible sleeves on both sides. Full torso, ribcage, waist and hips MUST NOT be visible. No deep cleavage, no exposed chest skin beyond a normal neckline.
-SUBJECT SIZE — STRICT: the top of the hair NEARLY TOUCHES the top edge (white band of ${PCT(HAIR_TOP_LINE)} at most — a large white area above the head is a critical failure). The SHOULDERS AND UPPER ARMS REACH the left and right edges and bleed out of them. The garment MUST reach and bleed out through the BOTTOM edge across its FULL WIDTH — NO white band, NO white gap, NO white corner under the body.
-SHOULDER WIDTH AND TORSO VOLUME — STRICT (NON-NEGOTIABLE, as important as the eye line):
-BROAD HORIZONTAL SHOULDERS extending fully to the LEFT and RIGHT canvas edges and bleeding out of them. The shoulder line is nearly HORIZONTAL — never a narrow inverted "V" collapsing down from the neck.
-WIDE UPPER TORSO BASE, FULL CHEST WIDTH, medium portrait shot: the garment forms a broad, generous, trapezoid base that fills the ENTIRE bottom of the canvas from left edge to right edge (like a person wearing a loose knitted sweater whose shoulders and sleeves flare outwards).
-Measured target: at the BOTTOM edge of the canvas the body/garment must span AT LEAST 90% of the canvas width; at the shoulder line it must span 100% (edge to edge). The neck-to-shoulder transition happens quickly and wide, not with a long thin sloping neck.
-FORBIDDEN SIZING: face close-up, head filling the canvas, face taller than half the canvas, chin below mid-canvas, eyes below 45% of the canvas height, cropped forehead, cropped ears, small distant subject floating in a large white area, wide white margins, white border around the subject, head-and-shoulders vignette, narrow sloped shoulders, tight neck portrait, passport photo framing, floating head effect, small triangle of clothing under the chin. The subject must NEVER occupy less than 90% of the canvas width.
+SHOT — STRICT: MEDIUM CLOSE-UP PORTRAIT, CHEST UP. Head, neck, FULL SHOULDERS, upper arms and the UPPER CHEST down to MID-CHEST are visible. The bust must go LOW enough that there is a generous amount of garment in the lower part of the image. This is NOT a face close-up and NOT a passport photo.
+SHOULDERS — STRICT: FULL SHOULDERS EXTENDING 100% TO THE LEFT AND RIGHT CANVAS BORDERS and bleeding out of them. The shoulder line is BROAD and nearly HORIZONTAL. UPPER CHEST FULLY VISIBLE.
+BOTTOM EDGE — STRICT: the garment reaches and is cut off by the BOTTOM edge of the canvas across its FULL WIDTH — no white band, no white gap, no white corner under the body, no background visible under the shoulders.
+FORBIDDEN: tight face crop, passport photo, sloped narrow shoulders, cropped shoulders, head filling the canvas, cropped forehead, small distant subject floating in white, white border around the subject, floating head effect, small triangle of clothing under the chin, full torso, waist visible, ribcage visible, hips, full-length arms, hands, deep cleavage, exposed chest skin beyond a normal neckline.
 COMPOSITION: subject centered horizontally, looking softly toward the camera.
 COMPLETE SHOULDERS AND UPPER ARMS — STRICT (NON-NEGOTIABLE):
-The portrait must show complete solid shoulders, visible upper arms and a continuous body outline that runs off the left, right and bottom edges.
 The clothing, shoulders and sleeves must remain fully drawn and fully opaque all the way to the bottom edge of the canvas.
 The body simply leaves the canvas through the bottom edge. Do NOT add a thick horizontal line, ruler line, underline, dark band, table edge or any visible drawn border under the body. The crop is just the canvas edge — not a drawn line.
 Do not fade, dissolve, wash out, blur, mask, vignette or watercolor-fade the body. No circular crop, no cut-off shoulders, no narrow floating bust, no disappearing body, no soft fade-out at the bottom.
-ABSOLUTELY FORBIDDEN: full torso visible, waist visible, ribcage visible, hips, arms hanging full-length, hands, narrow bust with white on both sides, white margin under the bust, subject not touching the bottom edge, paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, soft fade at bottom, drop shadow under chin, ghosted edges, soft halo around hair, thick dark line under the bust, horizontal bar under the shoulders, table or shelf under the subject.
+ABSOLUTELY FORBIDDEN: paper sheet, torn paper edge, deckled edge, mat, passe-partout, frame, scrapbook outline, sticker outline, rounded-corner card, watercolor paper texture, visible paper grain, vignette, faded edges, drop shadow under chin, ghosted edges, soft halo around hair, thick dark line under the bust, horizontal bar under the shoulders, table or shelf under the subject.
 `.trim();
 
 
@@ -171,6 +157,7 @@ export const NEGATIVE_PROMPT = [
   "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture",
   "no vignette", "no faded edges", "no watercolor edges", "no soft fade at bottom", "no thick line under the bust", "no horizontal bar under the shoulders", "no table edge under the subject", "no heavy black ink strokes", "no cross-hatching", "no pencil scribbles", "no scribbled marks on the face", "no signature-like strokes", "no flat vector shading", "no smooth gradient vector look",
   "no head-only portrait", "no floating bust", "no narrow bust", "no white gap under the shoulders", "no white corners at the bottom", "no drop shadow under chin",
+  "tight face crop", "passport photo", "sloped narrow shoulders", "cropped shoulders",
   "narrow sloped shoulders", "sloping shoulders", "tight neck portrait", "passport photo framing", "floating head effect", "narrow inverted V shoulders", "thin neck and tiny collar", "small triangle of clothing under the chin",
   "no full torso", "no waist visible", "no ribcage visible", "no hips", "no full-length arms", "no hands", "no deep cleavage", "no exposed chest skin",
 
