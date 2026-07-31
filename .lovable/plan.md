@@ -1,47 +1,57 @@
-## Ce qui ne va pas
+# Cadrage ancré sur la ligne des yeux (fin du sur-calcul géométrique)
 
-Le cadrage actuel cale un seul repère : la « hauteur de tête » estimée à partir de la silhouette (haut des cheveux → point le plus étroit du cou). Ce repère est instable :
+Objectif : un seul ancrage de position (les yeux à 38 %) + une seule règle d'échelle (le vêtement remplit le bas). Plus aucune contrainte sur la hauteur de tête, le menton ou le sommet des cheveux — c'est ce cumul qui écrasait les épaules de Kwame.
 
-- une coiffure volumineuse, un voile ou un chignon rallongent la « tête » mesurée ;
-- quand le cou n'est pas détectable, la hauteur est estimée par un ratio.
+## 1. Spécification (`_shared/avatarFramingSpec.ts`)
 
-Résultat : deux avatars affichés à « 62 % de tête » n'ont pas du tout le même visage à l'écran, et la ligne des yeux calculée dérive avec eux. C'est exactement ce que vous voyez sur la planche.
+Ne garder que :
+- `EYE_LINE = 0.38` — ligne des yeux, seul ancrage vertical.
+- `BOTTOM_WIDTH_FILL = 1.0` — le vêtement couvre 100 % de la largeur du bord bas.
+- `MIN_ZOOM = 0.9` — garde-fou : en dessous, la source manque de buste → `needsRegeneration` au lieu d'une déformation.
 
-Votre critère est plus simple et plus juste : **chez Léa, la tête occupe à peu près la même hauteur que ce qu'on voit du corps en dessous.** Autrement dit, le menton tombe à peu près à mi-hauteur du cadre.
+Suppression de `HAIR_TOP_LINE`, `HEAD_FILL`, `HEAD_FILL_MAX`, `CHIN_LINE`, `FACE_FILL` et de tous leurs usages.
 
-## La règle cible
+## 2. Détection de la ligne des yeux
 
-Deux repères anatomiques réels, mesurés sur Léa, appliqués à tous :
+Le sommet des cheveux et la détection du cou par silhouette ne sont pas fiables sur afro, calvitie, voile, chapeau : on arrête de les utiliser. À la place, mesure de la ligne des yeux par vision Gemini (via Google AI Studio, donc 0 crédit Lovable), une seule requête par avatar, qui renvoie `eye_y` normalisé (0–1) et le centre horizontal du visage. Réponse en tool-call structuré, jamais de texte libre.
 
-```text
-  ┌──────────────────────┐  0 %
-  │        cheveux       │
-  │   ●──────────●  yeux │  ← ligne des yeux : hauteur mesurée chez Léa
-  │        visage        │
-  │─────── menton ───────│  ← ~50 % : tête = corps visible
-  │   épaules / bras     │
-  └──────────────────────┘  100 %  (vêtement sortant par le bas)
-```
+- Cache : la mesure est stockée sur le bénéficiaire (`avatar_eye_y`, `avatar_face_center_x`) pour ne jamais la refaire sur une image inchangée.
+- Repli si la mesure échoue : on ne recadre pas, on renvoie `needsRegeneration` avec la raison — jamais de recadrage à l'aveugle.
 
-- **Menton à la hauteur mesurée chez Léa** (attendu ≈ 50 %) → la tête fait la même hauteur que le corps visible.
-- **Yeux à la hauteur mesurée chez Léa** → même regard, même inclinaison de cadre.
+## 3. Normalisation (`_shared/avatarNormalize.ts`)
 
-Ces deux points fixent à la fois l'échelle et la position verticale, sans jamais dépendre des cheveux, d'un voile ou de la largeur d'épaules. La contrainte « aucun blanc en bas » reste appliquée en dernier recours.
+Suppression complète de `detectLandmarks`, `EYE_IN_HEAD`, `HEAD_ASPECT`, de la recherche du cou et de l'arbitrage tête/menton. Nouvel algorithme, deux étapes indépendantes :
 
-## Étapes
+1. **Échelle** — plus petite valeur telle que la largeur du sujet sur la ligne qui atterrit sur le bord bas du canvas atteigne 100 % de la largeur (recherche dichotomique, relation monotone, bornée par `MIN_ZOOM`). Aucune contrainte de taille de tête : une carrure large reste large.
+2. **Translation** — la fenêtre est positionnée pour que la ligne des yeux mesurée tombe exactement à 38 % de la hauteur, et le centre du visage à 50 % de la largeur.
 
-1. **Re-mesurer Léa** avec détection menton + yeux, et publier les valeurs exactes lues (pas de constantes devinées).
-2. **Remplacer l'ancrage** dans `avatarNormalize.ts` : les cibles `HEAD_FILL` / cou disparaissent au profit de `CHIN_LINE` et `EYE_LINE`. L'échelle découle de la distance yeux→menton, la translation cale le menton.
-3. **Fiabiliser la détection du menton** : bas de la zone visage (peau/traits) au-dessus du cou, indépendante de la chevelure ; si le visage n'est pas lisible, l'avatar est signalé plutôt que recadré au hasard.
-4. **Aligner le prompt de génération** sur la même grammaire : menton à mi-hauteur, épaules et haut des bras remplissant la base.
-5. **Planche de contrôle** : Léa + Kwame + Marius + Aïcha + Nguyen, avec deux lignes tracées (yeux et menton) et le rond profil, pour valider à l'œil nu avant toute généralisation.
+Le filtre anti-bruit (lignes < 2 % de largeur) est conservé, il corrigeait un vrai défaut. Rapport renvoyé : `scale`, `eyeYPct` (attendu 38), `bottomWidthFillPct`, `sideGapBottomPct`, `needsRegeneration` + raison. Les champs `landmarks`/`headHPct`/`chin` disparaissent, ainsi que leurs lectures dans `normalize-avatar-framing/index.ts` et l'affichage du studio.
 
-Aucun crédit IA : recadrage déterministe à partir des avatars publiés.
+## 4. Prompt de génération (`FRAMING_BLOCK`)
+
+Bloc court, sans chiffres contradictoires :
+- « Medium close-up portrait, chest up ».
+- « Full shoulders extending 100% to the left and right canvas borders, upper chest fully visible » — le buste descend jusqu'au milieu de la poitrine, pour qu'il y ait assez de vêtement en bas.
+- Le vêtement touche et remplit toute la ligne inférieure du cadre, aucun blanc dans les coins bas.
+- Interdits ajoutés au prompt négatif : `tight face crop`, `passport photo`, `sloped narrow shoulders`, `cropped shoulders`.
+- Plus aucune mention de yeux à 38 %, menton à mi-hauteur, hauteur de tête ou marge haute chiffrée : la position est désormais garantie par le code, pas par le modèle.
+
+## 5. QA (`qa-avatar/index.ts`)
+
+Critères de cadrage réduits à deux, bloquants :
+- `bottom_fill` : vêtement sur 100 % de la largeur du bord bas.
+- `no_gap_under_shoulders` : zéro fond visible sous les épaules (ni bande, ni coin).
+
+`framing`, `framing_fill`, `shoulder_width`, `bust_completeness` sont fusionnés dedans. Le critère de marge haute est supprimé (variable par construction avec un ancrage yeux). Style, anonymat, dignité, artefacts, chaleur humaine, filigrane, visage unique : inchangés.
+
+## 6. Vérification demandée
+
+Déploiement, puis régénération de **Kwame** et renormalisation de **Léa** avec la nouvelle logique, et livraison d'une planche comparative : rendu carré 1:1 et rendu dans le masque rond côte à côte, avec la ligne des yeux tracée et les mesures réelles (yeux %, remplissage du bord bas %, vide latéral bas %) — pour vérifier que les deux visages ont bien la même taille dans le rond.
 
 ## Détails techniques
 
-- `supabase/functions/_shared/avatarNormalize.ts` : `HEAD_FILL`, `HEAD_FILL_MAX` et l'estimation par ratio de cou sont retirés ; nouvelles constantes `EYE_LINE` et `CHIN_LINE` calibrées sur la mesure réelle de Léa. Facteur d'échelle = `(CHIN_LINE − EYE_LINE) × H ⁄ (chin_px − eye_px)`.
-- Ordre d'arbitrage : (1) menton, (2) yeux, (3) zéro blanc en bas ; si le vêtement source est trop court, l'avatar est marqué `needs_regeneration` avec sa raison, sans écraser les deux premiers repères.
-- `supabase/functions/_shared/avatarArtDirection.ts` : `FRAMING_BLOCK` reformulé sur les mêmes proportions.
-- `supabase/functions/normalize-avatar-framing/index.ts` : rapport enrichi (`chinLine`, `eyeLine`, écart à la référence Léa).
-- Rapport et planche mis à jour dans `.lovable/audit-coverage/framing-ref-lea.md`.
+- Fichiers modifiés : `_shared/avatarFramingSpec.ts`, `_shared/avatarNormalize.ts`, `_shared/avatarArtDirection.ts`, `qa-avatar/index.ts`, `normalize-avatar-framing/index.ts`, `generate-avatar/index.ts` (passage de la mesure yeux au normaliseur), + affichage cadrage du studio.
+- Migration : ajout de `avatar_eye_y` et `avatar_face_center_x` (numeric, nullable) sur `beneficiaries`, avec les GRANT et policies existantes inchangées.
+- Le pixel recadré reste la source de vérité (comme aujourd'hui) et `avatar_scale`/`offset_x`/`offset_y` sont remis à zéro après normalisation.
+- Aucune modification de la logique de matching, du panier ou du tunnel de don.
+- Une fois Kwame et Léa validés, passage en lot sur le reste du catalogue (200 avatars) avec la même fonction, sans crédit Lovable.
