@@ -181,8 +181,20 @@ serve(async (req) => {
     console.log(`[clean-avatar-background] ${beneficiary_id} ai_pass=${aiPass}`);
 
 
-    // 2) Server-side chroma-key: white → transparent
-    const { bytes: keyedPng, transparentRatio } = await whiteToAlpha(whitePng);
+    // 2) Server-side chroma-key: white → transparent. Skipped when the source
+    // is ALREADY cut out (alpha present) — re-keying a transparent PNG would
+    // repaint its transparent pixels.
+    let keyedPng = whitePng;
+    let transparentRatio = 1;
+    const preAlpha = await transparentPixelRatio(whitePng);
+    if (preAlpha >= 0.05) {
+      transparentRatio = preAlpha;
+    } else {
+      const keyed = await whiteToAlpha(whitePng);
+      keyedPng = keyed.bytes;
+      transparentRatio = keyed.transparentRatio;
+    }
+
 
     // 2b) Deterministic framing normalization (zero AI credit): the subject is
     // recomposed to fill the square identically for every avatar, so the donor
