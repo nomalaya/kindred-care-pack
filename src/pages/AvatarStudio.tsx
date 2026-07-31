@@ -93,7 +93,7 @@ const AvatarStudio = () => {
   const [showHdInstead, setShowHdInstead] = useState(false);
   const [detailVersionId, setDetailVersionId] = useState<string | null>(null);
   
-  const [cleaningVersionId, setCleaningVersionId] = useState<string | null>(null);
+  
 
   const [inferenceReasons, setInferenceReasons] = useState<Record<string, FieldReason[]>>({});
   const saveTimer = useRef<any>(null);
@@ -483,27 +483,6 @@ const AvatarStudio = () => {
   };
 
 
-  // Idempotent : remplace l'arrière-plan de l'avatar existant par du blanc pur
-  // pour que les fonds importés (bucket avatar-backgrounds) puissent passer
-  // derrière la silhouette en CSS.
-  const cleanBackground = async (id?: string) => {
-    const targetId = id || selected?.id;
-    if (!targetId) return;
-    setBusy("clean");
-    try {
-      const { data, error } = await supabase.functions.invoke("clean-avatar-background", {
-        body: { beneficiary_id: targetId },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("Fond nettoyé — votre fond importé est désormais visible.");
-      await refresh();
-    } catch (e: any) {
-      toast.error("Nettoyage impossible : " + (e?.message || "erreur inconnue"));
-    } finally {
-      setBusy(null);
-    }
-  };
 
 
 
@@ -758,7 +737,7 @@ const AvatarStudio = () => {
   // Libellé humain de l'état "busy" pour bannière + désactivation d'actions.
   const busyLabel = useMemo(() => {
     switch (busy) {
-      case "clean":   return "Nettoyage du fond en cours…";
+      
       case "preview": return "Génération de l'aperçu en cours…";
       case "final":   return "Génération HD en cours…";
       case "import":  return "Import de l'image en cours…";
@@ -1627,33 +1606,13 @@ const AvatarStudio = () => {
             const isActive = sameImage(activeUrl, v.image_url);
             const url = v.image_url || "";
             const model: string = v.model_used || "";
-            const isTransparent = url.includes("/cleaned/") && url.toLowerCase().includes(".png");
+            
 
             const qa = v.qa_score ? Math.round(v.qa_score) : null;
             const qaColor = qa == null ? "" : qa >= 85 ? "text-emerald-700" : qa >= 70 ? "text-amber-700" : "text-red-700";
 
-            const cleanThisVersion = async () => {
-              setCleaningVersionId(v.id);
-              try {
-                const { data, error } = await supabase.functions.invoke("clean-avatar-background", {
-                  body: { beneficiary_id: selected.id, source_url: v.image_url, version_id: v.id },
-                });
-                if (error) throw error;
-                toast.success("Fond nettoyé — nouvelle version ajoutée.");
-                const { data: rows } = await supabase
-                  .from("avatar_versions" as any)
-                  .select("*")
-                  .eq("beneficiary_id", selected.id)
-                  .order("created_at", { ascending: false })
-                  .limit(20);
-                setVersions((rows as any[]) || []);
-                setDetailVersionId(null);
-              } catch (e: any) {
-                toast.error(e?.message ?? "Nettoyage du fond impossible");
-              } finally {
-                setCleaningVersionId(null);
-              }
-            };
+
+
 
             // Chips descriptives — attributs sélectionnés (uniquement non-nuls)
             type ChipDef = { label: string; value: string };
@@ -1734,24 +1693,10 @@ const AvatarStudio = () => {
                           <Crop className="h-4 w-4 mr-2" />Ajuster le cadrage
                         </Button>
                       )}
-                      {!isTransparent && (
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start"
-                          onClick={cleanThisVersion}
-                          disabled={!!busy || cleaningVersionId === v.id}
-                          title={busyLabel ?? "Retire le fond blanc et crée une nouvelle version détourée."}
-                        >
-                          {cleaningVersionId === v.id
-                            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            : <Scissors className="h-4 w-4 mr-2" />}
-                          Nettoyer le fond
-                        </Button>
-                      )}
                       <Button
                         className="w-full justify-start"
                         onClick={() => { restoreVersion(v); setDetailVersionId(null); }}
-                        disabled={isLocked || !!busy || isActive || cleaningVersionId === v.id}
+                        disabled={isLocked || !!busy || isActive}
                         title="Remplace l'avatar actif par cette version et en fait la base des futures retouches."
                       >
                         <RotateCcw className="h-4 w-4 mr-2" />
@@ -1761,7 +1706,7 @@ const AvatarStudio = () => {
                         variant="ghost"
                         className="w-full justify-start text-destructive hover:text-destructive"
                         onClick={() => { setDetailVersionId(null); attemptDeleteVersion(v); }}
-                        disabled={!!busy || cleaningVersionId === v.id || isActive}
+                        disabled={!!busy || isActive}
                         title={isActive ? "Impossible de supprimer la version active" : "Supprimer définitivement cette version"}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />Supprimer

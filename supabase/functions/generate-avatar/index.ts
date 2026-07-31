@@ -8,9 +8,9 @@
 //   - "edit_hd" : same as "edit" but with QA scoring; on pass writes avatar_url
 //                 and preserves approved/locked workflow status
 //
-// After every successful upload the function fires-and-forgets a call to
-// `clean-avatar-background` so the imported background bucket shows through
-// without requiring a manual click.
+// After every successful upload the function cleans the background in-process
+// (shared `avatarBackground.ts`) so the imported background bucket shows
+// through without requiring a manual click.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
@@ -33,6 +33,7 @@ import { generateAvatarImage, usingGoogleDirect } from "../_shared/imageProvider
 import { STYLE_ANCHOR_URLS } from "../_shared/avatarStyleAnchors.ts";
 import { normalizeAvatarFraming } from "../_shared/avatarNormalize.ts";
 import { measureEyeLine, toDataUrl } from "../_shared/avatarEyeLine.ts";
+import { cleanAvatarBackground } from "../_shared/avatarBackground.ts";
 
 
 
@@ -257,9 +258,9 @@ async function rollbackBeneficiary(
 
 /**
  * SYNCHRONOUS clean + post-detourage QA gate.
- * - Awaits clean-avatar-background (replaces the previous fire-and-forget).
+ * - Runs the background cleanup in-process (shared `avatarBackground.ts`).
  * - Re-reads the served column to QA the EXACT image the user will see.
- * - On bust_completeness < 75 (or clean invoke failure), rolls back every
+ * - On bust_completeness < 75 (or clean failure), rolls back every
  *   field in `snapshot` and removes the newly uploaded file (best-effort).
  *
  * Returns { rejected, qaPost } so callers can include the score in their
@@ -273,18 +274,15 @@ async function runCleanAndVerify(
   snapshot: Record<string, any>,
   newStoragePath: string,
 ): Promise<{ rejected: boolean; qaPost: any | null; reason?: string }> {
-  // 1. Synchronous clean
+  // 1. Synchronous clean (in-process)
   let cleanError: any = null;
   try {
-    const { error } = await supabase.functions.invoke("clean-avatar-background", {
-      body: { beneficiary_id, target },
-    });
-    cleanError = error ?? null;
+    await cleanAvatarBackground(supabase, { beneficiary_id, target });
   } catch (e) {
     cleanError = e;
   }
   if (cleanError) {
-    console.error(`[generate-avatar] clean-avatar-background failed for ${beneficiary_id}:`, cleanError);
+    console.error(`[generate-avatar] background clean failed for ${beneficiary_id}:`, cleanError);
     await rollbackBeneficiary(supabase, beneficiary_id, snapshot, newStoragePath, "clean_invoke_failed");
     return { rejected: true, qaPost: null, reason: "clean_invoke_failed" };
   }
