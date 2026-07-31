@@ -1,5 +1,10 @@
 import { useAvatarBackground } from "@/lib/avatarBackground";
 import { framingToTransform, type AvatarFraming } from "@/lib/avatarFraming";
+import {
+  studioContainerStyle,
+  studioImageStyle,
+  type AvatarDisplayMode,
+} from "@/lib/avatarStudio";
 
 interface AvatarProps {
   gender?: string;
@@ -16,11 +21,16 @@ interface AvatarProps {
    */
   backgroundSeed?: string | number | null;
   /**
-   * Non-destructive display transform (zoom + offset). Read from the
-   * beneficiary row via `readFramingFromRow`. When omitted, native object-cover
-   * is used (identical to legacy behaviour).
+   * Legacy per-beneficiary display transform (zoom + offset). ONLY applied when
+   * `mode="framed"` (Avatar Studio internal tooling). Ignored in studio mode.
    */
   framing?: AvatarFraming;
+  /**
+   * "studio" (default) = trombinoscope rendering seen by donors: whole portrait,
+   * native proportions, shared inner margin, no individual transform.
+   * "framed" = legacy per-beneficiary zoom/offset, for internal framing tools.
+   */
+  mode?: AvatarDisplayMode;
 }
 
 // Premium fallback — warm gradient circle with initial.
@@ -32,6 +42,7 @@ const BeneficiaryAvatar = ({
   previewUrl,
   backgroundSeed,
   framing,
+  mode = "studio",
 }: AvatarProps) => {
   const dimensions = { sm: 48, md: 80, lg: 120 };
   const dim = dimensions[size];
@@ -41,33 +52,26 @@ const BeneficiaryAvatar = ({
   const bgUrl = useAvatarBackground(backgroundSeed ?? null);
 
   if (resolved) {
-    const transformStyle = framing ? framingToTransform(framing) : undefined;
+    const isStudio = mode === "studio";
+    const imgStyle = isStudio
+      ? studioImageStyle()
+      : {
+          objectPosition: "center center" as const,
+          ...(framing ? framingToTransform(framing) : {}),
+        };
     return (
       <div
         className="relative rounded-full overflow-hidden ring-1 ring-black/5"
-        style={{
-          width: dim,
-          height: dim,
-          backgroundImage: bgUrl ? `url(${bgUrl})` : undefined,
-          backgroundColor: bgUrl ? undefined : "#ffffff",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
+        style={studioContainerStyle(dim, bgUrl)}
       >
         <img
           src={resolved}
           alt={`Portrait de ${name}`}
-          width={dim}
-          height={dim}
           loading="lazy"
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{
-            // Framing is baked into the pixels (shoulders + eye line normalized),
-            // so the circle shows the same area for every beneficiary.
-            objectPosition: "center center",
-            ...(transformStyle ?? {}),
-          }}
-
+          className={
+            isStudio ? "select-none" : "absolute inset-0 w-full h-full object-cover"
+          }
+          style={imgStyle}
         />
         {isPreview && (
           <span
