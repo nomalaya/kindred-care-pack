@@ -37,12 +37,14 @@ export {
   HEAD_FILL,
   HEAD_FILL_MAX,
   MIN_ZOOM,
+  HAIR_TOP_LINE,
 } from "./avatarFramingSpec.ts";
 import {
   EYE_LINE,
   HEAD_FILL,
   HEAD_FILL_MAX,
   MIN_ZOOM,
+  HAIR_TOP_LINE,
 } from "./avatarFramingSpec.ts";
 
 /** Eye line inside the head, in % of the head height (anatomical average). */
@@ -108,10 +110,15 @@ function rowSpans(img: Image): RowSpan[] {
 }
 
 function bboxFromSpans(spans: RowSpan[]): Box | null {
+  // Rows covering less than 2 % of the width are noise (stray ink dot, faint
+  // sketch mark, keying residue). Counting them shifts the hair-top anchor and
+  // pushes the whole portrait down — ignore them.
+  const width = spans.reduce((m, s) => Math.max(m, s.max + 1), 0);
+  const minRowW = Math.max(4, Math.round(width * 0.02));
   let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
   for (let y = 0; y < spans.length; y++) {
     const s = spans[y];
-    if (s.w === 0) continue;
+    if (s.w < minRowW) continue;
     if (s.min < minX) minX = s.min;
     if (s.max > maxX) maxX = s.max;
     if (y < minY) minY = y;
@@ -296,20 +303,20 @@ export async function normalizeAvatarFraming(
         "l'élargir sans inventer le buste — régénérer avec épaules + haut des bras.";
     }
 
-    // (2) No white band under the bust. Zoom around the eye line until the
-    // bottom of the silhouette leaves the canvas. Head size gives way, up to
-    // HEAD_FILL_MAX; beyond that we flag the avatar instead of over-cropping.
-    const bustDepth = bbox.y + bbox.h - lm.eyeY; // source px, eye line -> bust bottom
+    // (2) No white band under the bust. Zoom around the hair-top anchor until
+    // the bottom of the silhouette leaves the canvas. Head size gives way, up
+    // to HEAD_FILL_MAX; beyond that we flag the avatar instead of over-cropping.
+    const bustDepth = bbox.y + bbox.h - bbox.y; // source px, hair top -> bust bottom
     if (bustDepth > 0) {
-      const needed = (S * (1 - EYE_LINE)) / bustDepth;
+      const needed = (S * (1 - HAIR_TOP_LINE)) / bustDepth;
       if (needed > scale) {
         const capped = (S * HEAD_FILL_MAX) / lm.headH;
         scale = Math.min(needed, capped);
         if (needed > capped) {
           needsRegeneration = true;
           regenerationReason =
-            "source trop courte sous le menton : impossible de remplir le bas du cadre en gardant les yeux à " +
-            `${Math.round(EYE_LINE * 1000) / 10} % — régénérer avec épaules + haut des bras`;
+            "source trop courte sous le menton : impossible de remplir le bas du cadre en gardant la tête à " +
+            `${Math.round(HEAD_FILL * 1000) / 10} % — régénérer avec épaules + haut des bras`;
         }
       }
     }
@@ -321,8 +328,11 @@ export async function normalizeAvatarFraming(
     const scaled = img.clone().resize(scaledW, scaledH);
 
     // Window of the scaled image that lands on the canvas.
+    // Vertical anchor = TOP OF THE HAIR (exact silhouette measure) placed at
+    // HAIR_TOP_LINE. Combined with the head-height scale, this reproduces Léa's
+    // eye line (38 %) and chin line (50 %) without guessing the eye position.
     const winX = Math.round(lm.centerX * scale - S / 2);
-    const winY = Math.round(lm.eyeY * scale - S * EYE_LINE);
+    const winY = Math.round(bbox.y * scale - S * HAIR_TOP_LINE);
 
     const canvas = new Image(S, S);
     if (!transparent) canvas.fill(0xffffffff);

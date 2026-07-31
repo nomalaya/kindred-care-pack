@@ -28,6 +28,14 @@ export const HEAD_FILL = 0.44;
 export const HEAD_FILL_MAX = 0.5;
 /** Never zoom out more than this: beyond it the source lacks body. */
 export const MIN_ZOOM = 0.9;
+/**
+ * Vertical anchor actually used by the normalizer: top of the hair.
+ * Derived from the two measured lines (chin at 50 %, head 44 % tall), so it is
+ * the SAME framing expressed on a landmark the silhouette gives exactly —
+ * unlike the eye line, which had to be guessed from the head height and drifted
+ * (short hair + wide sweater collar => head bottom mistaken for the collar).
+ */
+export const HAIR_TOP_LINE = CHIN_LINE - HEAD_FILL;
 
 /** Format a ratio as a human/model readable percentage ("38%"). */
 export const framingPct = (v: number) => `${Math.round(v * 1000) / 10}%`;
