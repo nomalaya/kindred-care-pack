@@ -122,14 +122,18 @@ serve(async (req) => {
             avatar_scale: 1,
             avatar_offset_x: 0,
             avatar_offset_y: 0,
+            // Cache the eye measurement of the SOURCE image.
+            ...(eye ? { avatar_eye_y: eye.eyeY, avatar_face_center_x: eye.centerX } : {}),
           })
           .eq("id", b.id);
 
         await supabase.from("avatar_versions").insert({
           beneficiary_id: b.id,
           image_url: u.publicUrl,
-          model_used: "normalize-framing/deterministic",
-          prompt: `framing=${report.mode} scale=${report.scale} landmarks=${JSON.stringify(report.landmarks)}`,
+          model_used: "normalize-framing/eye-anchor",
+          prompt:
+            `eye_anchor=38% scale=${report.scale} bottom_fill=${report.bottomWidthFillPct}% ` +
+            `side_gap=${report.sideGapBottomPct}%`,
         });
 
         results.push({
@@ -137,9 +141,11 @@ serve(async (req) => {
           name: b.alias_first_name,
           changed: true,
           from_archive: fromArchive,
-          mode: report.mode,
-          landmarks: report.landmarks,
-          output: report.output,
+          eye_measure: eye,
+          eye_measured_now: measured,
+          eye_y_pct: report.eyeYPct,
+          bottom_width_fill_pct: report.bottomWidthFillPct,
+          side_gap_bottom_pct: report.sideGapBottomPct,
           needs_regeneration: report.needsRegeneration === true,
           regeneration_reason: report.regenerationReason,
           source_margins: report.sourceMargins,
