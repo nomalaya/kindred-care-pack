@@ -110,10 +110,15 @@ function rowSpans(img: Image): RowSpan[] {
 }
 
 function bboxFromSpans(spans: RowSpan[]): Box | null {
+  // Rows covering less than 2 % of the width are noise (stray ink dot, faint
+  // sketch mark, keying residue). Counting them shifts the hair-top anchor and
+  // pushes the whole portrait down — ignore them.
+  const width = spans.reduce((m, s) => Math.max(m, s.max + 1), 0);
+  const minRowW = Math.max(4, Math.round(width * 0.02));
   let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
   for (let y = 0; y < spans.length; y++) {
     const s = spans[y];
-    if (s.w === 0) continue;
+    if (s.w < minRowW) continue;
     if (s.min < minX) minX = s.min;
     if (s.max > maxX) maxX = s.max;
     if (y < minY) minY = y;
