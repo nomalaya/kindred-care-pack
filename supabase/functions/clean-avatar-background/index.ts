@@ -186,7 +186,7 @@ serve(async (req) => {
     const srcResp = await fetch(sourceUrl);
     if (!srcResp.ok) throw new Error(`Source image fetch failed: ${srcResp.status}`);
     const srcBytes = new Uint8Array(await srcResp.arrayBuffer());
-    let whitePng = srcBytes;
+    let whitePng: Uint8Array<ArrayBufferLike> = srcBytes;
     let aiPass = false;
     try {
       const probe = await Image.decode(srcBytes);
@@ -204,7 +204,7 @@ serve(async (req) => {
     // 2) Server-side chroma-key: white → transparent. Skipped when the source
     // is ALREADY cut out (alpha present) — re-keying a transparent PNG would
     // repaint its transparent pixels.
-    let keyedPng = whitePng;
+    let keyedPng: Uint8Array<ArrayBufferLike> = whitePng;
     let transparentRatio = 1;
     const preAlpha = await transparentPixelRatio(whitePng);
     if (preAlpha >= 0.05) {
