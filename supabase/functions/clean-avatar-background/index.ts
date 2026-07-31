@@ -93,6 +93,26 @@ async function aiWhiteBackground(sourceUrl: string): Promise<Uint8Array> {
  * anti-aliased edges around hair/shoulders, keep subject opaque.
  * Returns the transparent PNG bytes plus the transparent pixel ratio.
  */
+/** Share of fully transparent pixels — tells whether the PNG is already cut out. */
+async function transparentPixelRatio(pngBytes: Uint8Array): Promise<number> {
+  try {
+    const img = await Image.decode(pngBytes);
+    const { width, height } = img;
+    const step = Math.max(1, Math.round(Math.min(width, height) / 256));
+    let transparent = 0;
+    let total = 0;
+    for (let y = 1; y <= height; y += step) {
+      for (let x = 1; x <= width; x += step) {
+        total++;
+        if ((img.getPixelAt(x, y) & 0xff) < 16) transparent++;
+      }
+    }
+    return total > 0 ? transparent / total : 0;
+  } catch (_e) {
+    return 0;
+  }
+}
+
 async function whiteToAlpha(pngBytes: Uint8Array): Promise<{ bytes: Uint8Array; transparentRatio: number }> {
   const img = await Image.decode(pngBytes);
   const { width, height } = img;
