@@ -38,6 +38,14 @@ export const EYE_LINE = 0.38;
 export const CHIN_LINE = 0.5;
 /** Share of the canvas height taken by the head, hair included (Léa). */
 export const HEAD_FILL = 0.44;
+/**
+ * Share of the canvas height taken by the FACE BOX (hairline -> chin, hair
+ * excluded) — measured on Léa with a face-landmark detector: 39.8 % ≈ 40 %.
+ * This is the value the image model must aim for; HEAD_FILL is the same
+ * measure with the hair included.
+ */
+export const FACE_FILL = 0.4;
+
 /** Eye line inside the head, in % of the head height (anatomical average). */
 const EYE_IN_HEAD = 0.4;
 /** Search window for the neck, in % of the silhouette height. */
