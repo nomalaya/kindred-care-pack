@@ -15,10 +15,6 @@ import type { CSSProperties } from "react";
  *  cheveux (afro, volume, voile, chapeau) ne touchent jamais le bord. */
 export const STUDIO_PADDING_PCT = 6;
 
-/** Décalage vertical commun du sujet dans le cercle, en % du diamètre.
- *  Positif = le sujet descend légèrement (buste coupé par l'arc du bas). */
-export const STUDIO_SHIFT_Y_PCT = 2;
-
 export type AvatarDisplayMode = "studio" | "framed";
 
 /** Style du conteneur circulaire (le « studio » : fond neutre commun). */
@@ -35,14 +31,16 @@ export function studioContainerStyle(dim: number, bgUrl?: string | null): CSSPro
 
 /**
  * Style de l'image en mode studio : portrait entier, proportions strictement
- * conservées (`contain`), marge intérieure commune, aligné en bas pour que le
- * buste soit coupé par l'arc inférieur du cercle — comme un trombinoscope.
+ * conservées (`contain`), marge intérieure commune en haut et sur les côtés, et
+ * bas EXACTEMENT au ras du bord inférieur — les fichiers étant normalisés avec
+ * le buste au ras du bas (voir `avatarFramingSpec.STUDIO_TOP_HEADROOM`), le
+ * buste est coupé par l'arc du cercle sans jamais laisser d'espace vide.
  */
 export function studioImageStyle(): CSSProperties {
   const pad = STUDIO_PADDING_PCT;
   return {
     position: "absolute",
-    top: `${pad + STUDIO_SHIFT_Y_PCT}%`,
+    top: `${pad}%`,
     left: `${pad}%`,
     width: `${100 - pad * 2}%`,
     height: `${100 - pad}%`,
@@ -50,3 +48,4 @@ export function studioImageStyle(): CSSProperties {
     objectPosition: "center bottom",
   };
 }
+
