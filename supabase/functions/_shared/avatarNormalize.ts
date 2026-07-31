@@ -26,25 +26,24 @@ import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 export const NORMALIZE_CANVAS = 1024;
 /**
- * REFERENCE FRAMING = LÉA (style anchor `avatars/style-anchors/lea.jpg`).
- * Re-measured with a face-landmark detector (not the silhouette):
- *   face box height 39.7 % | eye line 38.1 % | chin ≈ 50 % | face center 49.7 %
- * Read: on Léa the head is about as tall as the visible body underneath —
- * the chin sits mid-canvas. That proportion is the catalog target.
+ * REFERENCE FRAMING = LÉA. All framing numbers now live in ONE place —
+ * `avatarFramingSpec.ts` — shared with the generation prompt so the model and
+ * this normalizer aim at exactly the same proportions.
  */
-/** Vertical position of the eye line, in % of the canvas height. */
-export const EYE_LINE = 0.38;
-/** Chin line = mid canvas: head height == visible body height. */
-export const CHIN_LINE = 0.5;
-/** Share of the canvas height taken by the head, hair included (Léa). */
-export const HEAD_FILL = 0.44;
-/**
- * Share of the canvas height taken by the FACE BOX (hairline -> chin, hair
- * excluded) — measured on Léa with a face-landmark detector: 39.8 % ≈ 40 %.
- * This is the value the image model must aim for; HEAD_FILL is the same
- * measure with the hair included.
- */
-export const FACE_FILL = 0.4;
+export {
+  FACE_FILL,
+  EYE_LINE,
+  CHIN_LINE,
+  HEAD_FILL,
+  HEAD_FILL_MAX,
+  MIN_ZOOM,
+} from "./avatarFramingSpec.ts";
+import {
+  EYE_LINE,
+  HEAD_FILL,
+  HEAD_FILL_MAX,
+  MIN_ZOOM,
+} from "./avatarFramingSpec.ts";
 
 /** Eye line inside the head, in % of the head height (anatomical average). */
 const EYE_IN_HEAD = 0.4;
@@ -53,6 +52,7 @@ const NECK_FROM = 0.25;
 const NECK_TO = 0.7;
 /** Head height / head width ratio, used when the neck is hidden (scarf, hood). */
 const HEAD_ASPECT = 1.35;
+
 
 /**
  * Arbitration:
