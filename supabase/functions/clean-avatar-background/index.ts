@@ -41,40 +41,52 @@ async function fetchImageAsBase64(url: string): Promise<{ b64: string; mime: str
   return { b64: btoa(bin), mime };
 }
 
-async function geminiWhiteBackground(sourceUrl: string): Promise<Uint8Array> {
-  const { b64, mime } = await fetchImageAsBase64(sourceUrl);
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3.1-flash-image-preview",
-      messages: [{
-        role: "user",
-        content: [
-          { type: "text", text: CLEAN_PROMPT },
-          { type: "image_url", image_url: { url: `data:${mime};base64,${b64}` } },
-        ],
-      }],
-      modalities: ["image", "text"],
-    }),
-  });
-  if (!resp.ok) {
-    const t = await resp.text();
-    const err: any = new Error(`AI gateway ${resp.status}: ${t}`);
-    err.gatewayStatus = resp.status;
-    if (resp.status === 402) err.code = "no_credits";
-    else if (resp.status === 429) err.code = "rate_limited";
-    throw err;
+/**
+ * Border test: is the background ALREADY plain white / already transparent?
+ * Samples the outer ring of the image; when ≥ 97 % of it is white or alpha 0,
+ * no AI pass is needed and we go straight to the chroma-key (zero credits).
+ */
+function backgroundAlreadyClean(img: Image): boolean {
+  const { width, height } = img;
+  const step = Math.max(1, Math.round(Math.min(width, height) / 128));
+  let clean = 0;
+  let total = 0;
+  const test = (x: number, y: number) => {
+    const px = img.getPixelAt(x, y);
+    const r = (px >>> 24) & 0xff;
+    const g = (px >>> 16) & 0xff;
+    const b = (px >>> 8) & 0xff;
+    const a = px & 0xff;
+    total++;
+    const minC = Math.min(r, g, b);
+    const chroma = Math.max(r, g, b) - minC;
+    if (a < 16 || (minC >= 244 && chroma <= 8)) clean++;
+  };
+  for (let x = 1; x <= width; x += step) {
+    test(x, 1);
+    test(x, height);
   }
-  const data = await resp.json();
-  const dataUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-  if (!dataUrl) throw new Error("No image returned from gateway");
-  const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, "");
-  return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  for (let y = 1; y <= height; y += step) {
+    test(1, y);
+    test(width, y);
+  }
+  return total > 0 && clean / total >= 0.97;
 }
+
+/**
+ * Fallback only: ask the image model for a pure-white background. Routed
+ * through `imageProvider`, so it uses the Google direct key when configured
+ * and never spends Lovable credits.
+ */
+async function aiWhiteBackground(sourceUrl: string): Promise<Uint8Array> {
+  const { b64, mime } = await fetchImageAsBase64(sourceUrl);
+  return await generateAvatarImage(
+    CLEAN_PROMPT,
+    CLEAN_MODEL,
+    `data:${mime};base64,${b64}`,
+  );
+}
+
 
 /**
  * Chroma-key: convert near-white pixels to alpha=0, fade mid-white for
