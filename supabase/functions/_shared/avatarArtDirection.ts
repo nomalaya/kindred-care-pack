@@ -3,7 +3,7 @@
 
 import { AvatarTraits, TraitDiff } from "./avatarTraits.ts";
 import { STYLE_ANCHOR_BLOCK, STYLE_ANCHOR_BLOCK_EDIT } from "./avatarStyleAnchors.ts";
-import { EYE_LINE, framingPct } from "./avatarFramingSpec.ts";
+// Framing geometry is enforced by the normalizer (avatarNormalize.ts), not by the prompt.
 
 // EXPRESSION_DESCRIPTIONS — fragments aligned with the 4 user-facing tonalities
 // of the simplified Avatar Studio (Réservée / Chaleureuse / Fatiguée / Inquiète).

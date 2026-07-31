@@ -13,18 +13,18 @@ const corsHeaders = {
 
 const WEIGHTS: Record<string, number> = {
   single_face: 1.3,
-  framing: 1.0,
-  framing_fill: 1.4, // the subject must fill the square, bust bleeding out of the bottom edge
-  shoulder_width: 1.4, // broad horizontal shoulders reaching both side edges (Léa reference)
+  // Framing QA = 2 criteria only. Vertical position (eye line) is enforced
+  // deterministically by the normalizer, so it is NOT judged here.
+  bottom_fill: 1.4, // garment covers 100 % of the bottom edge width
+  no_gap_under_shoulders: 1.4, // zero background visible under the shoulders
   no_watermark: 1.0,
   artifact_freedom: 1.2,
   style_match: 2.0, // hand-drawn semi-realistic cartoon illustration — hard requirement
-  background_quality: 1.0, // soft blurred contextual illustrated background
+  background_quality: 1.0,
   anonymity: 1.8, // must NOT resemble a real identifiable person
   not_caricature: 1.5,
   dignity: 1.5,
   human_warmth: 1.0,
-  bust_completeness: 0.8, // lowered: was forcing the model to draw a hard closing line under the bust
 };
 
 // Hard fail (force rejection) if any of these dimensions falls below threshold,
@@ -35,9 +35,8 @@ const HARD_FAIL_THRESHOLDS: Record<string, number> = {
   // vague resemblance to some actor on perfectly generic faces, and each false
   // rejection costs a full regeneration.
   anonymity: 50,
-  bust_completeness: 55,
-  framing_fill: 55,
-  shoulder_width: 55,
+  bottom_fill: 55,
+  no_gap_under_shoulders: 55,
 };
 
 
