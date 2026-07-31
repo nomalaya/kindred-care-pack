@@ -103,14 +103,20 @@ export async function whiteToAlpha(
       const minC = Math.min(r, g, b);
       const chroma = Math.max(r, g, b) - minC;
 
+      const srcA = px & 0xff;
       let alpha = 255;
-      if (minC >= 248 && chroma <= 6) {
+      if (srcA < 16) {
+        // Already transparent upstream — never re-opacify it.
+        alpha = 0;
+        transparent++;
+      } else if (minC >= 248 && chroma <= 6) {
         alpha = 0;
         transparent++;
       } else if (minC >= 225 && chroma <= 14) {
         const t = (minC - 225) / (248 - 225);
         alpha = Math.round(255 * (1 - t));
       }
+
 
       img.setPixelAt(
         x + 1,
