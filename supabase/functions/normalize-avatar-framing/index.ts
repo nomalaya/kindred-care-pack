@@ -32,7 +32,7 @@ serve(async (req) => {
 
     let query = supabase
       .from("beneficiaries")
-      .select("id, alias_first_name, avatar_url")
+      .select("id, alias_first_name, avatar_url, avatar_eye_y, avatar_face_center_x")
       .not("avatar_url", "is", null);
     if (ids?.length) query = query.in("id", ids);
     const { data: rows, error } = await query.limit(limit);
@@ -60,7 +60,20 @@ serve(async (req) => {
           raw = new Uint8Array(await resp.arrayBuffer());
         }
 
-        const { bytes, report } = await normalizeAvatarFraming(raw);
+        // Eye line: reuse the cached measurement when available (an unchanged
+        // image is never measured twice), otherwise measure once.
+        const forceMeasure: boolean = body.remeasure === true;
+        let eye = !forceMeasure &&
+            typeof b.avatar_eye_y === "number" && typeof b.avatar_face_center_x === "number"
+          ? { eyeY: Number(b.avatar_eye_y), centerX: Number(b.avatar_face_center_x) }
+          : null;
+        let measured = false;
+        if (!eye) {
+          eye = await measureEyeLine(toDataUrl(raw));
+          measured = eye != null;
+        }
+
+        const { bytes, report } = await normalizeAvatarFraming(raw, eye);
 
         if (dryRun || !report.changed) {
           results.push({
@@ -69,9 +82,11 @@ serve(async (req) => {
             changed: false,
             dry_run: dryRun,
             from_archive: fromArchive,
-            mode: report.mode,
-            landmarks: report.landmarks,
-            output: report.output,
+            eye_measure: eye,
+            eye_measured_now: measured,
+            eye_y_pct: report.eyeYPct,
+            bottom_width_fill_pct: report.bottomWidthFillPct,
+            side_gap_bottom_pct: report.sideGapBottomPct,
             needs_regeneration: report.needsRegeneration === true,
             regeneration_reason: report.regenerationReason,
             source_margins: report.sourceMargins,
