@@ -120,9 +120,45 @@ export async function whiteToAlpha(
     }
   }
 
+  // Border flood fill: any near-white region CONNECTED to the canvas border is
+  // background, even when it is only off-white (halo left by the generator).
+  // Interior light areas (skin, pale garments) are never touched because they
+  // are not reachable from the border without crossing the silhouette.
+  const seen = new Uint8Array(width * height);
+  const stack: number[] = [];
+  const push = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= width || y >= height) return;
+    const i = y * width + x;
+    if (seen[i]) return;
+    seen[i] = 1;
+    stack.push(i);
+  };
+  for (let x = 0; x < width; x++) { push(x, 0); push(x, height - 1); }
+  for (let y = 0; y < height; y++) { push(0, y); push(width - 1, y); }
+  while (stack.length) {
+    const i = stack.pop()!;
+    const x = i % width;
+    const y = (i - x) / width;
+    const px = img.getPixelAt(x + 1, y + 1);
+    const r = (px >>> 24) & 0xff;
+    const g = (px >>> 16) & 0xff;
+    const b = (px >>> 8) & 0xff;
+    const a = px & 0xff;
+    const minC = Math.min(r, g, b);
+    const chroma = Math.max(r, g, b) - minC;
+    const isBackground = a < 16 || (minC >= 205 && chroma <= 18);
+    if (!isBackground) continue;
+    if (a !== 0) {
+      img.setPixelAt(x + 1, y + 1, ((r & 0xff) << 24) | ((g & 0xff) << 16) | ((b & 0xff) << 8) | 0);
+      transparent++;
+    }
+    push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1);
+  }
+
   const encoded = await img.encode(); // PNG with alpha
   return { bytes: encoded, transparentRatio: transparent / total };
 }
+
 
 /**
  * Cleans the beneficiary's active (`final`) or preview avatar background and
