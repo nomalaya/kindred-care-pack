@@ -87,19 +87,30 @@ export function subjectBBox(img: Image): Box | null {
 }
 
 /** True when the source image uses a transparent (already chroma-keyed) background. */
+/**
+ * Does the PNG carry a real alpha channel (already cut out)?
+ *
+ * Corner sampling is NOT usable here: the trombinoscope framing pushes the bust
+ * to 100% of the bottom width, so both bottom corners are opaque subject pixels.
+ * With a corner test the image was wrongly considered opaque and the canvas was
+ * flooded with white — baking a white square into cut-out avatars.
+ * We therefore look at the whole image and consider it cut out as soon as a
+ * meaningful share of pixels is fully transparent.
+ */
 function hasTransparentBackground(img: Image): boolean {
-  const corners: [number, number][] = [
-    [1, 1],
-    [img.width, 1],
-    [1, img.height],
-    [img.width, img.height],
-  ];
+  const { width, height } = img;
+  const step = Math.max(1, Math.round(Math.min(width, height) / 128));
   let transparent = 0;
-  for (const [x, y] of corners) {
-    if ((img.getPixelAt(x, y) & 0xff) < 16) transparent++;
+  let total = 0;
+  for (let y = 1; y <= height; y += step) {
+    for (let x = 1; x <= width; x += step) {
+      total++;
+      if ((img.getPixelAt(x, y) & 0xff) < 16) transparent++;
+    }
   }
-  return transparent >= 3;
+  return total > 0 && transparent / total >= 0.02;
 }
+
 
 export type EyeAnchor = { eyeY: number; centerX: number };
 

@@ -1,52 +1,45 @@
-# Régénération conforme au style + ronds profils sans vide
+# Cadre blanc dans les ronds profils : ce que montrent les mesures
 
-Trois problèmes distincts, trois réponses séparées. Aucune déformation du physique n'est réintroduite : on ne touche jamais aux proportions du sujet.
+## Le fait mesuré
 
-## 1. Le vide en bas du rond (cas Fatima) — cause et correction
+J'ai téléchargé les 187 fichiers d'avatars et mesuré leur canal alpha. **20 fichiers sur 187 sont totalement opaques** (alpha = 255 partout, coins blancs) : ils contiennent un carré blanc cuit dans l'image. Comme le rond affiche le fond importé *derrière* l'image, ce carré blanc masque le fond — c'est exactement le « cadre blanc » que vous voyez.
 
-Le rond affiche l'image en `object-contain`, aligné `center bottom`, dans une boîte à marge commune (6 %). Si le PNG source contient lui-même une bande de fond (blanc ou transparent) sous le buste, cette bande est affichée : le sujet « flotte » et laisse un vide au bas du cercle. Le problème n'est donc pas le cercle, mais la **marge interne des fichiers**, différente d'un avatar à l'autre.
+Les 20 fichiers concernés, tous générés cette nuit entre 22h20 et 23h37 (le lot de régénération de style) :
 
-Correction : normaliser la *boîte de contenu* des fichiers, sans redimensionner le sujet de façon individuelle.
+```text
+Léa (Occitanie 35) · Léa (Île-de-France 28, fichier RGB sans canal alpha) · Léa (Auvergne-Rhône-Alpes 20)
+Aïcha (ARA 28) · Aïcha (Hauts-de-France 45) · Aïsha (N-Aquitaine 35) · Amadou (IDF 65)
+Clara (Pays de la Loire 70) · Colette (Grand Est 88) · Diogo (N-Aquitaine 22) · Éloïse (Bretagne 28)
+Fatima (PACA 78) · Fatima (IDF 32) · Kwame (Hauts-de-France 35) · Lina (PACA 35)
+Maria (N-Aquitaine 48) · Olga (Grand Est 24) · Olga (Hauts-de-France 78) · Sophie (Occitanie 61) · Sophie (Occitanie 35)
+```
 
-- Passe « trim » (déterministe, aucun crédit IA) : mesurer la bbox du sujet (déjà implémentée dans `avatarNormalize.ts`), puis produire un canevas carré où :
-  - le bas du sujet est **au ras du bord bas** (0 % de fond sous le buste) ;
-  - le haut du sujet garde le `HAIR_HEADROOM` commun (cheveux/voile/chapeau jamais coupés) ;
-  - le sujet est centré horizontalement sur son axe visage.
-- Une seule échelle possible en sortie : celle qui satisfait ces deux bords. Pas de cible de taille de tête, pas d'étirement.
-- Résultat : tous les fichiers ont la même géométrie de marges, donc le rond n'a plus rien à corriger et le vide disparaît pour tout le catalogue, pas seulement Fatima.
+Les 167 autres avatars ont bien un fond transparent : le problème est circonscrit au lot de cette nuit, et il s'aggrave à chaque avatar régénéré. **Le lot en cours doit être arrêté avant d'en produire d'autres.**
 
-Côté affichage, `avatarStudio.ts` est simplifié en conséquence : la marge haute reste, l'alignement bas devient exact (le buste est coupé par l'arc), et `STUDIO_SHIFT_Y_PCT` n'a plus lieu d'être.
+## Cause : diagnostic non encore confirmé
 
-## 2. Détection des avatars « hors style »
+Deux mécanismes possibles dans `supabase/functions/generate-avatar/index.ts` / `_shared/avatarBackground.ts`, et les journaux ne permettent pas encore de trancher :
 
-Un audit lisible avant toute régénération, pour ne pas régénérer à l'aveugle :
+1. **Détourage sauté.** Dans `cleanAvatarBackground`, le détourage est ignoré quand l'image semble « déjà découpée » (`preAlpha >= 0.05`). Or `normalize()` tourne *avant* l'upload et remplit le fond en blanc opaque (`canvas.fill(0xffffffff)` quand aucune transparence n'est détectée) : si l'estimation de transparence se trompe, le blanc reste cuit.
+2. **Réécriture après détourage.** Un fichier trouvé en mode **RGB** (Léa Île-de-France 28), c'est-à-dire sans canal alpha du tout, indique qu'une étape ré-encode l'image sans alpha après le détourage et écrase le fichier propre.
 
-- Critère de style : comparaison de chaque avatar aux 3 ancres (Léa, Nguyen, Fatima) via un scoring de style (contours à l'encre, grain, palette désaturée, fond blanc) — jugé par Google AI Studio (0 crédit Lovable).
-- Critère de cadrage : buste plein bord bas, épaules complètes, cheveux entiers — mesuré par code, pas par IA.
-- Sortie : une planche de contrôle + un tableau `à garder / à recadrer (trim seul) / à régénérer`.
+Première étape du chantier : rejouer une génération sur un bénéficiaire témoin avec un journal explicite à chaque étape (octets entrants / sortants, ratio de transparence, mode couleur) pour identifier l'étape fautive avec certitude, avant toute correction. Je ne corrige pas à l'aveugle.
 
-Distinction importante : beaucoup d'avatars « mal cadrés » n'ont **pas** besoin de régénération, seulement de la passe trim du point 1. On ne régénère que le vrai drift graphique (rendu vectoriel lisse type Amadou, fond coloré, style photo).
+## Correction
 
-## 3. Régénération conforme au trombinoscope
+1. **Arrêt du lot** de régénération en cours (il produit des fichiers opaques).
+2. **Correctif de la cause** une fois identifiée, avec deux garde-fous non négociables :
+   - le détourage devient la **dernière** étape avant l'upload, jamais l'inverse ;
+   - garde bloquante : un fichier dont le coin est opaque, ou sans canal alpha, n'est jamais publié (rollback automatique, comme pour le style).
+3. **Réparation des 20 fichiers existants** : passe déterministe (blanc → alpha, sans IA, 0 crédit) sur les 20 fichiers, puis re-vérification alpha. Aucune régénération nécessaire, le dessin est conservé tel quel.
+4. **Reprise du lot** avec le pipeline corrigé, planche de contrôle sur fond importé (et non sur blanc) pour que ce défaut soit visible à la relecture.
 
-Pour chaque avatar à régénérer, séquentiellement :
+## Cas séparé : Léa (Bretagne · 21 ans)
 
-1. Prompt = attributs du bénéficiaire (identité, phénotype, accessoires inchangés) + `STYLE_ANCHOR_BLOCK` avec les 3 ancres en images de référence + bloc de cadrage descriptif (`medium close-up, chest up, full shoulders to borders, upper chest visible`) et prompt négatif (`tight face crop, passport photo, cropped shoulders`).
-2. Détourage du fond (module partagé interne).
-3. Passe trim du point 1 → géométrie de marges identique à tout le catalogue.
-4. QA bloquant : style conforme aux ancres, buste plein bord bas, cheveux entiers. En dessous du seuil → rollback automatique vers la version précédente, aucun avatar publié dégradé.
-5. Nouvelle version enregistrée dans `avatar_versions`, statut « à publier » — vous validez avant mise en ligne.
-
-Exécution : par lots de 10, avec journal et planche de contrôle après chaque lot, pour arrêter net si une dérive apparaît.
+Son fichier est bien transparent — son défaut est autre : le portrait est un gros plan de visage, cheveux coupés par les bords latéraux, avec un rendu lisse type vectoriel hors direction artistique. Le QA lui a donné 88 parce qu'il ne juge que le buste et le cadrage, pas la conformité de style. Elle fait partie des avatars à régénérer avec les ancres de style, et ce sera l'occasion d'ajouter le critère de style au QA bloquant.
 
 ## Détails techniques
 
-- Fichiers concernés : `supabase/functions/_shared/avatarNormalize.ts` (passe trim, marges bas = 0), `avatarFramingSpec.ts` (constantes de marges), `src/lib/avatarStudio.ts` (alignement bas exact), `supabase/functions/qa-avatar/index.ts` (critère de conformité de style), `supabase/functions/generate-avatar/index.ts` (chaînage génération → détourage → trim → QA).
-- Aucun changement de logique métier (matching, panier). Le mode `framed` de l'Avatar Studio reste intact pour l'outillage interne.
-- Génération et mesures via Google AI Studio (clé déjà en place) : 0 crédit Lovable.
-
-## Ordre de livraison proposé
-
-1. Passe trim + affichage → vérification immédiate sur Fatima, Léa, Kwame (avant/après en capture).
-2. Audit de style du catalogue → tableau de décision.
-3. Régénération par lots des seuls avatars réellement hors style.
+- Fichiers concernés : `supabase/functions/_shared/avatarBackground.ts` (ordre des passes, condition de saut du détourage), `supabase/functions/generate-avatar/index.ts` (remplissage blanc avant upload, garde alpha bloquante), `supabase/functions/qa-avatar/index.ts` (critère alpha + critère de style).
+- Aucune modification du rendu React : `src/lib/avatarStudio.ts` et `BeneficiaryAvatar.tsx` sont corrects, ils affichent le fond derrière l'image — c'est le fichier qui est en faute.
+- Aucun changement de logique métier (matching, panier). Mesures et régénérations via Google AI Studio : 0 crédit Lovable.

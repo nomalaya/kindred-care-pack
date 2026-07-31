@@ -67,7 +67,7 @@ async function aiWhiteBackground(sourceUrl: string): Promise<Uint8Array> {
 }
 
 /** Share of fully transparent pixels — tells whether the PNG is already cut out. */
-async function transparentPixelRatio(pngBytes: Uint8Array): Promise<number> {
+export async function transparentPixelRatio(pngBytes: Uint8Array): Promise<number> {
   try {
     const img = await Image.decode(pngBytes);
     const { width, height } = img;
@@ -86,7 +86,7 @@ async function transparentPixelRatio(pngBytes: Uint8Array): Promise<number> {
   }
 }
 
-async function whiteToAlpha(
+export async function whiteToAlpha(
   pngBytes: Uint8Array,
 ): Promise<{ bytes: Uint8Array; transparentRatio: number }> {
   const img = await Image.decode(pngBytes);
@@ -190,12 +190,27 @@ export async function cleanAvatarBackground(
     console.error("[clean-bg] studio-box failed — keeping keyed bytes", e);
   }
 
+  // 2c) BLOCKING ALPHA GUARD — last step before upload. Whatever happened
+  // upstream (framing, trimming, re-encoding), the uploaded file MUST have a
+  // transparent background, otherwise the donor circle shows a white square
+  // over the imported background asset.
+  const postAlpha = await transparentPixelRatio(transparentPng);
+  if (postAlpha < 0.02) {
+    const rekeyed = await whiteToAlpha(transparentPng);
+    transparentPng = rekeyed.bytes;
+    transparentRatio = rekeyed.transparentRatio;
+    console.log(`[clean-bg] alpha guard re-keyed (post=${postAlpha.toFixed(3)} -> ${transparentRatio.toFixed(3)})`);
+  } else {
+    transparentRatio = Math.max(transparentRatio, postAlpha);
+  }
+
   console.log(`[clean-bg] ${beneficiary_id} (${targetMode}) transparent_ratio=${transparentRatio.toFixed(3)}`);
   if (transparentRatio < 0.05) {
     throw new Error(
       `Détourage raté (seulement ${(transparentRatio * 100).toFixed(1)}% transparent).`,
     );
   }
+
 
   // 3) Upload
   const ts = Date.now();
