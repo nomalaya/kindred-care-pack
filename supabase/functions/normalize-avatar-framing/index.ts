@@ -1,11 +1,12 @@
 // sync
-// Retroactive, deterministic framing normalization — ZERO AI credit.
-// Recomposes existing avatars so every portrait fills the square canvas
-// identically (head near the top edge, bust bleeding through the bottom edge,
-// shoulders reaching the sides). The original file is archived first.
+// Retroactive, deterministic framing normalization.
+// ONE anchor: the eye line (measured once per image, cached on the row) is
+// placed at 38 % of the canvas height; the zoom is the smallest that fills the
+// bottom edge with the garment. No head-size target => no deformed morphology.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { normalizeAvatarFraming } from "../_shared/avatarNormalize.ts";
+import { measureEyeLine, toDataUrl } from "../_shared/avatarEyeLine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,7 +32,7 @@ serve(async (req) => {
 
     let query = supabase
       .from("beneficiaries")
-      .select("id, alias_first_name, avatar_url")
+      .select("id, alias_first_name, avatar_url, avatar_eye_y, avatar_face_center_x")
       .not("avatar_url", "is", null);
     if (ids?.length) query = query.in("id", ids);
     const { data: rows, error } = await query.limit(limit);
@@ -59,7 +60,20 @@ serve(async (req) => {
           raw = new Uint8Array(await resp.arrayBuffer());
         }
 
-        const { bytes, report } = await normalizeAvatarFraming(raw);
+        // Eye line: reuse the cached measurement when available (an unchanged
+        // image is never measured twice), otherwise measure once.
+        const forceMeasure: boolean = body.remeasure === true;
+        let eye = !forceMeasure &&
+            typeof b.avatar_eye_y === "number" && typeof b.avatar_face_center_x === "number"
+          ? { eyeY: Number(b.avatar_eye_y), centerX: Number(b.avatar_face_center_x) }
+          : null;
+        let measured = false;
+        if (!eye) {
+          eye = await measureEyeLine(toDataUrl(raw));
+          measured = eye != null;
+        }
+
+        const { bytes, report } = await normalizeAvatarFraming(raw, eye);
 
         if (dryRun || !report.changed) {
           results.push({
@@ -68,9 +82,11 @@ serve(async (req) => {
             changed: false,
             dry_run: dryRun,
             from_archive: fromArchive,
-            mode: report.mode,
-            landmarks: report.landmarks,
-            output: report.output,
+            eye_measure: eye,
+            eye_measured_now: measured,
+            eye_y_pct: report.eyeYPct,
+            bottom_width_fill_pct: report.bottomWidthFillPct,
+            side_gap_bottom_pct: report.sideGapBottomPct,
             needs_regeneration: report.needsRegeneration === true,
             regeneration_reason: report.regenerationReason,
             source_margins: report.sourceMargins,
@@ -106,14 +122,18 @@ serve(async (req) => {
             avatar_scale: 1,
             avatar_offset_x: 0,
             avatar_offset_y: 0,
+            // Cache the eye measurement of the SOURCE image.
+            ...(eye ? { avatar_eye_y: eye.eyeY, avatar_face_center_x: eye.centerX } : {}),
           })
           .eq("id", b.id);
 
         await supabase.from("avatar_versions").insert({
           beneficiary_id: b.id,
           image_url: u.publicUrl,
-          model_used: "normalize-framing/deterministic",
-          prompt: `framing=${report.mode} scale=${report.scale} landmarks=${JSON.stringify(report.landmarks)}`,
+          model_used: "normalize-framing/eye-anchor",
+          prompt:
+            `eye_anchor=38% scale=${report.scale} bottom_fill=${report.bottomWidthFillPct}% ` +
+            `side_gap=${report.sideGapBottomPct}%`,
         });
 
         results.push({
@@ -121,9 +141,11 @@ serve(async (req) => {
           name: b.alias_first_name,
           changed: true,
           from_archive: fromArchive,
-          mode: report.mode,
-          landmarks: report.landmarks,
-          output: report.output,
+          eye_measure: eye,
+          eye_measured_now: measured,
+          eye_y_pct: report.eyeYPct,
+          bottom_width_fill_pct: report.bottomWidthFillPct,
+          side_gap_bottom_pct: report.sideGapBottomPct,
           needs_regeneration: report.needsRegeneration === true,
           regeneration_reason: report.regenerationReason,
           source_margins: report.sourceMargins,

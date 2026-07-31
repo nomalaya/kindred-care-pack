@@ -32,6 +32,7 @@ import {
 import { generateAvatarImage, usingGoogleDirect } from "../_shared/imageProvider.ts";
 import { STYLE_ANCHOR_URLS } from "../_shared/avatarStyleAnchors.ts";
 import { normalizeAvatarFraming } from "../_shared/avatarNormalize.ts";
+import { measureEyeLine, toDataUrl } from "../_shared/avatarEyeLine.ts";
 
 
 
@@ -78,16 +79,21 @@ function loadStyleAnchors(): Promise<string[]> {
 }
 
 /**
- * Deterministic post-generation framing normalization (zero AI credit).
- * Guarantees every persisted avatar has the exact same subject size/position,
- * so the donor-facing circle is always filled edge-to-edge.
+ * Deterministic post-generation framing normalization.
+ * The ONLY anchor is the eye line (measured once per image, see avatarEyeLine.ts,
+ * Google-direct route => zero Lovable credit): eyes at 38 % of the height, and a
+ * zoom just large enough for the garment to fill the bottom edge. Head size is
+ * never forced, so morphologies are not deformed.
  */
 async function normalize(bytes: Uint8Array, label: string): Promise<Uint8Array> {
   try {
-    const { bytes: out, report } = await normalizeAvatarFraming(bytes);
+    const eye = await measureEyeLine(toDataUrl(bytes));
+    const { bytes: out, report } = await normalizeAvatarFraming(bytes, eye);
     console.log(
       `[generate-avatar] normalize(${label}) changed=${report.changed} ` +
-      `scale=${report.scale} source_margins=${JSON.stringify(report.sourceMargins)}`,
+      `eye=${eye ? `${Math.round(eye.eyeY * 1000) / 10}%` : "unmeasured"} ` +
+      `scale=${report.scale} bottom_fill=${report.bottomWidthFillPct} ` +
+      `side_gap=${report.sideGapBottomPct} needs_regen=${report.needsRegeneration === true}`,
     );
     return out;
   } catch (e) {
@@ -172,9 +178,13 @@ async function runFinalPipeline(
 
 const BUST_FAIL = 75;
 
+/** Blocking framing defect: empty bottom edge or background under the shoulders. */
 function failsBust(qa: { scores?: any } | null | undefined): boolean {
-  const s = qa?.scores?.bust_completeness;
-  return typeof s === "number" && s < BUST_FAIL;
+  for (const k of ["bottom_fill", "no_gap_under_shoulders"]) {
+    const s = qa?.scores?.[k];
+    if (typeof s === "number" && s < BUST_FAIL) return true;
+  }
+  return false;
 }
 
 async function runQAByUrl(
