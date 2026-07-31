@@ -26,18 +26,25 @@ import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 export const NORMALIZE_CANVAS = 1024;
 /**
- * REFERENCE FRAMING = LÉA (style anchor `avatars/style-anchors/lea.jpg`).
- * Re-measured with a face-landmark detector (not the silhouette):
- *   face box height 39.7 % | eye line 38.1 % | chin ≈ 50 % | face center 49.7 %
- * Read: on Léa the head is about as tall as the visible body underneath —
- * the chin sits mid-canvas. That proportion is the catalog target.
+ * REFERENCE FRAMING = LÉA. All framing numbers now live in ONE place —
+ * `avatarFramingSpec.ts` — shared with the generation prompt so the model and
+ * this normalizer aim at exactly the same proportions.
  */
-/** Vertical position of the eye line, in % of the canvas height. */
-export const EYE_LINE = 0.38;
-/** Chin line = mid canvas: head height == visible body height. */
-export const CHIN_LINE = 0.5;
-/** Share of the canvas height taken by the head, hair included (Léa). */
-export const HEAD_FILL = 0.44;
+export {
+  FACE_FILL,
+  EYE_LINE,
+  CHIN_LINE,
+  HEAD_FILL,
+  HEAD_FILL_MAX,
+  MIN_ZOOM,
+} from "./avatarFramingSpec.ts";
+import {
+  EYE_LINE,
+  HEAD_FILL,
+  HEAD_FILL_MAX,
+  MIN_ZOOM,
+} from "./avatarFramingSpec.ts";
+
 /** Eye line inside the head, in % of the head height (anatomical average). */
 const EYE_IN_HEAD = 0.4;
 /** Search window for the neck, in % of the silhouette height. */
@@ -54,13 +61,10 @@ const HEAD_ASPECT = 1.35;
  *
  * A source framed tighter than the reference (head too big in its own canvas)
  * CANNOT be fixed by cropping: zooming out would expose a white band where the
- * body was never drawn, and stretching or mirroring the garment looks worse
- * than the original. Such avatars are flagged `needsRegeneration` and left
- * untouched beyond the safe zoom range below.
+ * body was never drawn. Such avatars are flagged `needsRegeneration` (see
+ * HEAD_FILL_MAX / MIN_ZOOM in avatarFramingSpec.ts).
  */
-export const HEAD_FILL_MAX = 0.5;
-/** Never zoom out more than this: beyond it the source lacks body. */
-export const MIN_ZOOM = 0.9;
+
 
 
 
