@@ -1717,7 +1717,7 @@ const AvatarStudio = () => {
                         name={selected.alias_first_name ?? "Bénéficiaire"}
                         avatarUrl={v.image_url}
                         backgroundSeed={selected.id}
-                        framing={readFramingFromRow(selected)}
+                        mode="studio"
                       />
                     </div>
 

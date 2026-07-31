@@ -18,6 +18,16 @@
 /** Vertical position of the eye line, in % of the canvas height. Only anchor. */
 export const EYE_LINE = 0.38;
 
+/**
+ * TROMBINOSCOPE GUARD — minimum free space above the highest drawn pixel of the
+ * subject (hair, afro volume, veil, hat), in % of the canvas height.
+ * The eye line is relaxed downward rather than cropping anyone's hair: the
+ * container brings homogeneity, never a crop through someone's head.
+ */
+export const HAIR_HEADROOM = 0.04;
+
+
+
 /** Required garment coverage on the bottom edge of the canvas (1 = full width). */
 export const BOTTOM_WIDTH_FILL = 1.0;
 

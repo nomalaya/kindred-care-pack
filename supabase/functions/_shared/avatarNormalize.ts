@@ -19,6 +19,7 @@
 import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import {
   EYE_LINE,
+  HAIR_HEADROOM,
   BOTTOM_WIDTH_FILL,
   BOTTOM_BAND,
   MIN_ZOOM,
@@ -26,7 +27,7 @@ import {
 } from "./avatarFramingSpec.ts";
 
 export const NORMALIZE_CANVAS = 1024;
-export { EYE_LINE, BOTTOM_WIDTH_FILL, BOTTOM_BAND, MIN_ZOOM, MAX_ZOOM } from "./avatarFramingSpec.ts";
+export { EYE_LINE, HAIR_HEADROOM, BOTTOM_WIDTH_FILL, BOTTOM_BAND, MIN_ZOOM, MAX_ZOOM } from "./avatarFramingSpec.ts";
 
 type Box = { x: number; y: number; w: number; h: number };
 type RowSpan = { min: number; max: number; w: number };
@@ -234,7 +235,18 @@ export async function normalizeAvatarFraming(
   const scaled = img.clone().resize(scaledW, scaledH);
 
   const winX = Math.round(chosen.winX);
-  const winY = Math.round(chosen.winY);
+  // TROMBINOSCOPE GUARD — never crop through hair / veil / hat. If the eye-line
+  // window would cut the top of the subject, slide the window DOWN (uniform
+  // translation only, no rescale, no deformation) until the required headroom is
+  // restored. The eye line is then slightly below EYE_LINE for very tall hair —
+  // that is accepted: homogeneity comes from the circular container, not from
+  // cutting someone's head.
+  const subjectTopScaled = bbox.y * scale;
+  const maxWinY = subjectTopScaled - S * HAIR_HEADROOM;
+  const winY = Math.round(Math.min(chosen.winY, maxWinY));
+  const eyeYPctActual =
+    Math.round((((eyeSrcY * scale - winY) / S) * 100) * 10) / 10;
+
 
   const canvas = new Image(S, S);
   if (!transparent) canvas.fill(0xffffffff);
@@ -267,7 +279,7 @@ export async function normalizeAvatarFraming(
       sourceMargins: base.sourceMargins,
       scale: Math.round(scale * 1000) / 1000,
       transparent,
-      eyeYPct: Math.round(EYE_LINE * 1000) / 10,
+      eyeYPct: eyeYPctActual,
       bottomWidthFillPct: Math.round(chosen.bottomFill * 1000) / 10,
       sideGapBottomPct: Math.round((1 - chosen.worst) * 1000) / 10,
       needsRegeneration,
