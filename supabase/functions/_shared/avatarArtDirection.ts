@@ -3,6 +3,7 @@
 
 import { AvatarTraits, TraitDiff } from "./avatarTraits.ts";
 import { STYLE_ANCHOR_BLOCK, STYLE_ANCHOR_BLOCK_EDIT } from "./avatarStyleAnchors.ts";
+import { EYE_LINE, CHIN_LINE, HEAD_FILL, FACE_FILL } from "./avatarNormalize.ts";
 
 // EXPRESSION_DESCRIPTIONS — fragments aligned with the 4 user-facing tonalities
 // of the simplified Avatar Studio (Réservée / Chaleureuse / Fatiguée / Inquiète).
