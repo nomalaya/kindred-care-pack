@@ -120,14 +120,15 @@ const PCT = (v: number) => `${Math.round(v * 1000) / 10}%`;
 
 export const FRAMING_BLOCK = `
 IMAGE FORMAT — STRICT: square 1:1 canvas. Full-bleed illustration. The white background MUST extend all the way to the four edges of the image.
-CANONICAL PROPORTIONS — STRICT (NON-NEGOTIABLE, measured on the reference portrait). Four numbers, all mandatory:
+CANONICAL PROPORTIONS — STRICT (NON-NEGOTIABLE, measured on the reference portrait). Five numbers, all mandatory:
   1. the FACE (hairline to chin, hair excluded) is about ${PCT(FACE_FILL)} of the canvas height;
   2. the EYES sit at ${PCT(EYE_LINE)} of the canvas height from the top;
   3. the CHIN sits at ${PCT(CHIN_LINE)} of the canvas height — exactly mid-canvas;
-  4. the head with the hair included is about ${PCT(HEAD_FILL)} of the canvas height.
+  4. the head with the hair included is about ${PCT(HEAD_FILL)} of the canvas height;
+  5. the TOP OF THE HAIR sits at only ${PCT(HAIR_TOP_LINE)} of the canvas height from the top — the head starts VERY HIGH in the frame, there is almost NO empty white space above the hair (never more than ${PCT(HAIR_TOP_LINE + 0.03)}).
   Consequence: the HEAD IS ROUGHLY AS TALL AS THE BODY VISIBLE UNDER IT. The whole lower half of the canvas is neck, shoulders, upper arms and garment. The head must NEVER take more than half of the canvas height. This is NOT a face close-up.
 FRAMING — STRICT: a MEDIUM BUST PORTRAIT, exactly like a person photographed wearing a knitted sweater: HEAD + NECK + NECKLINE + FULL SHOULDERS + UPPER ARMS down to the upper biceps, sleeves included, visible on each side. The bottom edge of the canvas crops at the UPPER CHEST, clearly above the waist. The garment (sweater, shirt, jacket) is fully drawn and opaque with visible sleeves on both sides. Full torso, ribcage, waist and hips MUST NOT be visible. No deep cleavage, no exposed chest skin beyond a normal neckline.
-SUBJECT SIZE — STRICT: the top of the hair sits close to the top edge (a thin white band of about 5% at most). The SHOULDERS AND UPPER ARMS REACH the left and right edges and bleed out of them. The garment MUST reach and bleed out through the BOTTOM edge across its FULL WIDTH — NO white band, NO white gap, NO white corner under the body.
+SUBJECT SIZE — STRICT: the top of the hair NEARLY TOUCHES the top edge (white band of ${PCT(HAIR_TOP_LINE)} at most — a large white area above the head is a critical failure). The SHOULDERS AND UPPER ARMS REACH the left and right edges and bleed out of them. The garment MUST reach and bleed out through the BOTTOM edge across its FULL WIDTH — NO white band, NO white gap, NO white corner under the body.
 SHOULDER WIDTH AND TORSO VOLUME — STRICT (NON-NEGOTIABLE, as important as the eye line):
 BROAD HORIZONTAL SHOULDERS extending fully to the LEFT and RIGHT canvas edges and bleeding out of them. The shoulder line is nearly HORIZONTAL — never a narrow inverted "V" collapsing down from the neck.
 WIDE UPPER TORSO BASE, FULL CHEST WIDTH, medium portrait shot: the garment forms a broad, generous, trapezoid base that fills the ENTIRE bottom of the canvas from left edge to right edge (like a person wearing a loose knitted sweater whose shoulders and sleeves flare outwards).
