@@ -19,8 +19,12 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
 const GOOGLE_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const LOVABLE_CHAT = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-/** Last-resort image model on AI Studio keys (Nano Banana). */
-const GOOGLE_IMAGE_FALLBACK = Deno.env.get("GOOGLE_IMAGE_MODEL") ?? "gemini-2.5-flash-image";
+/**
+ * Last-resort image model on AI Studio keys. The legacy `gemini-2.5-flash-image`
+ * (first Nano Banana) renders a glossy flat-vector / webtoon look that breaks
+ * the house style, so it is NOT used as a fallback any more.
+ */
+const GOOGLE_IMAGE_FALLBACK = Deno.env.get("GOOGLE_IMAGE_MODEL") ?? "gemini-3.1-flash-image";
 
 /**
  * Gateway model ids -> Google AI Studio model ids.
@@ -30,6 +34,7 @@ const GOOGLE_IMAGE_FALLBACK = Deno.env.get("GOOGLE_IMAGE_MODEL") ?? "gemini-2.5-
 const GOOGLE_MODEL_MAP: Record<string, string> = {
   "gemini-3.1-flash-image-preview": GOOGLE_IMAGE_FALLBACK,
   "gemini-3.1-flash-image": GOOGLE_IMAGE_FALLBACK,
+  "gemini-3-pro-image-preview": "gemini-3-pro-image",
   "gemini-2.5-flash": "gemini-flash-latest",
   "gemini-2.5-flash-lite": "gemini-flash-lite-latest",
   "gemini-2.5-pro": "gemini-pro-latest",
