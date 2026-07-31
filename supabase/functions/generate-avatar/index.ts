@@ -32,6 +32,7 @@ import {
 import { generateAvatarImage, usingGoogleDirect } from "../_shared/imageProvider.ts";
 import { STYLE_ANCHOR_URLS } from "../_shared/avatarStyleAnchors.ts";
 import { normalizeAvatarFraming } from "../_shared/avatarNormalize.ts";
+import { measureEyeLine, toDataUrl } from "../_shared/avatarEyeLine.ts";
 
 
 
