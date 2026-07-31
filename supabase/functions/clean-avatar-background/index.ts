@@ -1,11 +1,19 @@
-// Clean an existing avatar's background — Gemini produces a PNG with a clean
-// pure-white background, then we chroma-key the white pixels to alpha=0 so the
-// imported background asset (avatar-backgrounds bucket) shows through behind
-// the silhouette in the donor-facing UI. Idempotent — overwrites cleaned/{id}.png.
+// Clean an existing avatar's background — the generator produces a PNG with a
+// clean pure-white background, then we chroma-key the white pixels to alpha=0
+// so the imported background asset (avatar-backgrounds bucket) shows through
+// behind the silhouette in the donor-facing UI. Idempotent — overwrites
+// cleaned/{id}.png.
+//
+// COST: when the source already HAS a plain white background (the normal case
+// with the locked framing prompt), no AI call is made at all — pure chroma-key,
+// zero credits. The AI white-background pass is only a fallback, and it goes
+// through `imageProvider` so it uses the Google direct route when configured
+// (never Lovable credits).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import { normalizeAvatarFraming } from "../_shared/avatarNormalize.ts";
+import { generateAvatarImage } from "../_shared/imageProvider.ts";
 
 
 const corsHeaders = {
@@ -15,9 +23,10 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+const CLEAN_MODEL = "google/gemini-3.1-flash-image-preview";
 
 const CLEAN_PROMPT = `Replace the entire background behind the person with pure solid white #FFFFFF, edge-to-edge to all four corners. Do NOT modify the person in any way — keep face, hair, skin, clothing, pose, expression, framing strictly identical. Crisp opaque edges around hair and shoulders. No gradient, no shadow, no halo, no texture, no vignette. Output a clean cutout on perfectly uniform pure white background.`;
+
 
 async function fetchImageAsBase64(url: string): Promise<{ b64: string; mime: string }> {
   const resp = await fetch(url);
