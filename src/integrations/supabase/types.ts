@@ -92,6 +92,8 @@ export type Database = {
           avatar_expression: string | null
           avatar_eye_color: string | null
           avatar_eye_shape: string | null
+          avatar_eye_y: number | null
+          avatar_face_center_x: number | null
           avatar_face_shape: string | null
           avatar_facial_features: string[] | null
           avatar_fatigue_level: number | null
@@ -182,6 +184,8 @@ export type Database = {
           avatar_expression?: string | null
           avatar_eye_color?: string | null
           avatar_eye_shape?: string | null
+          avatar_eye_y?: number | null
+          avatar_face_center_x?: number | null
           avatar_face_shape?: string | null
           avatar_facial_features?: string[] | null
           avatar_fatigue_level?: number | null
@@ -272,6 +276,8 @@ export type Database = {
           avatar_expression?: string | null
           avatar_eye_color?: string | null
           avatar_eye_shape?: string | null
+          avatar_eye_y?: number | null
+          avatar_face_center_x?: number | null
           avatar_face_shape?: string | null
           avatar_facial_features?: string[] | null
           avatar_fatigue_level?: number | null
