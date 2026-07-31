@@ -37,12 +37,14 @@ export {
   HEAD_FILL,
   HEAD_FILL_MAX,
   MIN_ZOOM,
+  HAIR_TOP_LINE,
 } from "./avatarFramingSpec.ts";
 import {
   EYE_LINE,
   HEAD_FILL,
   HEAD_FILL_MAX,
   MIN_ZOOM,
+  HAIR_TOP_LINE,
 } from "./avatarFramingSpec.ts";
 
 /** Eye line inside the head, in % of the head height (anatomical average). */
