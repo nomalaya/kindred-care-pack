@@ -36,6 +36,8 @@ serve(async (req) => {
     // square baked in, hiding the imported background inside the donor circle).
     // Pure chroma-key + trombinoscope box, no AI call, zero credit.
     const keyOnly: boolean = body.key_only === true;
+    // Re-key even when some alpha is already present (soft off-white halo case).
+    const forceKey: boolean = body.force_key === true;
 
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
@@ -58,7 +60,7 @@ serve(async (req) => {
           if (!resp.ok) throw new Error(`fetch ${resp.status}`);
           const raw = new Uint8Array(await resp.arrayBuffer());
           const before = await transparentPixelRatio(raw);
-          if (before >= 0.02) {
+          if (before >= 0.02 && !forceKey) {
             results.push({
               id: b.id, name: b.alias_first_name, changed: false, key_only: true,
               alpha_before: Number(before.toFixed(3)), reason: "déjà détouré",
