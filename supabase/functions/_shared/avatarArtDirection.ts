@@ -170,6 +170,7 @@ export const NEGATIVE_PROMPT = [
   "no paper edge", "no torn edge", "no deckled edge", "no frame", "no watercolor paper texture",
   "no vignette", "no faded edges", "no watercolor edges", "no soft fade at bottom", "no thick line under the bust", "no horizontal bar under the shoulders", "no table edge under the subject", "no heavy black ink strokes", "no cross-hatching", "no pencil scribbles", "no scribbled marks on the face", "no signature-like strokes", "no flat vector shading", "no smooth gradient vector look",
   "no head-only portrait", "no floating bust", "no narrow bust", "no white gap under the shoulders", "no white corners at the bottom", "no drop shadow under chin",
+  "narrow sloped shoulders", "sloping shoulders", "tight neck portrait", "passport photo framing", "floating head effect", "narrow inverted V shoulders", "thin neck and tiny collar", "small triangle of clothing under the chin",
   "no full torso", "no waist visible", "no ribcage visible", "no hips", "no full-length arms", "no hands", "no deep cleavage", "no exposed chest skin",
 
   "no ghosted edges", "no soft halo around hair",
