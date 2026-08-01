@@ -103,6 +103,20 @@ export const HAIR_STYLE_BY_TYPE: Record<string, string[]> = {
   coily: ["clean_cut", "braided_simple", "cornrows", "box_braids", "braided_updo", "bun"],
 };
 
+/** Coiffures culturellement plausibles par groupe. */
+export const HAIR_STYLE_BY_GROUP: Record<GroupKey, string[]> = {
+  north_european: ["clean_cut", "tousled", "side_parted", "loose", "softly_tied", "half_up", "bun", "natural_waves"],
+  mediterranean: ["clean_cut", "tousled", "side_parted", "loose", "softly_tied", "half_up", "bun", "natural_waves"],
+  mena: ["clean_cut", "tousled", "side_parted", "loose", "softly_tied", "half_up", "bun", "natural_waves"],
+  sub_saharan_africa: ["clean_cut", "braided_simple", "cornrows", "box_braids", "braided_updo", "bun", "softly_tied", "natural_waves"],
+  east_asian: ["clean_cut", "tousled", "side_parted", "loose", "softly_tied", "half_up", "bun"],
+  south_asian: ["clean_cut", "loose", "softly_tied", "half_up", "bun", "braided_simple", "natural_waves"],
+};
+
+/** Textures porteuses d'une information non phénotypique. */
+export const HAIR_TYPE_LOCKED_VALUES = ["covered", "bald", "shaved", "thinning"];
+
+
 export const COVERING_VISIBLE_STYLES = ["softly_tied", "bun", "braided_updo", "clean_cut"];
 
 const FORBIDDEN_WITH_COVERING = {
