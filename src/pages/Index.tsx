@@ -9,7 +9,7 @@ import HomeBeneficiaries from "@/components/home/HomeBeneficiaries";
 
 const stats = [
   { value: "100%", label: "Reversé aux bénéficiaires" },
-  { value: "24-48h", label: "Livraison en 24 à 48h" },
+  { value: "48h", label: "Livraison en 24 à 48h" },
   { value: "6", label: "Causes à soutenir" },
 ];
 
