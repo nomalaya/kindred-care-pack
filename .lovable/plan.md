@@ -1,43 +1,19 @@
-# Restructuration de la page d'accueil
+## Objectif
+Conserver l'ancienne homepage (version avant restructuration) accessible à tout moment, sans impacter la nouvelle page d'accueil.
 
-Header, footer et design système inchangés : aucune nouvelle couleur, aucun nouveau composant. Uniquement les tokens existants (`primary`, `secondary`, `muted`, `card`, `cta`, `border`) et les composants `Button`, `Card`, `Skeleton` déjà présents.
+## Approche
+Créer une copie archivée de l'ancienne page dans le code, sur une route dédiée et non référencée.
 
-## Étape 1 — Fonction backend de tirage
-
-Création d'une fonction `get_homepage_beneficiaries(p_count)` en base :
-- retourne 3 profils actifs tirés **au hasard à chaque appel**, uniquement ceux qui ont un avatar publié et une histoire renseignée ;
-- expose seulement des champs publics : prénom d'alias, région, phrase émotionnelle, histoire courte, avatar, identifiant de situation ;
-- accessible aux visiteurs non connectés (lecture seule, aucune donnée réelle exposée).
-
-## Étape 2 — Nouvel ordre des sections dans `src/pages/Index.tsx`
-
-**1. Bénéficiaires (nouvelle, en premier)**
-- Titre « Rencontrez ceux que vous pouvez aider », sous-titre « Trois personnes différentes vous attendent. Revenez — vous en découvrirez d'autres. »
-- Un seul appel au chargement, sans cache (`staleTime: 0`, pas de mise en mémoire).
-- Grille : 3 colonnes desktop / 2 tablette / 1 mobile, gap 20px.
-- Carte : rayon 12px, bordure fine, fond neutre, padding 20px → avatar rond 80px centré (icône `UserRound` en repli), prénom gras 16px + région avec `MapPin` 14px, phrase émotionnelle en italique couleur primaire (2 lignes max), histoire 13px en couleur secondaire (3 lignes max tronquées), bouton outline pleine largeur « Aider [Prénom] » vers `/situations/[situation_id]`.
-- États : skeleton pendant le chargement ; section masquée silencieusement si 0 résultat ou erreur.
-
-**2. Hero simplifié**
-- Titre et sous-titre conservés, photo de fond supprimée, fond uni en couleur primaire chaude, hauteur limitée à 180px, boutons « Je donne » et « Comment ça marche » conservés.
-
-**3. Réassurance (nouvelle)**
-- Bande légèrement colorée, 3 items en ligne, sans CTA : `Award` « Association déclarée loi 1901 », `Clock` « Colis livré en 24 à 48h », `Receipt` « Reçu fiscal envoyé automatiquement ».
-
-**4. Causes** — aucune section causes ajoutée sur l'accueil (décision validée) ; l'accès se fait par les CTA.
-
-**5. Stats** — mise en forme inchangée, textes ajustés : « 100% reversé aux bénéficiaires », « Livraison en 24 à 48h », « 6 causes à soutenir ». Le bloc de preuve sociale existant est conservé.
-
-**6. Suppression** — la section « Trois étapes simples pour changer une vie » est retirée entièrement.
-
-**7. CTA final avec photo** — remplace le bloc CTA actuel :
-- 2 colonnes desktop / 1 colonne mobile.
-- Gauche : la photo bénévoles existante (`/hero-solidarity.jpg`, libérée du hero), pleine hauteur, `object-cover`, rayon 12px à gauche, légende 12px italique « Nos bénévoles préparent votre colis dans notre entrepôt partenaire ».
-- Droite : fond primaire, rayon 12px à droite, padding 40px → titre « Prêt à aider quelqu'un aujourd'hui ? », texte 15px sur l'équipe réelle et les 24–48h, bouton plein blanc « Trouver quelqu'un à aider » vers `/causes`, mention 12px « Dès 20€ · Reçu fiscal automatique · Livraison garantie sous 48h ».
+1. **Récupérer l'ancienne version** : extraire le contenu de `src/pages/Index.tsx` tel qu'il était avant la restructuration (depuis l'historique du projet, lecture seule).
+2. **Créer `src/pages/legacy/IndexLegacyV1.tsx`** : copie fidèle de cette version (mêmes sections : hero d'origine, « 3 étapes », causes, stats, CTA d'origine), avec les imports ajustés au nouveau chemin.
+3. **Ajouter la route** `/accueil-v1` dans `src/App.tsx`, pointant vers cette page.
+4. **Ne pas la référencer** : aucun lien dans la navbar, le footer ou le sitemap ; ajouter `<meta name="robots" content="noindex,nofollow">` via le composant de la page pour éviter l'indexation.
+5. **Vérification** : contrôle visuel de `/accueil-v1` (desktop + mobile) et confirmation que `/` reste la nouvelle homepage.
 
 ## Détails techniques
+- Aucun changement de logique métier, de RPC ou de backend.
+- Si l'ancienne page utilisait des composants supprimés depuis, ils seront recréés à l'identique sous `src/components/home/legacy/` pour rester autonomes et ne pas gêner la homepage actuelle.
+- Rollback complet possible ensuite en une opération : remplacer le contenu de `Index.tsx` par celui de la page archivée.
 
-- Nouveau composant de section `src/components/home/HomeBeneficiaries.tsx` (assemblé uniquement à partir de composants UI existants) pour garder `Index.tsx` lisible ; les autres sections restent dans `Index.tsx`.
-- Troncature via `line-clamp-2` / `line-clamp-3` (Tailwind déjà disponible).
-- Les contrastes blancs du bloc CTA utilisent les tokens `primary-foreground` existants, pas de couleur littérale.
-- Vérification finale sur navigateur en desktop et mobile (rendu, skeleton, liens).
+## Alternative
+Si vous préférez ne rien laisser dans le code, l'historique des versions (onglet History) permet déjà de revenir à l'état antérieur — dites-le et j'annule cet archivage.
