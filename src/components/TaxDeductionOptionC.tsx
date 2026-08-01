@@ -45,7 +45,7 @@ const TaxDeductionOptionC = ({ amount }: Props) => {
             transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
             className="bg-cta text-cta-foreground rounded-full px-3 py-1.5 text-xs font-bold shadow-lg"
           >
-            −66%
+            −75%
           </motion.div>
           <motion.div
             initial={{ x: -10, opacity: 0 }}
@@ -66,7 +66,7 @@ const TaxDeductionOptionC = ({ amount }: Props) => {
       </div>
 
       <p className="text-xs text-muted-foreground text-center mt-4 inline-flex items-center justify-center w-full">
-        Réduction de 66% pour les dons aux associations d'intérêt général
+        Réduction de 75% pour les dons d'aide aux personnes en difficulté (jusqu'à 1 000 €/an)
         <TaxInfoLink />
       </p>
     </div>
