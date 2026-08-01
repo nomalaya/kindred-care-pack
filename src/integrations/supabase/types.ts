@@ -1193,6 +1193,20 @@ export type Database = {
           situation_id: string
         }[]
       }
+      get_homepage_hero_beneficiaries: {
+        Args: { p_count?: number }
+        Returns: {
+          alias_first_name: string
+          avatar_preview_url: string
+          avatar_url: string
+          cause_id: string
+          cause_title: string
+          id: string
+          region: string
+          situation_id: string
+          situation_title: string
+        }[]
+      }
       get_ranked_beneficiaries: {
         Args: { p_limit?: number; p_situation_id: string }
         Returns: {

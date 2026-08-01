@@ -11,7 +11,7 @@ interface AvatarProps {
   ageRange?: string;
   skinTone?: string;
   hairType?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   name: string;
   avatarUrl?: string | null;
   previewUrl?: string | null;
@@ -44,7 +44,7 @@ const BeneficiaryAvatar = ({
   framing,
   mode = "studio",
 }: AvatarProps) => {
-  const dimensions = { sm: 48, md: 80, lg: 120 };
+  const dimensions = { sm: 56, md: 80, lg: 120, xl: 176 };
   const dim = dimensions[size];
 
   const resolved = avatarUrl || previewUrl;
