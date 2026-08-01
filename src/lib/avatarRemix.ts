@@ -53,6 +53,9 @@ const CLOTHING_PALETTES = [
 ];
 const HAIR_LENGTHS_F = ["short", "shoulder", "medium", "long"];
 const HAIR_LENGTHS_M = ["very_short", "short", "medium"];
+/** Coiffures non retenues pour les profils masculins. */
+const MALE_EXCLUDED_STYLES = ["bun", "half_up", "box_braids", "braided_updo", "softly_tied"];
+
 const NEUTRAL_EXPRESSIONS = [
   "calm", "gentle_smile", "discreet_smile", "thoughtful", "reserved", "resilient",
 ];
