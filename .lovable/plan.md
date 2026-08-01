@@ -1,41 +1,39 @@
-## Diagnostic (vérifié)
+## État vérifié (base de données, à l'instant)
 
-Les attributs en base sont bien diversifiés. Pour les 3 profils de vos captures :
+| Mesure | Valeur |
+|---|---|
+| Bénéficiaires actifs | 200 |
+| Régénérés avec la planche de style abstraite + QA `attribute_conformity` | 131 |
+| Restant à régénérer | 69 |
+| Statut `failed` | 17 |
+| Statut `validated` | 183 |
+| Sans avatar du tout | 0 |
+| Score QA moyen des régénérations récentes | 85 |
 
-| | Léa (IdF) | Sophie (Pays de la Loire) | Maria (Occitanie 75+) |
-|---|---|---|---|
-| peau | medium | fair | medium |
-| cheveux | ondulés, courts, châtain foncé | **bouclés, roux, chignon** | bouclés, mi-longs, brun |
-| nez / visage | rond / long | retroussé / long | — / carré doux |
-| corpulence | moyenne | **forte** | moyenne |
+Le script de fond de la vague précédente n'est plus en cours d'exécution (aucun processus actif, dossier de travail perdu). Rien n'a été publié à moitié : les profils non encore régénérés gardent leur image précédente, aucun trou visuel dans le catalogue.
 
-Le prompt enregistré pour Sophie demande bien « short clearly curly **red** hair … **fair** skin … clearly fuller body ». L'image produite est une brune châtain de corpulence moyenne, quasi identique à Léa. Le remix d'attributs fonctionne : **c'est la génération d'image qui n'obéit pas au texte.**
+Causes des 17 échecs, telles qu'enregistrées dans `avatar_qa_report` : `score_below_60` (rejet QA légitime — conformité aux attributs), `work_error` et `retry_failed` (interruption de la fonction Edge, pas un défaut d'image). Les cas `work_error` / `retry_failed` sont donc de simples relances.
 
-Cause : `avatarStyleAnchors.ts` joint **3 photos de référence complètes (Léa, Nguyen, Fatima) à chaque génération**, y compris en text-to-image. Les modèles Gemini image copient l'identité des images jointes beaucoup plus fortement qu'ils ne suivent le texte ; la consigne « COPY THE STYLE ONLY — NEVER THE PEOPLE » ne pèse presque rien. Toutes les femmes jeunes ou d'âge moyen convergent donc vers le visage et les boucles châtain de l'ancre Léa.
+## Ce que je fais
 
-Second facteur : `qa-avatar` note 11 critères (cadrage, style, dignité, anonymat…) mais **aucun critère de conformité aux attributs**. Sophie a donc obtenu 88 et le statut « validé » malgré une couleur de cheveux, une carnation et une corpulence non conformes.
+1. **Reprise séquentielle des 69 profils restants**
+   Relance de `generate-avatar` en mode `final`, par vagues de 4 en parallèle, avec suivi de progression en base sur `avatar_generated_at` après chaque vague. Génération via Google AI Studio direct : **0 crédit Lovable**. Aucun changement de code de pipeline — on exécute la configuration déjà validée sur les 6 profils témoins.
 
-## Correctif proposé (sans nouvelle couche technique)
+2. **Rattrapage des 17 échecs, en deux traitements distincts**
+   - `work_error` / `retry_failed` : simple relance identique.
+   - `score_below_60` (Maria, Sophie, Fatima, Yukiko, Léa…) : jusqu'à 3 tentatives, la graine de génération changeant à chaque passe. Le rejet QA fait son travail — ces profils sont précisément ceux qui clonaient un visage d'ancre. Si un profil reste rejeté après 3 passes, je le signale au lieu de le publier de force, avec le détail du critère non conforme.
 
-1. **Ancres sans visage pour la génération from scratch** (`avatarStyleAnchors.ts`)
-   Remplacer les 3 portraits entiers par **une seule planche de style figée** composée de fragments des 3 mêmes avatars validés (détails de trait d'encre, de grain, de mèche, de tissu, de dégradé de fond) — aucun visage entier, donc plus rien à copier en termes d'identité. La planche est produite une fois, stockée dans `avatars/style-anchors/`, et le bloc texte STYLE reste inchangé. La direction artistique actuelle est conservée parce que la planche est extraite des rendus qui vous plaisent.
+3. **Contrôles de sortie appliqués à chaque image** (déjà en place, non modifiés)
+   Garde alpha (fond transparent obligatoire, jamais de blanc cuit), `trimToStudioBox` (buste à 0 % de marge basse), cadrage trombinoscope, QA bloquant sur `style_match`, `bottom_fill`, `no_gap_under_shoulders` et `attribute_conformity`.
 
-2. **Le mode édition n'est pas touché**
-   `STYLE_ANCHOR_BLOCK_EDIT` et le pipeline `edit_hd` gardent leur comportement actuel (image 1 = sujet à retoucher). C'est là que le respect de l'attribut modifié fonctionne déjà ; on n'y touche pas.
+4. **Audit final anti-clones**
+   Sur les 200 avatars : tableau attribut demandé vs attribut observé, et relevé des dominances phénotypiques (couleur/texture de cheveux, carnation, corpulence) pour confirmer qu'aucune famille de visages ne réapparaît. Livrable : planche de contrôle du catalogue complet.
 
-3. **Un critère QA bloquant en plus, dans l'appel existant** (`qa-avatar/index.ts`)
-   Ajout de `attribute_conformity` (poids fort, seuil de rejet) : le juge reçoit les attributs cibles (peau, couleur/texture/longueur de cheveux, corpulence, âge, forme du visage) et vérifie que l'image les respecte. Aucun appel supplémentaire, aucun coût additionnel : c'est le même appel QA déjà passé après chaque génération. Un avatar non conforme est rejeté au lieu d'être validé à 88.
-
-4. **Cadrage, fond transparent, garde alpha, garde-fous phénotypiques : inchangés.** Aucune modification de `avatarNormalize.ts`, `avatarStudio.ts`, `phenotypeRanges.ts`, ni de la logique de sélection.
-
-## Validation sur échantillon
-
-Régénération de **6 profils seulement**, choisis pour être le pire cas de ressemblance : Léa (IdF), Sophie (Pays de la Loire), Maria (Occitanie 75+) plus 3 femmes brunes bouclées d'âge moyen. Génération via Google AI Studio direct : **0 crédit Lovable**, 6 images côté Google.
-
-Livrables : planche de contrôle avant/après côte à côte, et tableau attribut demandé vs attribut observé pour chacun des 6. Si un profil reste non conforme, je corrige avant toute extension — rien n'est publié sans votre accord, et le reste du catalogue n'est pas touché à ce stade.
+5. **Publication**
+   Une fois les 200 conformes : passage en `approved` / `validated`, puis export JSON via le bouton déjà présent dans l'Avatar Studio. Je ne publie rien avant ton accord sur la planche de contrôle.
 
 ## Détails techniques
 
-- `supabase/functions/_shared/avatarStyleAnchors.ts` : `STYLE_ANCHOR_URLS` passe à une seule entrée (planche de texture), `STYLE_ANCHOR_BLOCK` reformulé en « référence de matière et de trait », suppression de la formulation « ne copie pas les personnes » devenue sans objet.
-- `supabase/functions/qa-avatar/index.ts` : ajout de `attribute_conformity` dans `WEIGHTS` (2.0) et `HARD_FAIL_THRESHOLDS` (65), passage des attributs cibles dans le prompt du juge ; l'appelant (`generate-avatar/index.ts`) transmet les attributs déjà en mémoire.
-- Le miroir `src/lib` correspondant est resynchronisé si nécessaire (fichiers marqués `// sync`).
+- Aucune modification de fichier prévue. `avatarStyleAnchors.ts`, `qa-avatar/index.ts`, `generate-avatar/index.ts`, `avatarNormalize.ts`, `avatarStudio.ts` et la logique de sélection restent en l'état validé.
+- Orchestration par script jetable hors dépôt (`/tmp/regen/`), pas de nouvelle fonction Edge : `generate-avatar-batch` s'interrompt sur les longues séries (« CPU Time exceeded » observé dans les logs), l'appel unitaire séquentiel est le mode fiable.
+- Durée estimée : environ 25 à 35 minutes pour les 69, plus les relances. Je fais des points d'étape sans attendre la fin.
