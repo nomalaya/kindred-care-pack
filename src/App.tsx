@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
+import IndexLegacyV1 from "./pages/legacy/IndexLegacyV1";
 import CauseSelection from "./pages/CauseSelection";
 import SituationSelection from "./pages/SituationSelection";
 import BeneficiarySelection from "./pages/BeneficiarySelection";
