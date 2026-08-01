@@ -1,3 +1,4 @@
+import { TAX_DEDUCTION_RATE } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";

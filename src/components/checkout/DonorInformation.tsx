@@ -1,3 +1,4 @@
+import { TAX_DEDUCTION_RATE } from "@/lib/constants";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
