@@ -45,7 +45,8 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/avatar-studio" element={<AvatarStudio />} />
             
-            <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/comment-ca-marche" element={<HowItWorks />} />
+            <Route path="/how-it-works" element={<Navigate to="/comment-ca-marche" replace />} />
             <Route path="/donation-preview" element={<DonationPreview />} />
             
             
