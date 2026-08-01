@@ -27,7 +27,7 @@ const Index = () => {
 
       {/* 2. Hero simplifié */}
       <section className="bg-primary">
-        <div className="container mx-auto px-4 py-8 max-h-[180px] flex flex-col justify-center">
+        <div className="container mx-auto px-4 py-8 md:max-h-[180px] flex flex-col justify-center">
           <h2 className="text-2xl md:text-3xl font-bold text-primary-foreground mb-2">
             Choisissez qui vous voulez aider.
           </h2>
