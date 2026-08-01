@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
+import IndexLegacyV1 from "./pages/legacy/IndexLegacyV1";
 import CauseSelection from "./pages/CauseSelection";
 import SituationSelection from "./pages/SituationSelection";
 import BeneficiarySelection from "./pages/BeneficiarySelection";
@@ -34,7 +35,9 @@ const App = () => (
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/accueil-v1" element={<IndexLegacyV1 />} />
             <Route path="/causes" element={<CauseSelection />} />
+
             <Route path="/causes/:causeId/situations" element={<SituationSelection />} />
             <Route path="/situations/:situationId/beneficiaries" element={<BeneficiarySelection />} />
             <Route path="/donate/:beneficiaryId" element={<DonationFlow />} />
