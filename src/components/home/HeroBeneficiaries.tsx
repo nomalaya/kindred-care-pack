@@ -74,7 +74,7 @@ const HeroBeneficiaries = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="max-w-3xl"
+          className="max-w-3xl mx-auto text-center"
         >
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
             <ShieldCheck className="h-4 w-4" />
@@ -124,14 +124,14 @@ const HeroBeneficiaries = () => {
                         <div className="mb-4">
                           {b.avatar_url || b.avatar_preview_url ? (
                             <BeneficiaryAvatar
-                              size="lg"
+                              size="xl"
                               name={b.alias_first_name ?? ""}
                               avatarUrl={b.avatar_url}
                               previewUrl={b.avatar_preview_url}
                               backgroundSeed={b.id}
                             />
                           ) : (
-                            <div className="h-[120px] w-[120px] rounded-full bg-primary/10 flex items-center justify-center">
+                            <div className="h-[176px] w-[176px] rounded-full bg-primary/10 flex items-center justify-center">
                               <UserRound className="h-10 w-10 text-primary" />
                             </div>
                           )}
