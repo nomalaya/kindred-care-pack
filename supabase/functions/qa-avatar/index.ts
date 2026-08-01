@@ -27,6 +27,12 @@ const WEIGHTS: Record<string, number> = {
   human_warmth: 1.0,
 };
 
+/** Only judged when the caller passes target_attributes (generation driven by
+ *  the Avatar Studio attributes). Blocking: an avatar that ignores its own skin
+ *  tone / hair colour / body type is exactly what makes profiles look alike. */
+const CONFORMITY_KEY = "attribute_conformity";
+const CONFORMITY_WEIGHT = 2.0;
+
 // Hard fail (force rejection) if any of these dimensions falls below threshold,
 // regardless of the global weighted score.
 const HARD_FAIL_THRESHOLDS: Record<string, number> = {
@@ -37,12 +43,16 @@ const HARD_FAIL_THRESHOLDS: Record<string, number> = {
   anonymity: 50,
   bottom_fill: 55,
   no_gap_under_shoulders: 55,
+  [CONFORMITY_KEY]: 65,
 };
 
 
-function weightedScore(scores: Record<string, number>): number {
+function weightedScore(
+  scores: Record<string, number>,
+  weights: Record<string, number> = WEIGHTS,
+): number {
   let total = 0, wsum = 0;
-  for (const [k, w] of Object.entries(WEIGHTS)) {
+  for (const [k, w] of Object.entries(weights)) {
     const s = scores[k];
     if (typeof s === "number") {
       total += s * w;
@@ -55,10 +65,16 @@ function weightedScore(scores: Record<string, number>): number {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { image_url, image_base64, transformative_traits } = await req.json();
+    const { image_url, image_base64, transformative_traits, target_attributes } = await req.json();
     const imgUrl = image_url ?? (image_base64 ? `data:image/png;base64,${image_base64}` : null);
     if (!imgUrl) throw new Error("image_url or image_base64 required");
     const transforms: string[] = Array.isArray(transformative_traits) ? transformative_traits : [];
+    const targetAttrs = typeof target_attributes === "string" && target_attributes.trim()
+      ? target_attributes.trim()
+      : null;
+    const activeWeights: Record<string, number> = targetAttrs
+      ? { ...WEIGHTS, [CONFORMITY_KEY]: CONFORMITY_WEIGHT }
+      : WEIGHTS;
 
     if (!usingGoogleDirect() && !Deno.env.get("LOVABLE_API_KEY")) {
       throw new Error("No AI provider configured (GOOGLE_AI_API_KEY or LOVABLE_API_KEY)");
@@ -74,6 +90,14 @@ For these attributes, the subject is the SAME person transformed (not a differen
 - avatar_expression: allow facial musculature (mouth, brows, eyes) to shift with the expression.
 - avatar_fatigue_level / avatar_tired_level: allow subtle tiredness signs.
 Do NOT penalise identity for these natural transformations. Only penalise if the result clearly looks like a different person (different bone structure, different nose identity, different mouth identity, different eye shape, different hairstyle silhouette).`
+      : "";
+
+    // Conformity to the attributes chosen in the Avatar Studio. Judged only when
+    // the caller supplies them (generation / regeneration from attributes).
+    const conformityDimension = targetAttrs
+      ? `
+- ${CONFORMITY_KEY}: the drawn person MUST match the REQUESTED ATTRIBUTES below. Compare them one by one against what you actually see (skin tone, hair colour, hair texture, hair length, apparent age, body type, facial hair, head covering). Rate "excellent"/"good" only when every listed attribute is clearly recognisable in the image. Rate "fail"/"critical" when one or more are plainly contradicted (e.g. red hair requested but brown hair drawn, fair skin requested but medium/dark skin drawn, fuller body requested but slim body drawn, 70-year-old requested but a 30-year-old drawn). Judge only these attributes — never framing, style or background.
+REQUESTED ATTRIBUTES: ${targetAttrs}`
       : "";
 
     const systemPrompt = `You are a strict QA reviewer for an NGO beneficiary portrait catalog.
@@ -103,7 +127,7 @@ Dimensions (return a verdict for each):
 - not_caricature: free of cultural caricature, stereotypes, exaggeration?
 - dignity: portrayed with dignity and humanity, no misery, no pathos?
 - human_warmth: emotionally credible, warm, kind (not commercial smile, not cold)?
-- bust_completeness: shoulders and upper bust fully drawn, garment opaque, body NOT dissolving. Rate "excellent"/"good" whenever the shoulders and upper bust are complete and opaque — the shape of the bottom crop is IRRELEVANT: a curved, rounded, arched or slightly soft bottom crop line is perfectly acceptable and MUST NOT be penalised. Only rate "fail"/"critical" if: the body dissolves or fades into white, watercolor fade-out, circular crop of the whole subject, vignette mask over the body, shoulders cropped or unfinished, clothing transparent at the bottom, or the upper bust is missing/incomplete. Do NOT penalise simply because the upper bust is visible — that is the required composition.`;
+- bust_completeness: shoulders and upper bust fully drawn, garment opaque, body NOT dissolving. Rate "excellent"/"good" whenever the shoulders and upper bust are complete and opaque — the shape of the bottom crop is IRRELEVANT: a curved, rounded, arched or slightly soft bottom crop line is perfectly acceptable and MUST NOT be penalised. Only rate "fail"/"critical" if: the body dissolves or fades into white, watercolor fade-out, circular crop of the whole subject, vignette mask over the body, shoulders cropped or unfinished, clothing transparent at the bottom, or the upper bust is missing/incomplete. Do NOT penalise simply because the upper bust is visible — that is the required composition.${conformityDimension}`;
 
     const aiData = await chatCompletion({
       model: MODEL_QA,
@@ -128,12 +152,12 @@ Dimensions (return a verdict for each):
               verdicts: {
                 type: "object",
                 properties: Object.fromEntries(
-                  Object.keys(WEIGHTS).map(k => [k, {
+                  Object.keys(activeWeights).map(k => [k, {
                     type: "string",
                     enum: ["excellent", "good", "borderline", "fail", "critical"],
                   }]),
                 ),
-                required: Object.keys(WEIGHTS),
+                required: Object.keys(activeWeights),
                 additionalProperties: false,
               },
               notes: { type: "array", items: { type: "string" } },
@@ -158,12 +182,12 @@ Dimensions (return a verdict for each):
     };
     const rawVerdicts: Record<string, string> = args.verdicts ?? {};
     const scores: Record<string, number> = {};
-    for (const k of Object.keys(WEIGHTS)) {
+    for (const k of Object.keys(activeWeights)) {
       const v = rawVerdicts[k];
       if (typeof v === "string" && v in VERDICT_SCORES) scores[k] = VERDICT_SCORES[v];
       else if (typeof (args.scores ?? {})[k] === "number") scores[k] = args.scores[k];
     }
-    let global = weightedScore(scores);
+    let global = weightedScore(scores, activeWeights);
 
 
     // Hard-fail: any blocking dimension below its threshold forces a sub-pass global score

@@ -143,16 +143,46 @@ async function generateEditedImage(prompt: string, sourceUrl: string, model: str
 
 
 
+/**
+ * Compact, human-readable summary of the attributes chosen in the Avatar Studio.
+ * Sent to QA so a render that ignores them (wrong hair colour, wrong skin tone,
+ * wrong body type — the "clone" symptom) is rejected instead of validated.
+ */
+function buildTargetAttributes(b: any): string {
+  const parts: Array<[string, any]> = [
+    ["gender", b.avatar_gender],
+    ["age range", b.avatar_age_range],
+    ["skin tone", b.avatar_skin_tone],
+    ["hair colour", b.avatar_hair_color],
+    ["hair texture", b.avatar_hair_type],
+    ["hair length", b.avatar_hair_length],
+    ["hair volume", b.avatar_hair_volume],
+    ["body type", b.avatar_body_type],
+    ["beard", b.avatar_beard],
+    ["moustache", b.avatar_moustache],
+    ["head covering", b.avatar_head_covering],
+  ];
+  return parts
+    .filter(([, v]) => v && v !== "none")
+    .map(([k, v]) => `${k}: ${String(v).replace(/_/g, " ")}`)
+    .join(" | ");
+}
+
 async function runQA(
   supabase: any,
   imageBytes: Uint8Array,
   transformativeTraits: string[] = [],
+  targetAttributes: string | null = null,
 ): Promise<{ scores: any; notes: string[]; global_score: number }> {
   let bin = "";
   for (let i = 0; i < imageBytes.length; i++) bin += String.fromCharCode(imageBytes[i]);
   const b64 = btoa(bin);
   const { data, error } = await supabase.functions.invoke("qa-avatar", {
-    body: { image_base64: b64, transformative_traits: transformativeTraits },
+    body: {
+      image_base64: b64,
+      transformative_traits: transformativeTraits,
+      target_attributes: targetAttributes,
+    },
   });
   if (error) throw new Error(`QA invoke error: ${error.message}`);
   return data;
@@ -167,15 +197,16 @@ async function runFinalPipeline(
   supabase: any,
   prompt: string,
   modelFinal: string = MODEL_FINAL,
+  targetAttributes: string | null = null,
 ): Promise<{ best: RunResult; attempts: RunResult[] }> {
   const attempts: RunResult[] = [];
   const bytes1 = await generateImage(prompt, modelFinal);
-  const qa1 = await runQA(supabase, bytes1);
+  const qa1 = await runQA(supabase, bytes1, [], targetAttributes);
   attempts.push({ bytes: bytes1, qa: qa1 });
   if (qa1.global_score >= QA_PASS) return { best: attempts[0], attempts };
   if (qa1.global_score >= QA_BORDERLINE) {
     const bytes2 = await generateImage(prompt + "\n[seed-shift-2]", modelFinal);
-    const qa2 = await runQA(supabase, bytes2);
+    const qa2 = await runQA(supabase, bytes2, [], targetAttributes);
     attempts.push({ bytes: bytes2, qa: qa2 });
     const best = qa2.global_score > qa1.global_score ? attempts[1] : attempts[0];
     return { best, attempts };
@@ -854,7 +885,9 @@ serve(async (req) => {
         }
 
         // FINAL mode: Pro + QA scoring (runFinalPipeline already calls QA with bust_completeness)
-        const { best, attempts } = await runFinalPipeline(supabase, prompt, M_FINAL);
+        const { best, attempts } = await runFinalPipeline(
+          supabase, prompt, M_FINAL, buildTargetAttributes(b),
+        );
         const qa = best.qa!;
 
         // Pre-clean bust gate is implicit here: runFinalPipeline runs runQA which
