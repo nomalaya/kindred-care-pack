@@ -33,7 +33,7 @@ import { generateAvatarImage, usingGoogleDirect } from "../_shared/imageProvider
 import { STYLE_ANCHOR_URLS } from "../_shared/avatarStyleAnchors.ts";
 import { normalizeAvatarFraming, trimToStudioBox } from "../_shared/avatarNormalize.ts";
 import { measureEyeLine, toDataUrl } from "../_shared/avatarEyeLine.ts";
-import { cleanAvatarBackground } from "../_shared/avatarBackground.ts";
+import { cleanAvatarBackground, ensureTransparentPublished } from "../_shared/avatarBackground.ts";
 
 
 
@@ -260,6 +260,19 @@ async function rollbackBeneficiary(
     const { error: rmErr } = await supabase.storage.from("avatars").remove([newStoragePath]);
     if (rmErr) console.error(`[generate-avatar] ROLLBACK remove ${newStoragePath} failed:`, rmErr);
   }
+  // The restored snapshot may point at a LEGACY file with a baked white square
+  // (pre-alpha-guard era). Repair it in place so a rollback never republishes an
+  // opaque avatar. Chroma-key only: no AI call, zero credit.
+  for (const target of ["final", "preview"] as const) {
+    try {
+      const r = await ensureTransparentPublished(supabase, beneficiary_id, target);
+      if (r.repaired) {
+        console.log(`[generate-avatar] ROLLBACK alpha-guard repaired ${beneficiary_id} (${target})`);
+      }
+    } catch (e) {
+      console.error(`[generate-avatar] ROLLBACK alpha-guard failed ${beneficiary_id} (${target}):`, e);
+    }
+  }
 }
 
 /**
@@ -303,9 +316,25 @@ async function runCleanAndVerify(
     console.error(`[generate-avatar] post-clean read failed ${beneficiary_id}:`, rdErr);
     return { rejected: false, qaPost: null, reason: "post_read_failed" };
   }
-  const servedUrl: string | null = (refreshed as any)?.[servedColumn] ?? null;
+  let servedUrl: string | null = (refreshed as any)?.[servedColumn] ?? null;
   if (!servedUrl) {
     return { rejected: false, qaPost: null };
+  }
+
+  // 2b. BLOCKING ALPHA GATE — the served file must be transparent, otherwise the
+  // donor circle shows a white square over the imported background.
+  try {
+    const guard = await ensureTransparentPublished(supabase, beneficiary_id, target);
+    if (guard.repaired) {
+      const { data: r2 } = await supabase
+        .from("beneficiaries").select(servedColumn).eq("id", beneficiary_id).single();
+      servedUrl = (r2 as any)?.[servedColumn] ?? servedUrl;
+    } else if (guard.transparentRatio !== null && guard.transparentRatio < 0.02) {
+      await rollbackBeneficiary(supabase, beneficiary_id, snapshot, newStoragePath, "alpha_not_ok");
+      return { rejected: true, qaPost: null, reason: "alpha_not_ok" };
+    }
+  } catch (e) {
+    console.error(`[generate-avatar] alpha gate failed ${beneficiary_id}:`, e);
   }
 
   // 3. QA on the actually-served image
