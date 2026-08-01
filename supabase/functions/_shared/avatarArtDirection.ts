@@ -232,7 +232,9 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
     taqiyah: "wearing a small white taqiyah (Muslim skull cap) on the crown of the head",
     turban: "wearing a neatly wrapped turban in a muted tone",
     kippah: "wearing a small discreet kippah on the crown of the head",
+    required: "wearing a modest headscarf that covers the hair, muted tone, soft natural folds",
   };
+
   if (t.avatar_head_covering && HEAD_COVERING[t.avatar_head_covering]) {
     extras.push(HEAD_COVERING[t.avatar_head_covering]);
   }
