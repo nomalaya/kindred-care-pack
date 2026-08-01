@@ -14,9 +14,12 @@ import { detectCountryGroup, type GroupKey } from "./countryPhenotypes";
 import {
   PHENOTYPE_RANGES,
   HAIR_STYLE_BY_TYPE,
+  HAIR_STYLE_BY_GROUP,
+  HAIR_TYPE_LOCKED_VALUES,
   SKIN_TONE_SCALE,
   enforcePhenotypeCoherence,
 } from "./phenotypeRanges";
+
 import { inferStudioDefaultsWithReasons } from "./avatarAutoInfer";
 
 /** Champs strictement intouchables. */
