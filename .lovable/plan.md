@@ -1,29 +1,41 @@
-# Lot test « Diversifier » — 20 profils, coût IA nul
+## Diagnostic (vérifié)
 
-## Pourquoi le coût est nul
-Le remix n'écrit que des attributs texte en base (`avatar_skin_tone`, `avatar_nose`, `avatar_face_shape`, coiffure, morphologie, vêtements, expression, posture). Aucune image n'est appelée : ni Lovable AI, ni Google AI Studio. Le seul coût éventuel viendrait d'une régénération d'image, qui n'est **pas** dans ce lot.
+Les attributs en base sont bien diversifiés. Pour les 3 profils de vos captures :
 
-## Composition du lot test (20 profils)
-Échantillon représentatif plutôt qu'aléatoire, pour couvrir tous les risques phénotypiques :
-- 2 profils par groupe phénotypique × 6 groupes = 12 (1 homme + 1 femme quand disponible)
-- 4 profils portant un couvre-chef (voile/foulard) — cas le plus sensible
-- 2 profils actuellement en incohérence détectée (parmi les 144)
-- 2 profils sans groupe identifiable (fallback neutre)
+| | Léa (IdF) | Sophie (Pays de la Loire) | Maria (Occitanie 75+) |
+|---|---|---|---|
+| peau | medium | fair | medium |
+| cheveux | ondulés, courts, châtain foncé | **bouclés, roux, chignon** | bouclés, mi-longs, brun |
+| nez / visage | rond / long | retroussé / long | — / carré doux |
+| corpulence | moyenne | **forte** | moyenne |
 
-Exclusions : profils `locked`, et aucun changement des champs verrouillés (genre, tranche d'âge, couvre-chef, culture_tags, aides mobilité, niveaux psychosociaux, pilosité/calvitie).
+Le prompt enregistré pour Sophie demande bien « short clearly curly **red** hair … **fair** skin … clearly fuller body ». L'image produite est une brune châtain de corpulence moyenne, quasi identique à Léa. Le remix d'attributs fonctionne : **c'est la génération d'image qui n'obéit pas au texte.**
 
-## Étapes
-1. Sélection du lot via requête lecture seule, sur les 200 profils actifs, selon les critères ci-dessus.
-2. Simulation `remixAttributes` sur ces 20 profils et production d'un tableau AVANT / APRÈS champ par champ, plus contrôle « 0 incohérence ».
-3. Écriture en base des 20 patchs. `avatar_status` / `avatar_workflow_status` **inchangés** : les images publiées actuelles restent servies telles quelles.
-4. Rapport final : dominance des traits sur le lot avant/après, liste des champs protégés non touchés, et diff complet lisible.
+Cause : `avatarStyleAnchors.ts` joint **3 photos de référence complètes (Léa, Nguyen, Fatima) à chaque génération**, y compris en text-to-image. Les modèles Gemini image copient l'identité des images jointes beaucoup plus fortement qu'ils ne suivent le texte ; la consigne « COPY THE STYLE ONLY — NEVER THE PEOPLE » ne pèse presque rien. Toutes les femmes jeunes ou d'âge moyen convergent donc vers le visage et les boucles châtain de l'ancre Léa.
 
-## Ce qui n'est pas fait dans ce lot
-- Aucune régénération d'image, donc l'apparence visible ne change pas encore. Les nouveaux attributs ne se traduiront en visuels que lors d'une régénération ultérieure, que vous validerez séparément (c'est là que le coût Google AI Studio apparaîtra, ~20 images).
-- Les 180 autres profils sont laissés intacts jusqu'à votre feu vert.
+Second facteur : `qa-avatar` note 11 critères (cadrage, style, dignité, anonymat…) mais **aucun critère de conformité aux attributs**. Sophie a donc obtenu 88 et le statut « validé » malgré une couleur de cheveux, une carnation et une corpulence non conformes.
+
+## Correctif proposé (sans nouvelle couche technique)
+
+1. **Ancres sans visage pour la génération from scratch** (`avatarStyleAnchors.ts`)
+   Remplacer les 3 portraits entiers par **une seule planche de style figée** composée de fragments des 3 mêmes avatars validés (détails de trait d'encre, de grain, de mèche, de tissu, de dégradé de fond) — aucun visage entier, donc plus rien à copier en termes d'identité. La planche est produite une fois, stockée dans `avatars/style-anchors/`, et le bloc texte STYLE reste inchangé. La direction artistique actuelle est conservée parce que la planche est extraite des rendus qui vous plaisent.
+
+2. **Le mode édition n'est pas touché**
+   `STYLE_ANCHOR_BLOCK_EDIT` et le pipeline `edit_hd` gardent leur comportement actuel (image 1 = sujet à retoucher). C'est là que le respect de l'attribut modifié fonctionne déjà ; on n'y touche pas.
+
+3. **Un critère QA bloquant en plus, dans l'appel existant** (`qa-avatar/index.ts`)
+   Ajout de `attribute_conformity` (poids fort, seuil de rejet) : le juge reçoit les attributs cibles (peau, couleur/texture/longueur de cheveux, corpulence, âge, forme du visage) et vérifie que l'image les respecte. Aucun appel supplémentaire, aucun coût additionnel : c'est le même appel QA déjà passé après chaque génération. Un avatar non conforme est rejeté au lieu d'être validé à 88.
+
+4. **Cadrage, fond transparent, garde alpha, garde-fous phénotypiques : inchangés.** Aucune modification de `avatarNormalize.ts`, `avatarStudio.ts`, `phenotypeRanges.ts`, ni de la logique de sélection.
+
+## Validation sur échantillon
+
+Régénération de **6 profils seulement**, choisis pour être le pire cas de ressemblance : Léa (IdF), Sophie (Pays de la Loire), Maria (Occitanie 75+) plus 3 femmes brunes bouclées d'âge moyen. Génération via Google AI Studio direct : **0 crédit Lovable**, 6 images côté Google.
+
+Livrables : planche de contrôle avant/après côte à côte, et tableau attribut demandé vs attribut observé pour chacun des 6. Si un profil reste non conforme, je corrige avant toute extension — rien n'est publié sans votre accord, et le reste du catalogue n'est pas touché à ce stade.
 
 ## Détails techniques
-- Moteur : `src/lib/avatarRemix.ts` (déterministe, graine = hash de l'id → même résultat à chaque exécution).
-- Garde-fous : `src/lib/phenotypeRanges.ts` via `enforcePhenotypeCoherence`, appliqué après tirage.
-- Rapport : réutilisation de la logique de `scripts/remix-report.ts`, restreinte aux 20 ids du lot.
-- Écriture : `update` par id sur `beneficiaries`, uniquement les clés présentes dans le patch.
+
+- `supabase/functions/_shared/avatarStyleAnchors.ts` : `STYLE_ANCHOR_URLS` passe à une seule entrée (planche de texture), `STYLE_ANCHOR_BLOCK` reformulé en « référence de matière et de trait », suppression de la formulation « ne copie pas les personnes » devenue sans objet.
+- `supabase/functions/qa-avatar/index.ts` : ajout de `attribute_conformity` dans `WEIGHTS` (2.0) et `HARD_FAIL_THRESHOLDS` (65), passage des attributs cibles dans le prompt du juge ; l'appelant (`generate-avatar/index.ts`) transmet les attributs déjà en mémoire.
+- Le miroir `src/lib` correspondant est resynchronisé si nécessaire (fichiers marqués `// sync`).
