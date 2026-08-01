@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
 import { Heart, Users, Package, ArrowRight, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 
 import SocialProof from "@/components/SocialProof";
 
@@ -18,7 +19,17 @@ const stats = [
   { value: "6", label: "Causes à soutenir" },
 ];
 
-const Index = () => {
+const IndexLegacyV1 = () => {
+  useEffect(() => {
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex,nofollow";
+    document.head.appendChild(meta);
+    return () => {
+      document.head.removeChild(meta);
+    };
+  }, []);
+
   return (
     <Layout>
       {/* Hero */}
@@ -134,4 +145,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default IndexLegacyV1;
