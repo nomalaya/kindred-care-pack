@@ -1,3 +1,4 @@
+import { TAX_DEDUCTION_RATE } from "@/lib/constants";
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ const TaxCertificates = ({ donations, donorName, donorEmail }: TaxCertificatesPr
   );
 
   const totalAmount = filtered.reduce((sum, d) => sum + d.amount, 0);
-  const taxDeduction = totalAmount * 0.66;
+  const taxDeduction = totalAmount * TAX_DEDUCTION_RATE;
   const realCost = totalAmount * 0.34;
 
   const donor = { name: donorName, email: donorEmail };
@@ -118,7 +119,7 @@ const TaxCertificates = ({ donations, donorName, donorEmail }: TaxCertificatesPr
               <p className="text-2xl font-bold text-foreground">{totalAmount.toFixed(0)}€</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Déduction fiscale (66%)</p>
+              <p className="text-xs text-muted-foreground">Déduction fiscale (75%)</p>
               <p className="text-2xl font-bold text-primary">{taxDeduction.toFixed(0)}€</p>
             </div>
             <div>

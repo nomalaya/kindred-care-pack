@@ -55,7 +55,7 @@ const TaxDeduction = ({ amount, extraAmount, extraLabel }: Props) => {
           </div>
         </div>
         <p className="text-[10px] text-muted-foreground text-center mt-3">
-          Estimation basée sur le taux de 66% pour les dons aux associations d'intérêt général.
+          Estimation basée sur le taux de 75% (aide aux personnes en difficulté), jusqu'à 1 000 € de dons par an.
         </p>
       </div>
     );
@@ -78,7 +78,7 @@ const TaxDeduction = ({ amount, extraAmount, extraLabel }: Props) => {
         </div>
       </div>
       <p className="text-[10px] text-muted-foreground text-center mt-2">
-        Estimation basée sur le taux de 66% pour les dons aux associations d'intérêt général.
+        Estimation basée sur le taux de 75% (aide aux personnes en difficulté), jusqu'à 1 000 € de dons par an.
       </p>
     </div>
   );

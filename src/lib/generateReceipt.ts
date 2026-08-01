@@ -15,7 +15,7 @@ interface DonationForReceipt {
 
 const ASSOCIATION_NAME = "CashForCause";
 const ASSOCIATION_ADDRESS = "Association loi 1901 – Paris, France";
-const TAX_RATE = 0.66;
+const TAX_RATE = 0.75;
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("fr-FR", {
@@ -56,13 +56,13 @@ function addLegalFooter(doc: jsPDF, y: number): number {
   doc.setFontSize(7.5);
   doc.setTextColor(100, 100, 100);
   doc.text(
-    "Article 200 du Code Général des Impôts — Réduction d'impôt égale à 66 % du montant des dons,",
+    "Article 200-1 ter du Code Général des Impôts — Réduction d'impôt égale à 75 % du montant des dons,",
     20,
     y
   );
   y += 4;
   doc.text(
-    "dans la limite de 20 % du revenu imposable. Le donateur reconnaît ne recevoir aucune contrepartie directe.",
+    "dans la limite de 1 000 € de dons par an. Le donateur reconnaît ne recevoir aucune contrepartie directe.",
     20,
     y
   );
@@ -129,7 +129,7 @@ export function generateIndividualReceipt(
   y += 7;
   doc.setFont("helvetica", "normal");
   doc.setTextColor(34, 139, 34);
-  doc.text(`Déduction fiscale (66 %) :`, 28, y);
+  doc.text(`Déduction fiscale (75 %) :`, 28, y);
   doc.setFont("helvetica", "bold");
   doc.text(`- ${formatCurrency(donation.amount * TAX_RATE)}`, 160, y, {
     align: "right",

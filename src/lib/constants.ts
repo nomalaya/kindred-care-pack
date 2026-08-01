@@ -32,7 +32,11 @@ export const DONOR_STATUSES = {
   delivered: { label: "Remis", icon: "🎉" },
 } as const;
 
-export const TAX_DEDUCTION_RATE = 0.66;
+/** Taux de 75 % (art. 200-1 ter CGI) : organismes d'aide aux personnes en difficulté. */
+export const TAX_DEDUCTION_RATE = 0.75;
+
+/** Plafond annuel des dons éligibles au taux de 75 % (au-delà : 66 %). */
+export const TAX_DEDUCTION_75_CAP = 1000;
 
 export const MIN_DONATION = 20;
 export const MAX_DONATION = 150;

@@ -1,3 +1,4 @@
+import { TAX_DEDUCTION_RATE } from "@/lib/constants";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
@@ -159,8 +160,8 @@ const DonorInformation = ({ checkoutData, onUpdateData, onNext, onPrevious }: Pr
                   <span className="font-semibold">{checkoutData.totalAmount.toFixed(2)}€</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Déduction fiscale (66%) :</span>
-                  <span>-{(checkoutData.totalAmount * 0.66).toFixed(2)}€</span>
+                  <span>Déduction fiscale (75%) :</span>
+                  <span>-{(checkoutData.totalAmount * TAX_DEDUCTION_RATE).toFixed(2)}€</span>
                 </div>
                 <div className="flex justify-between text-sm font-medium border-t pt-2 mt-2">
                   <span className="inline-flex items-center">Coût réel après réduction <TaxInfoLink /></span>

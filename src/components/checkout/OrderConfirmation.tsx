@@ -1,3 +1,4 @@
+import { TAX_DEDUCTION_RATE } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -94,7 +95,7 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
     }
   };
 
-  const taxDeduction = checkoutData.totalAmount * 0.66;
+  const taxDeduction = checkoutData.totalAmount * TAX_DEDUCTION_RATE;
   const realCost = checkoutData.totalAmount * 0.34;
 
   return (
@@ -192,7 +193,7 @@ const OrderConfirmation = ({ beneficiary, checkoutData }: Props) => {
               <span>{checkoutData.totalAmount.toFixed(2)}€</span>
             </div>
             <div className="flex justify-between text-sm text-green-600">
-              <span className="inline-flex items-center">Déduction fiscale (66%) <TaxInfoLink /></span>
+              <span className="inline-flex items-center">Déduction fiscale (75%) <TaxInfoLink /></span>
               <span>-{taxDeduction.toFixed(2)}€</span>
             </div>
             <div className="flex justify-between text-sm font-medium text-green-700">

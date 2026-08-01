@@ -68,8 +68,8 @@ const TaxAdvantage = () => {
               Donner vous coûte moins que vous ne le pensez
             </h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              66 % de votre don vous est remboursé sous forme de réduction d'impôt.
-              Un don de 50 € ne vous coûte réellement que <span className="font-bold text-primary">17 €</span>.
+              75 % de votre don vous est remboursé sous forme de réduction d'impôt.
+              Un don de 50 € ne vous coûte réellement que <span className="font-bold text-primary">13 €</span>.
             </p>
             <Link to="/causes">
               <Button size="lg" className="bg-cta hover:bg-cta/90 text-cta-foreground">
@@ -143,8 +143,9 @@ const TaxAdvantage = () => {
                 </h2>
                 <p className="text-muted-foreground leading-relaxed">
                   CashForCause aide des personnes en difficulté dans un cadre reconnu par l'État français.
-                  La loi encourage la générosité en vous permettant de déduire <span className="font-semibold text-foreground">66 % de vos dons</span> de
-                  vos impôts, dans la limite de 20 % de votre revenu imposable.
+                  La loi encourage la générosité en vous permettant de déduire <span className="font-semibold text-foreground">75 % de vos dons</span> de
+                  vos impôts, dans la limite de 1 000 € de dons par an (puis 66 % au-delà, dans la limite
+                  de 20 % de votre revenu imposable).
                 </p>
               </div>
             </div>
