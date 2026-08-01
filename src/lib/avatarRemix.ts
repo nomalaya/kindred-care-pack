@@ -14,9 +14,12 @@ import { detectCountryGroup, type GroupKey } from "./countryPhenotypes";
 import {
   PHENOTYPE_RANGES,
   HAIR_STYLE_BY_TYPE,
+  HAIR_STYLE_BY_GROUP,
+  HAIR_TYPE_LOCKED_VALUES,
   SKIN_TONE_SCALE,
   enforcePhenotypeCoherence,
 } from "./phenotypeRanges";
+
 import { inferStudioDefaultsWithReasons } from "./avatarAutoInfer";
 
 /** Champs strictement intouchables. */
@@ -50,6 +53,9 @@ const CLOTHING_PALETTES = [
 ];
 const HAIR_LENGTHS_F = ["short", "shoulder", "medium", "long"];
 const HAIR_LENGTHS_M = ["very_short", "short", "medium"];
+/** Coiffures non retenues pour les profils masculins. */
+const MALE_EXCLUDED_STYLES = ["bun", "half_up", "box_braids", "braided_updo", "softly_tied"];
+
 const NEUTRAL_EXPRESSIONS = [
   "calm", "gentle_smile", "discreet_smile", "thoughtful", "reserved", "resilient",
 ];
@@ -134,8 +140,28 @@ export function remixAttributes(b: any): RemixResult {
   const protectedFields = Object.entries(reasons)
     .filter(([, rs]) => rs.some(r => !WEAK_SIGNALS.has(r.signal)))
     .map(([f]) => f);
+  // Textures porteuses d'une information non phénotypique (voile, calvitie,
+  // crâne rasé) : la structure de la chevelure est gelée, sinon on ferait
+  // apparaître des cheveux sous un voile ou sur un crâne rasé.
+  const hairLocked = HAIR_TYPE_LOCKED_VALUES.includes(b?.avatar_hair_type)
+    || (b?.avatar_head_covering && !["none", ""].includes(b.avatar_head_covering));
+  const HAIR_STRUCTURE_FIELDS = [
+    "avatar_hair_type", "avatar_hair_length", "avatar_hair_style", "avatar_hair_volume",
+  ];
+  // La couleur reste remixée même sous un voile (mèches visibles), sauf si
+  // elle porte un marqueur d'âge (gris / blanc).
+  const hairColorIsAgeMarker = ["gray", "white"].includes(b?.avatar_hair_color);
+
+  // Posture porteuse d'un contexte (assise digne, protectrice…) : on la garde.
+  const postureContextual = b?.avatar_posture && !NEUTRAL_POSTURES.includes(b.avatar_posture);
+
   const isProtected = (f: string) =>
-    (REMIX_NEVER as readonly string[]).includes(f) || protectedFields.includes(f);
+    (REMIX_NEVER as readonly string[]).includes(f)
+    || protectedFields.includes(f)
+    || (hairLocked && HAIR_STRUCTURE_FIELDS.includes(f))
+    || (hairColorIsAgeMarker && f === "avatar_hair_color")
+    || (postureContextual && f === "avatar_posture");
+
 
   const next: Record<string, any> = {};
   const set = (field: string, value: any) => {
@@ -167,30 +193,44 @@ export function remixAttributes(b: any): RemixResult {
     set("avatar_face_shape", pick(rng, ["oval", "round", "square_soft", "heart", "long"]));
   }
 
-  // --- Cheveux : longueur + coiffure cohérentes ---
+  // --- Cheveux : longueur + coiffure cohérentes (texture ET culture) ---
   const gender = b?.avatar_gender;
   const lengths = gender === "man" ? HAIR_LENGTHS_M : HAIR_LENGTHS_F;
   set("avatar_hair_length", pick(rng, lengths));
   const hairType = next.avatar_hair_type ?? b?.avatar_hair_type ?? "straight";
-  const styles = HAIR_STYLE_BY_TYPE[hairType] ?? HAIR_STYLE_BY_TYPE.straight;
+  const byTexture = HAIR_STYLE_BY_TYPE[hairType] ?? HAIR_STYLE_BY_TYPE.straight;
+  const byGroup = group ? HAIR_STYLE_BY_GROUP[group] : null;
+  let styles = byGroup
+    ? (byTexture.filter(s => byGroup.includes(s)).length
+        ? byTexture.filter(s => byGroup.includes(s))
+        : byTexture)
+    : byTexture;
+  if (gender === "man") {
+    const masc = styles.filter(s => !MALE_EXCLUDED_STYLES.includes(s));
+    if (masc.length) styles = masc;
+  }
   set("avatar_hair_style", pick(rng, styles));
+
 
   // --- Morphologie & vêtements ---
   set("avatar_body_type", pick(rng, ["thin", "average", "average", "chubby"]));
   set("avatar_clothing_style", pick(rng, CLOTHING_STYLES));
   set("avatar_clothing_color_palette", pick(rng, CLOTHING_PALETTES));
 
-  // --- Traits du visage : 0 à 2 marqueurs ---
+  // --- Traits du visage : 0 à 2 marqueurs, marqueurs d'âge conservés ---
   const existingFeatures: string[] = Array.isArray(b?.avatar_facial_features)
     ? b.avatar_facial_features : [];
-  const keepGlasses = existingFeatures.includes("glasses") ? ["glasses"] : [];
+  const keep = existingFeatures.filter(f =>
+    ["glasses", "subtle_age_lines", "gentle_wrinkles"].includes(f));
   const nbFeatures = Math.floor(rng() * 3);
   const shuffled = [...FEATURE_POOL].sort(() => rng() - 0.5);
-  set("avatar_facial_features", [...keepGlasses, ...shuffled.slice(0, nbFeatures)]);
+  const added = shuffled.slice(0, nbFeatures).filter(f => !keep.includes(f));
+  set("avatar_facial_features", [...keep, ...added]);
 
   // --- Expression / posture : variation légère et neutre ---
   set("avatar_expression", pick(rng, NEUTRAL_EXPRESSIONS));
   set("avatar_posture", pick(rng, NEUTRAL_POSTURES));
+
 
   // --- Validation de cohérence (bloquante) ---
   const merged = {
