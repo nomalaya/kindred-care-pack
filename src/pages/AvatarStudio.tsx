@@ -51,8 +51,10 @@ import {
   Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown, ExternalLink,
   PanelLeft, Image as ImageIcon, SlidersHorizontal, Info, Trash2, X,
-  Crop, MoreHorizontal,
+  Crop, MoreHorizontal, Download,
 } from "lucide-react";
+import { downloadAvatarsJson } from "@/features/avatar-studio/exportJson";
+
 
 import { AvatarFramingDialog } from "@/features/avatar-studio/AvatarFramingDialog";
 import { readFramingFromRow, isDefaultFraming, framingToTransform } from "@/lib/avatarFraming";
@@ -946,6 +948,23 @@ const AvatarStudio = () => {
             />
 
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={refresh}><RefreshCw className="h-3.5 w-3.5" /></Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              title="Exporter en JSON les avatars affichés (tranche d'âge uniquement)"
+              onClick={() => {
+                const n = downloadAvatarsJson(
+                  filtered,
+                  filtered.length === beneficiaries.length ? "catalogue complet" : `filtre : ${filter}`,
+                );
+                toast.success(`${n} avatar(s) exporté(s) en JSON`);
+              }}
+            >
+              <Download className="h-3.5 w-3.5 mr-1" />Exporter JSON
+            </Button>
+
 
             <Tooltip>
               <TooltipTrigger asChild>

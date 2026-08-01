@@ -1,54 +1,39 @@
-## État réel constaté (vérifié à l'instant)
+## État réel constaté (vérifié à l'instant en base)
 
-- 200 bénéficiaires actifs : **191 avec avatar**, **9 sans aucun avatar** (`draft`/`pending`/`failed` — ex. Aïcha 22a Hauts-de-France, Amadou 20a Nouvelle-Aquitaine, Fatima 19a Île-de-France).
-- Statuts : 186 `generated`, 5 `approved`, 0 `locked` → **aucun n'est réellement « publié »**.
-- Le lot de régénération précédent (`regen4.py`) **n'est plus en cours** : le bac à sable a été réinitialisé, l'état `/tmp/regen4.json` est perdu. Le lot devra être reconstitué depuis la base (timestamps `avatar_generated_at` + score de style).
-- Analyse alpha des 3 cas signalés (échantillonnage pixel réel) :
-  - **David 65a Grand Est : 100 % opaque** → rectangle blanc cuit dans le PNG, le fond importé est totalement masqué. Fichier généré le 01/08 01:44, donc **postérieur** à la réparation alpha : la garde bloquante n'a pas tenu sur ce chemin.
-  - **Léa 20a : coins bas opaques** (coins hauts transparents) → bande/rectangle blanc en bas seulement.
-  - **Aïsha 35a : détourée** (coins transparents) mais 86 % de surface pleine → le défaut visible est ici un problème de **cadrage/homogénéité trombinoscope**, pas d'alpha.
-
-Diagnostic de cause encore **non confirmé** : deux suspects (la garde alpha de `avatarBackground.ts` est court-circuitée sur certains chemins d'upload, ou `normalizeAvatarFraming`/`trimToStudioBox` s'exécute *après* le détourage et re-remplit le canvas en blanc). La première étape du plan est de le confirmer avant tout correctif.
+- **197 / 200** bénéficiaires actifs ont un avatar ; **3 sont encore en `draft` sans avatar**.
+- Statuts : 192 `generated`, 5 `approved`, 3 `draft` → **aucun n'est encore publié/verrouillé**.
+- Le lot de régénération **n'est plus en cours** : le bac à sable a été réinitialisé (aucun script ni fichier d'état dans `/tmp`). 12 avatars ont bien été régénérés entre 10:40 et 10:51 (Fatima 32a, Jian, Sofia, Maria 52a, Fatima 42a, Élise, Chloé, Aïcha 33a, Amadou 20a, Aïcha 22a, Maria 82a, Léia) + 3 plus tôt (Fatima 42a HdF, Maria 38a, Kwame 68a) = **15 avatars refaits avec le pipeline corrigé**.
+- Le lot s'est donc arrêté à 3 avatars de la fin.
 
 ## Plan
 
-### 1. Confirmer la cause (avant tout correctif)
-Rejouer le pipeline sur David en mode instrumenté (dry-run, sans upload) et mesurer le ratio alpha après chaque étape : IA → chroma-key → garde → normalize → trimToStudioBox. On identifie l'étape exacte qui réintroduit l'opacité, et on ne corrige que celle-là.
+### 1. Terminer le lot (3 avatars manquants)
+Reconstituer le script de régénération séquentielle depuis la base (les 3 `draft` sans `avatar_url`), avec fichier d'état persistant, garde alpha bloquante et rollback. Génération via la clé Google directe → **0 crédit Lovable**.
 
-### 2. Corriger le pipeline
-- Déplacer/dupliquer la **garde alpha bloquante en tout dernier ressort**, juste avant chaque `storage.upload` de `generate-avatar` (aujourd'hui plusieurs branches d'upload existent, la garde ne couvre pas les mêmes).
-- Interdire tout remplissage blanc dans `avatarNormalize.ts` : le canvas de sortie doit rester RGBA transparent (padding et trim inclus).
-- Ajouter un **critère QA bloquant `alpha_ok`** : si opacité globale > 98 % ou si un coin bas est opaque, rollback automatique (fichier précédent conservé).
+### 2. Planche de contrôle des 16
+Assemblage d'une planche unique (`/mnt/documents/planche-controle-finale.png`) : chaque avatar rendu **dans le rond profil réel, sur fond coloré** (pour révéler tout reste d'opacité blanche), avec nom, région, tranche d'âge, score de style et ratio alpha. Vérification visuelle avant toute publication : alpha OK, cheveux contenus, buste au ras du bas, cadrage homogène (règle trombinoscope).
 
-### 3. Audit complet du catalogue (191 fichiers, coût 0)
-Script d'audit qui télécharge chaque PNG et calcule : ratio d'opacité, opacité des 4 coins, marge basse, hauteur de la ligne des yeux, remplissage du buste. Sortie : `.lovable/audit-avatars.md` + JSON avec 3 buckets :
-- **A** : conformes → à publier.
-- **B** : défaut alpha uniquement → réparables sans IA via `normalize-avatar-framing` en `key_only` + `force_key` (cas David, Léa 20a).
-- **C** : défaut de cadrage/style → régénération nécessaire (cas Aïsha 35a).
+### 3. Contrôle automatique avant publication
+Sur les 200 fichiers : ratio d'opacité, opacité des 4 coins, marge basse, ligne des yeux. Tout avatar hors tolérance est écarté de la publication et listé pour réparation `key_only` (sans IA) ou régénération.
 
-### 4. Réparations et complétion séquentielles
-- Bucket **B** : réparation en lot `key_only` (aucun crédit, aucun appel IA).
-- Bucket **C** + les **9 avatars manquants** : régénération séquentielle via Google AI direct (0 crédit Lovable), avec garde bloquante et rollback, suivi persistant dans un fichier d'état, planche de contrôle par lot.
+### 4. Publication des 200
+Pour les avatars validés uniquement : `avatar_workflow_status = 'approved'` puis `'locked'` (verrou anti-régénération) et `avatar_status = 'validated'`. Publication par lots validés, jamais en aveugle. Rapport final 200/200 avec la liste des éventuels écartés.
 
-### 5. Publication des 200
-Une fois chaque avatar validé sur planche de contrôle : passage en `avatar_workflow_status = 'approved'` puis `'locked'` (verrou anti-régénération), `avatar_status = 'validated'`. Publication par lots validés, jamais en aveugle.
-
-### 6. Export JSON depuis l'Avatar Studio
-Nouveau bouton **« Exporter JSON »** dans la barre d'actions de l'Avatar Studio :
-- Export du périmètre courant (tout le catalogue ou la sélection filtrée).
-- Contenu par bénéficiaire : `id`, `alias_first_name`, `region`, tranche d'âge (jamais l'âge exact, conformément à la règle de confidentialité), les 31 attributs d'avatar, `avatar_url`, statut/workflow, scores QA et style, `avatar_generated_at`.
-- Téléchargement client-side (`Blob` + `URL.createObjectURL`), nommé `avatars-cashforcause-YYYY-MM-DD.json`. Aucun changement de logique backend, style conforme au design système existant.
+### 5. Bouton « Exporter JSON » dans l'Avatar Studio
+Nouveau bouton dans la barre d'actions de l'Avatar Studio, au design système existant (variante `outline`, icône Lucide `Download`) :
+- Exporte le **périmètre courant** : tout le catalogue ou la sélection filtrée affichée.
+- Contenu par bénéficiaire : `id`, `alias_first_name`, `region`, **tranche d'âge uniquement** (jamais l'âge exact — règle de confidentialité), les attributs d'avatar, `avatar_url`, statut / workflow, scores QA et style, `avatar_generated_at`.
+- Téléchargement client-side (`Blob` + `URL.createObjectURL`), fichier `avatars-cashforcause-YYYY-MM-DD.json`, toast de confirmation.
 
 ## Détails techniques
 
-Fichiers concernés : `supabase/functions/_shared/avatarBackground.ts` (garde en dernier ressort), `supabase/functions/_shared/avatarNormalize.ts` (zéro remplissage blanc), `supabase/functions/generate-avatar/index.ts` (garde sur toutes les branches d'upload + critère `alpha_ok`), `supabase/functions/qa-avatar/index.ts` (critère bloquant), `src/pages/AvatarStudio.tsx` (bouton export), nouveau `src/features/avatar-studio/exportJson.ts`.
-
-Aucune modification du moteur de matching ni du panier. Aucun crédit Lovable consommé : génération via la clé Google directe, réparations alpha sans IA.
+- Frontend : `src/pages/AvatarStudio.tsx` (bouton) + nouveau `src/features/avatar-studio/exportJson.ts` (sérialisation, hors composant).
+- Backend : aucune modification du moteur de matching ni du panier. Le pipeline avatar (`generate-avatar`, `avatarBackground.ts`, `avatarNormalize.ts`) reste tel qu'il a été corrigé — on ne fait que l'exécuter.
+- Publication et statuts via mises à jour de données, pas de changement de schéma.
 
 ## Livrables
 
-1. Rapport d'audit des 191 avatars (3 buckets, défauts nommés).
-2. Confirmation de la cause du rectangle blanc + correctif.
-3. Planches de contrôle par lot, sur fond coloré pour vérifier l'alpha.
-4. 200/200 avatars conformes et publiés (`locked`).
-5. Export JSON opérationnel depuis l'Avatar Studio.
+1. 200/200 avatars présents (les 3 derniers générés).
+2. Planche de contrôle des 16 sur fond coloré + rapport de contrôle automatique.
+3. Publication en `approved` / `locked` des avatars validés, liste explicite des écartés s'il en reste.
+4. Bouton « Exporter JSON » opérationnel dans l'Avatar Studio.
