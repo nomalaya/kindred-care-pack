@@ -205,7 +205,11 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
       ? `with the hair fully covered by a modest headscarf in a muted tone, soft natural folds, no hair visible`
       : `with ${hairLength} ${hairType} ${hairColor} hair (${hairStyle} style, ${hairVolume} volume)`;
 
+  const subjectParts = [
+    `a ${t.avatar_age_range} year old ${t.avatar_gender}`,
+    hairClause,
     SKIN_DESC[t.avatar_skin_tone] ?? `${t.avatar_skin_tone} skin`,
+
     `${t.avatar_face_shape.replace(/_/g, " ")} face shape`,
     t.avatar_nose ? NOSE_DESC[t.avatar_nose] : "",
     `${t.avatar_eye_shape} ${t.avatar_eye_color} eyes`,
