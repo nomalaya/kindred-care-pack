@@ -185,14 +185,26 @@ export function buildAvatarPrompt(t: AvatarTraits): string {
   // Lead with the high-signal phenotypic attributes first (gender, age, hair),
   // then face/skin/eyes. Image models weight early tokens the most.
   const hairColor = HAIR_COLOR_DESC[t.avatar_hair_color] ?? t.avatar_hair_color;
-  const hairType = HAIR_TYPE_DESC[t.avatar_hair_type] ?? t.avatar_hair_type;
-  const hairLength = (t.avatar_hair_length ?? "").replace(/_/g, " ");
+  // Legacy/remix data stores three non-texture values in avatar_hair_type:
+  // "bald" (no hair), "covered" (hair hidden by a headscarf) and "short"
+  // (a length, not a texture). They must be rendered explicitly, otherwise the
+  // model draws ordinary hair and QA hard-fails on attribute_conformity.
+  const rawHairType = String(t.avatar_hair_type ?? "");
+  const isBald = rawHairType === "bald";
+  const isCoveredHair = rawHairType === "covered";
+  const hairType = isCoveredHair || isBald
+    ? ""
+    : HAIR_TYPE_DESC[rawHairType === "short" ? "straight" : rawHairType] ?? rawHairType;
+  const hairLength = (isBald ? "" : rawHairType === "short" ? "short" : (t.avatar_hair_length ?? "")).replace(/_/g, " ");
   const hairStyle = (t.avatar_hair_style ?? "").replace(/_/g, " ");
   const hairVolume = t.avatar_hair_volume ?? "";
 
-  const subjectParts = [
-    `a ${t.avatar_age_range} year old ${t.avatar_gender}`,
-    `with ${hairLength} ${hairType} ${hairColor} hair (${hairStyle} style, ${hairVolume} volume)`,
+  const hairClause = isBald
+    ? "with a bald head, no hair on top, clean scalp"
+    : isCoveredHair
+      ? `with the hair fully covered by a modest headscarf in a muted tone, soft natural folds, no hair visible`
+      : `with ${hairLength} ${hairType} ${hairColor} hair (${hairStyle} style, ${hairVolume} volume)`;
+
     SKIN_DESC[t.avatar_skin_tone] ?? `${t.avatar_skin_tone} skin`,
     `${t.avatar_face_shape.replace(/_/g, " ")} face shape`,
     t.avatar_nose ? NOSE_DESC[t.avatar_nose] : "",
