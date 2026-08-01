@@ -138,14 +138,16 @@ export function remixAttributes(b: any): RemixResult {
     .filter(([, rs]) => rs.some(r => !WEAK_SIGNALS.has(r.signal)))
     .map(([f]) => f);
   // Textures porteuses d'une information non phénotypique (voile, calvitie,
-  // crâne rasé) : la texture ET tout ce qui décrit la chevelure visible sont
-  // gelés, sinon on ferait apparaître des cheveux sous un voile.
+  // crâne rasé) : la structure de la chevelure est gelée, sinon on ferait
+  // apparaître des cheveux sous un voile ou sur un crâne rasé.
   const hairLocked = HAIR_TYPE_LOCKED_VALUES.includes(b?.avatar_hair_type)
     || (b?.avatar_head_covering && !["none", ""].includes(b.avatar_head_covering));
-  const HAIR_FIELDS = [
-    "avatar_hair_type", "avatar_hair_color", "avatar_hair_length",
-    "avatar_hair_style", "avatar_hair_volume",
+  const HAIR_STRUCTURE_FIELDS = [
+    "avatar_hair_type", "avatar_hair_length", "avatar_hair_style", "avatar_hair_volume",
   ];
+  // La couleur reste remixée même sous un voile (mèches visibles), sauf si
+  // elle porte un marqueur d'âge (gris / blanc).
+  const hairColorIsAgeMarker = ["gray", "white"].includes(b?.avatar_hair_color);
 
   // Posture porteuse d'un contexte (assise digne, protectrice…) : on la garde.
   const postureContextual = b?.avatar_posture && !NEUTRAL_POSTURES.includes(b.avatar_posture);
@@ -153,8 +155,10 @@ export function remixAttributes(b: any): RemixResult {
   const isProtected = (f: string) =>
     (REMIX_NEVER as readonly string[]).includes(f)
     || protectedFields.includes(f)
-    || (hairLocked && HAIR_FIELDS.includes(f))
+    || (hairLocked && HAIR_STRUCTURE_FIELDS.includes(f))
+    || (hairColorIsAgeMarker && f === "avatar_hair_color")
     || (postureContextual && f === "avatar_posture");
+
 
   const next: Record<string, any> = {};
   const set = (field: string, value: any) => {
