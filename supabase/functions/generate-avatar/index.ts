@@ -159,14 +159,26 @@ function buildTargetAttributes(b: any): string {
         ? `head covering: ${covering.replace(/_/g, " ")}`
         : "head covering: NOT requested (hair uncovered and visible — do not penalise uncovered hair)";
 
+  // avatar_hair_type also carries three non-texture legacy values.
+  const rawHair = String(b.avatar_hair_type ?? "");
+  const hairTexture =
+    rawHair === "bald"
+      ? "hair: BALD (no hair on top, clean scalp)"
+      : rawHair === "covered"
+        ? "hair: fully covered by a headscarf (no hair visible — this is required)"
+        : rawHair === "short"
+          ? "hair length: short (texture unspecified — do not penalise any texture)"
+          : rawHair && rawHair !== "none"
+            ? `hair texture: ${rawHair.replace(/_/g, " ")}`
+            : "";
+
   const parts: Array<[string, any]> = [
     ["gender", b.avatar_gender],
     ["age range", b.avatar_age_range],
     ["skin tone", b.avatar_skin_tone],
-    ["hair colour", b.avatar_hair_color],
-    ["hair texture", b.avatar_hair_type],
-    ["hair length", b.avatar_hair_length],
-    ["hair volume", b.avatar_hair_volume],
+    ["hair colour", rawHair === "bald" || rawHair === "covered" ? null : b.avatar_hair_color],
+    ["hair length", rawHair === "bald" || rawHair === "covered" ? null : b.avatar_hair_length],
+    ["hair volume", rawHair === "bald" || rawHair === "covered" ? null : b.avatar_hair_volume],
     ["body type", b.avatar_body_type],
     ["beard", b.avatar_beard],
     ["moustache", b.avatar_moustache],
@@ -175,9 +187,11 @@ function buildTargetAttributes(b: any): string {
     ...parts
       .filter(([, v]) => v && v !== "none")
       .map(([k, v]) => `${k}: ${String(v).replace(/_/g, " ")}`),
-    coveringDesc,
-  ].join(" | ");
+    hairTexture,
+    rawHair === "covered" ? "" : coveringDesc,
+  ].filter(Boolean).join(" | ");
 }
+
 
 
 async function runQA(
