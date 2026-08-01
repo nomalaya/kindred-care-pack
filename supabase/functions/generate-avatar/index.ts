@@ -149,6 +149,16 @@ async function generateEditedImage(prompt: string, sourceUrl: string, model: str
  * wrong body type — the "clone" symptom) is rejected instead of validated.
  */
 function buildTargetAttributes(b: any): string {
+  // The head covering column stores a *policy* (none / optional / required),
+  // not a garment. Translate it so QA never infers "veil requested" from it.
+  const covering = String(b.avatar_head_covering ?? "none");
+  const coveringDesc =
+    covering === "required"
+      ? "head covering: REQUIRED (headscarf or veil covering the hair)"
+      : covering === "hijab_full" || covering === "headscarf"
+        ? `head covering: ${covering.replace(/_/g, " ")}`
+        : "head covering: NOT requested (hair uncovered and visible — do not penalise uncovered hair)";
+
   const parts: Array<[string, any]> = [
     ["gender", b.avatar_gender],
     ["age range", b.avatar_age_range],
@@ -160,13 +170,15 @@ function buildTargetAttributes(b: any): string {
     ["body type", b.avatar_body_type],
     ["beard", b.avatar_beard],
     ["moustache", b.avatar_moustache],
-    ["head covering", b.avatar_head_covering],
   ];
-  return parts
-    .filter(([, v]) => v && v !== "none")
-    .map(([k, v]) => `${k}: ${String(v).replace(/_/g, " ")}`)
-    .join(" | ");
+  return [
+    ...parts
+      .filter(([, v]) => v && v !== "none")
+      .map(([k, v]) => `${k}: ${String(v).replace(/_/g, " ")}`),
+    coveringDesc,
+  ].join(" | ");
 }
+
 
 async function runQA(
   supabase: any,
