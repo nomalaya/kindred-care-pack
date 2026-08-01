@@ -1,96 +1,73 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
-import { Heart, Users, Package, ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, Award, Clock, Receipt } from "lucide-react";
 import { motion } from "framer-motion";
 
 import SocialProof from "@/components/SocialProof";
-
-const steps = [
-  { icon: Heart, title: "Choisissez une cause", desc: "Sélectionnez une cause qui vous tient à cœur parmi 6 catégories." },
-  { icon: Users, title: "Découvrez une personne", desc: "Rencontrez une vraie personne dans le besoin à travers son histoire." },
-  { icon: Package, title: "Financez un colis", desc: "Composez un colis personnalisé de produits essentiels." },
-];
+import HomeBeneficiaries from "@/components/home/HomeBeneficiaries";
 
 const stats = [
   { value: "100%", label: "Reversé aux bénéficiaires" },
-  { value: "48h", label: "Délai moyen de livraison" },
+  { value: "48h", label: "Livraison en 24 à 48h" },
   { value: "6", label: "Causes à soutenir" },
+];
+
+const reassurance = [
+  { icon: Award, label: "Association déclarée loi 1901" },
+  { icon: Clock, label: "Colis livré en 24 à 48h" },
+  { icon: Receipt, label: "Reçu fiscal envoyé automatiquement" },
 ];
 
 const Index = () => {
   return (
     <Layout>
-      {/* Hero */}
-      <section className="relative overflow-hidden py-20 md:py-32">
-        <div className="absolute inset-0">
-          <img src="/hero-solidarity.jpg" alt="Des bénévoles préparent des colis solidaires" className="w-full h-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/60" />
-        </div>
-        <div className="container mx-auto px-4 relative">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="max-w-3xl"
-          >
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
-              <ShieldCheck className="h-4 w-4" />
-              Don transparent & centré sur l'humain
-            </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight mb-6">
-              Choisissez qui vous voulez{" "}
-              <span className="text-gradient-primary">aider.</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl">
-              Choisissez une cause, découvrez quelqu'un qui a besoin d'aide, et financez un colis personnalisé.
-              Ressentez la connexion. Voyez l'impact.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Link to="/causes">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" className="bg-cta hover:bg-cta/90 text-cta-foreground text-lg px-8 py-6 shadow-warm-lg">
-                    Je donne <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </motion.div>
-              </Link>
-              <Link to="/comment-ca-marche">
-                <Button variant="outline" size="lg" className="text-lg px-8 py-6 backdrop-blur-sm">
-                  Comment ça marche
-                </Button>
-              </Link>
-            </div>
-          </motion.div>
+      {/* 1. Bénéficiaires */}
+      <HomeBeneficiaries />
+
+      {/* 2. Hero simplifié */}
+      <section className="bg-primary">
+        <div className="container mx-auto px-4 py-8 md:max-h-[180px] flex flex-col justify-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-primary-foreground mb-2">
+            Choisissez qui vous voulez aider.
+          </h2>
+          <p className="text-primary-foreground/80 text-sm md:text-base mb-4 max-w-2xl">
+            Choisissez une cause, découvrez quelqu'un qui a besoin d'aide, et financez un colis
+            personnalisé.
+          </p>
+          <div className="flex flex-col sm:flex-row items-start gap-3">
+            <Link to="/causes">
+              <Button className="bg-cta hover:bg-cta/90 text-cta-foreground">
+                Je donne <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <Link to="/comment-ca-marche">
+              <Button
+                variant="outline"
+                className="bg-transparent border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+              >
+                Comment ça marche
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="py-20 bg-card">
+      {/* 3. Réassurance */}
+      <section className="py-10 bg-muted/40">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12 text-foreground">Trois étapes simples pour changer une vie</h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            {steps.map((step, i) => (
-              <motion.div
-                key={step.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.15 }}
-                viewport={{ once: true }}
-                className="text-center p-6"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <step.icon className="h-8 w-8 text-primary" />
-                </div>
-                <div className="text-sm font-semibold text-primary mb-2">Étape {i + 1}</div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">{step.title}</h3>
-                <p className="text-muted-foreground">{step.desc}</p>
-              </motion.div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {reassurance.map((item) => (
+              <div key={item.label} className="flex items-center justify-center gap-3 text-center">
+                <item.icon className="h-5 w-5 text-primary shrink-0" />
+                <span className="text-sm text-foreground">{item.label}</span>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Stats */}
+      {/* 4. Stats */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto mb-8">
@@ -107,26 +84,44 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20">
+      {/* 5. CTA final avec photo */}
+      <section className="pb-20">
         <div className="container mx-auto px-4">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-br from-primary to-secondary rounded-3xl p-12 text-center max-w-3xl mx-auto shadow-warm-lg"
+            className="grid grid-cols-1 md:grid-cols-2 max-w-5xl mx-auto overflow-hidden rounded-xl shadow-warm-lg"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
-              Prêt à faire la différence ?
-            </h2>
-            <p className="text-primary-foreground/80 text-lg mb-8">
-              Dès 20€, offrez des produits essentiels à quelqu'un qui en a vraiment besoin.
-            </p>
-            <Link to="/causes">
-              <Button size="lg" className="bg-cta hover:bg-cta/90 text-cta-foreground text-lg px-8 py-6">
-                Choisir une cause <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            <div className="relative bg-muted/40">
+              <img
+                src="/hero-solidarity.jpg"
+                alt="Des bénévoles CashForCause préparent des colis solidaires dans l'entrepôt partenaire"
+                className="w-full h-full object-cover md:rounded-l-xl md:rounded-r-none"
+                loading="lazy"
+              />
+              <p className="text-xs italic text-muted-foreground px-4 py-2">
+                Nos bénévoles préparent votre colis dans notre entrepôt partenaire
+              </p>
+            </div>
+
+            <div className="bg-primary p-10 md:rounded-r-xl md:rounded-l-none flex flex-col justify-center">
+              <h2 className="text-2xl md:text-3xl font-bold text-primary-foreground mb-4">
+                Prêt à aider quelqu'un aujourd'hui ?
+              </h2>
+              <p className="text-[15px] text-primary-foreground/90 mb-6">
+                Derrière chaque don, une équipe réelle prépare et expédie votre colis sous 24 à 48h.
+                Vous voyez qui vous aidez. Vous savez que ça lui est bien arrivé.
+              </p>
+              <Link to="/causes">
+                <Button className="bg-background text-primary hover:bg-background/90 w-full sm:w-auto">
+                  Trouver quelqu'un à aider <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <p className="text-xs text-primary-foreground/70 mt-3">
+                Dès 20€ · Reçu fiscal automatique · Livraison garantie sous 48h
+              </p>
+            </div>
           </motion.div>
         </div>
       </section>
