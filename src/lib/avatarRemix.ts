@@ -197,12 +197,17 @@ export function remixAttributes(b: any): RemixResult {
   const hairType = next.avatar_hair_type ?? b?.avatar_hair_type ?? "straight";
   const byTexture = HAIR_STYLE_BY_TYPE[hairType] ?? HAIR_STYLE_BY_TYPE.straight;
   const byGroup = group ? HAIR_STYLE_BY_GROUP[group] : null;
-  const styles = byGroup
+  let styles = byGroup
     ? (byTexture.filter(s => byGroup.includes(s)).length
         ? byTexture.filter(s => byGroup.includes(s))
         : byTexture)
     : byTexture;
+  if (gender === "man") {
+    const masc = styles.filter(s => !MALE_EXCLUDED_STYLES.includes(s));
+    if (masc.length) styles = masc;
+  }
   set("avatar_hair_style", pick(rng, styles));
+
 
   // --- Morphologie & vêtements ---
   set("avatar_body_type", pick(rng, ["thin", "average", "average", "chubby"]));
