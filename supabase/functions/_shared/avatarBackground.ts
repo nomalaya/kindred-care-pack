@@ -281,3 +281,75 @@ export async function cleanAvatarBackground(
 
   return { newUrl, transparentRatio };
 }
+
+/**
+ * ALPHA GUARD ON THE PUBLISHED FILE — no AI, zero credit.
+ *
+ * Whatever wrote the column last (a fresh generation, a ROLLBACK restoring an
+ * older legacy file, a manual "use this version"), the file actually served to
+ * donors MUST have a transparent background: otherwise the donor circle shows a
+ * white square that hides the imported background asset.
+ *
+ * Downloads the served file, and if it is opaque, chroma-keys it, re-applies the
+ * trombinoscope box and rewrites the column with the repaired file.
+ * Idempotent, safe to call after every write.
+ */
+export async function ensureTransparentPublished(
+  supabase: any,
+  beneficiary_id: string,
+  target: "preview" | "final" = "final",
+): Promise<{ repaired: boolean; transparentRatio: number | null }> {
+  const column = target === "preview" ? "avatar_preview_url" : "avatar_url";
+  const { data: b, error } = await supabase
+    .from("beneficiaries")
+    .select(`id, ${column}, avatar_face_center_x`)
+    .eq("id", beneficiary_id)
+    .single();
+  if (error || !b) return { repaired: false, transparentRatio: null };
+  const url: string | null = (b as any)[column] ?? null;
+  if (!url) return { repaired: false, transparentRatio: null };
+
+  const sourceUrl = url.split("?")[0];
+  const resp = await fetch(`${sourceUrl}?alpha=${Date.now()}`);
+  if (!resp.ok) return { repaired: false, transparentRatio: null };
+  const raw = new Uint8Array(await resp.arrayBuffer());
+  const before = await transparentPixelRatio(raw);
+  if (before >= 0.02) return { repaired: false, transparentRatio: before };
+
+  console.log(`[alpha-guard] ${beneficiary_id} (${target}) opaque (${before.toFixed(3)}) — re-keying`);
+  const keyed = await whiteToAlpha(raw);
+  let out: Uint8Array = keyed.bytes;
+  try {
+    const { bytes } = await trimToStudioBox(
+      out,
+      typeof (b as any).avatar_face_center_x === "number"
+        ? Number((b as any).avatar_face_center_x)
+        : null,
+    );
+    out = bytes;
+  } catch (_e) { /* keep keyed bytes */ }
+
+  const after = await transparentPixelRatio(out);
+  if (after < 0.05) {
+    console.error(`[alpha-guard] ${beneficiary_id} re-key insufficient (${after.toFixed(3)}) — file kept`);
+    return { repaired: false, transparentRatio: after };
+  }
+
+  const fileName = target === "preview"
+    ? `alpha-fix/preview-${beneficiary_id}.png`
+    : `alpha-fix/${beneficiary_id}.png`;
+  const { error: upErr } = await supabase.storage
+    .from("avatars")
+    .upload(fileName, out, { contentType: "image/png", upsert: true });
+  if (upErr) {
+    console.error(`[alpha-guard] upload failed ${beneficiary_id}:`, upErr);
+    return { repaired: false, transparentRatio: after };
+  }
+  const { data: u } = supabase.storage.from("avatars").getPublicUrl(fileName);
+  await supabase
+    .from("beneficiaries")
+    .update({ [column]: `${u.publicUrl}?t=${Date.now()}` })
+    .eq("id", beneficiary_id);
+
+  return { repaired: true, transparentRatio: after };
+}
