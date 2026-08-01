@@ -31,6 +31,8 @@ import { InferenceReasonsPanel } from "@/features/avatar-studio/InferenceReasons
 import { BeneficiaryListPanel } from "@/features/avatar-studio/BeneficiaryListPanel";
 import { BatchActionsBar, type BatchProgress } from "@/features/avatar-studio/BatchActionsBar";
 import { computePrefillPatch, selectBatchPool, chunk, type BatchScope } from "@/features/avatar-studio/batchPrefill";
+import { remixAttributes } from "@/lib/avatarRemix";
+
 import { RuleList } from "@/features/avatar-studio/RuleList";
 import { SectionAccordion, type SectionDef } from "@/features/avatar-studio/SectionAccordion";
 import {
@@ -47,7 +49,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft, Loader2, RefreshCw, Sparkles, ShieldCheck, Lock, Unlock,
-  Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload,
+  Wand2, History, Eye, AlertTriangle, Keyboard, Check, Search, RotateCcw, Upload, Shuffle,
   Smile, Scissors, User, Globe, Shirt, PersonStanding, Baby, FileText,
   BatteryLow, Sun, CircleDot, LucideIcon, ChevronDown, ExternalLink,
   PanelLeft, Image as ImageIcon, SlidersHorizontal, Info, Trash2, X,
@@ -328,6 +330,54 @@ const AvatarStudio = () => {
         : `${Object.keys(toApply).length} champ(s) pré-rempli(s) depuis le récit`,
     );
   };
+
+  // ===== Diversification des attributs (anti-clonage, sous contrainte phénotypique) =====
+  const diversifySelected = () => {
+    if (!selected || isLocked) return;
+    const { patch: remixPatch, group } = remixAttributes(selected);
+    const keys = Object.keys(remixPatch);
+    if (keys.length === 0) {
+      toast.info("Aucun attribut à diversifier pour ce profil.");
+      return;
+    }
+    const preview = keys.map(k => `• ${k.replace("avatar_", "")} → ${JSON.stringify(remixPatch[k])}`).join("\n");
+    if (!confirm(
+      `Diversifier ${keys.length} attribut(s) (phénotype : ${group ?? "non identifié"}) ?\n` +
+      `Genre, tranche d'âge, couvre-chef et signaux du récit sont préservés.\n\n${preview}`,
+    )) return;
+    patch(remixPatch);
+    toast.success(`${keys.length} attribut(s) diversifié(s) — aucune image régénérée.`);
+  };
+
+  const [diversifying, setDiversifying] = useState(false);
+  const diversifyFiltered = async () => {
+    const targets = filtered.filter(
+      b => !["locked", "approved"].includes(b.avatar_workflow_status || "draft"),
+    );
+    if (targets.length === 0) {
+      toast.info("Aucun profil modifiable dans la liste filtrée (publiés/verrouillés exclus).");
+      return;
+    }
+    if (!confirm(
+      `Diversifier les attributs de ${targets.length} profil(s) affiché(s) ?\n` +
+      "Aucune image n'est régénérée. Genre, tranche d'âge, couvre-chef et signaux du récit sont préservés.",
+    )) return;
+
+    setDiversifying(true);
+    let ok = 0, failed = 0;
+    for (const b of targets) {
+      const { patch: remixPatch } = remixAttributes(b);
+      if (Object.keys(remixPatch).length === 0) continue;
+      const { error } = await supabase.from("beneficiaries").update(remixPatch as any).eq("id", b.id);
+      if (error) { failed++; continue; }
+      ok++;
+      setBeneficiaries(prev => prev.map(x => (x.id === b.id ? { ...x, ...remixPatch } : x)));
+    }
+    setDiversifying(false);
+    toast.success(`${ok} profil(s) diversifié(s)${failed ? `, ${failed} échec(s)` : ""}.`);
+  };
+
+
 
 
   // Auto-prefill genre + tranche d'âge à la sélection (depuis prénom/age connus)
@@ -965,6 +1015,19 @@ const AvatarStudio = () => {
               <Download className="h-3.5 w-3.5 mr-1" />Exporter JSON
             </Button>
 
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              disabled={diversifying}
+              title="Diversifier les attributs des profils affichés (aucune image régénérée, publiés exclus)"
+              onClick={diversifyFiltered}
+            >
+              <Shuffle className="h-3.5 w-3.5 mr-1" />{diversifying ? "Diversification…" : "Diversifier"}
+            </Button>
+
+
+
 
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1407,6 +1470,10 @@ const AvatarStudio = () => {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => autoInfer("force")} className="text-xs">
                         <RotateCcw className="h-3.5 w-3.5 mr-2" />Tout re-déduire (écrase manuel)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={diversifySelected} className="text-xs">
+                        <Shuffle className="h-3.5 w-3.5 mr-2" />Diversifier les attributs (anti-clonage)
+
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
