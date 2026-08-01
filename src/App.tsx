@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import CauseSelection from "./pages/CauseSelection";
@@ -45,7 +45,8 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/avatar-studio" element={<AvatarStudio />} />
             
-            <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/comment-ca-marche" element={<HowItWorks />} />
+            <Route path="/how-it-works" element={<Navigate to="/comment-ca-marche" replace />} />
             <Route path="/donation-preview" element={<DonationPreview />} />
             
             
