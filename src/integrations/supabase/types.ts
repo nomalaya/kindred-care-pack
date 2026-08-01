@@ -1180,6 +1180,19 @@ export type Database = {
           urgency_level: number
         }[]
       }
+      get_homepage_beneficiaries: {
+        Args: { p_count?: number }
+        Returns: {
+          alias_first_name: string
+          avatar_preview_url: string
+          avatar_url: string
+          emotional_sentence: string
+          id: string
+          region: string
+          short_story: string
+          situation_id: string
+        }[]
+      }
       get_ranked_beneficiaries: {
         Args: { p_limit?: number; p_situation_id: string }
         Returns: {
