@@ -24,6 +24,8 @@ const COLS = [
   "avatar_workflow_status",
 ].join(",");
 
+const HAIR_LOCKED = ["covered", "bald", "shaved", "thinning"];
+
 function violations(b: any, group?: string | null): string[] {
   const out: string[] = [];
   const g = (group ?? resolveGroup(b)) as keyof typeof PHENOTYPE_RANGES | null;
@@ -31,6 +33,7 @@ function violations(b: any, group?: string | null): string[] {
     const r = PHENOTYPE_RANGES[g];
     const check = (field: string, key: keyof typeof r) => {
       const v = b[field];
+      if (field === "avatar_hair_type" && HAIR_LOCKED.includes(v)) return;
       if (v && !r[key].includes(v)) out.push(`${field}=${v} hors plage ${g}`);
     };
     check("avatar_skin_tone", "skin_tone");
@@ -39,6 +42,7 @@ function violations(b: any, group?: string | null): string[] {
     check("avatar_hair_type", "hair_type");
     check("avatar_nose", "nose");
   }
+
   const covered = b.avatar_head_covering && !["none", ""].includes(b.avatar_head_covering);
   if (covered) {
     if (["fair", "light"].includes(b.avatar_skin_tone)) out.push("voile + peau claire");
