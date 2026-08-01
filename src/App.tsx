@@ -35,7 +35,9 @@ const App = () => (
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/accueil-v1" element={<IndexLegacyV1 />} />
             <Route path="/causes" element={<CauseSelection />} />
+
             <Route path="/causes/:causeId/situations" element={<SituationSelection />} />
             <Route path="/situations/:situationId/beneficiaries" element={<BeneficiarySelection />} />
             <Route path="/donate/:beneficiaryId" element={<DonationFlow />} />
