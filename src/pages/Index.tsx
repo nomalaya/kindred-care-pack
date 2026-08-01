@@ -54,7 +54,7 @@ const Index = () => {
                   </Button>
                 </motion.div>
               </Link>
-              <Link to="/how-it-works">
+              <Link to="/comment-ca-marche">
                 <Button variant="outline" size="lg" className="text-lg px-8 py-6 backdrop-blur-sm">
                   Comment ça marche
                 </Button>
