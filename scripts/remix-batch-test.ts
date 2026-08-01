@@ -34,6 +34,7 @@ function violations(b: any, group?: string | null): string[] {
     const check = (field: string, key: keyof typeof r) => {
       const v = b[field];
       if (field === "avatar_hair_type" && HAIR_LOCKED.includes(v)) return;
+      if (field === "avatar_hair_color" && ["gray", "white"].includes(v)) return;
       if (v && !r[key].includes(v)) out.push(`${field}=${v} hors plage ${g}`);
     };
     check("avatar_skin_tone", "skin_tone");
