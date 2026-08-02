@@ -11,7 +11,10 @@ interface AvatarProps {
   ageRange?: string;
   skinTone?: string;
   hairType?: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "hero";
+  /** Conteneur sans fond (ni image importée, ni blanc) : le portrait détouré
+   *  se pose directement sur l'arrière-plan de la page. */
+  transparent?: boolean;
   name: string;
   avatarUrl?: string | null;
   previewUrl?: string | null;
@@ -37,6 +40,7 @@ interface AvatarProps {
 // Used only when no AI portrait (final or preview) is available yet.
 const BeneficiaryAvatar = ({
   size = "md",
+  transparent = false,
   name,
   avatarUrl,
   previewUrl,
@@ -44,12 +48,12 @@ const BeneficiaryAvatar = ({
   framing,
   mode = "studio",
 }: AvatarProps) => {
-  const dimensions = { sm: 56, md: 80, lg: 120, xl: 176 };
+  const dimensions = { sm: 56, md: 80, lg: 120, xl: 176, hero: 280 };
   const dim = dimensions[size];
 
   const resolved = avatarUrl || previewUrl;
   const isPreview = !avatarUrl && !!previewUrl;
-  const bgUrl = useAvatarBackground(backgroundSeed ?? null);
+  const bgUrl = useAvatarBackground(transparent ? null : backgroundSeed ?? null);
 
   if (resolved) {
     const isStudio = mode === "studio";
@@ -61,8 +65,14 @@ const BeneficiaryAvatar = ({
         };
     return (
       <div
-        className="relative rounded-full overflow-hidden ring-1 ring-black/5"
-        style={studioContainerStyle(dim, bgUrl)}
+        className={`relative rounded-full overflow-hidden ${
+          transparent ? "" : "ring-1 ring-black/5"
+        }`}
+        style={
+          transparent
+            ? { ...studioContainerStyle(dim, null), backgroundColor: "transparent" }
+            : studioContainerStyle(dim, bgUrl)
+        }
       >
         <img
           src={resolved}

@@ -1,12 +1,20 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
-import { ArrowRight, Award, Clock, Package, Receipt, Truck, Users } from "lucide-react";
+import {
+  ArrowRight,
+  
+  HeartHandshake,
+  Package,
+  PackageCheck,
+  Receipt,
+  Truck,
+  Users,
+} from "lucide-react";
 import { motion } from "framer-motion";
 
 import SocialProof from "@/components/SocialProof";
 import HeroBeneficiaries from "@/components/home/HeroBeneficiaries";
-import BeneficiaryStrip from "@/components/home/BeneficiaryStrip";
 
 const steps = [
   {
@@ -27,15 +35,15 @@ const steps = [
 ];
 
 const stats = [
-  { value: "100%", label: "Reversé aux bénéficiaires" },
+  { value: "200", label: "Personnes en attente d'un colis en France" },
   { value: "48h", label: "Délai moyen de livraison" },
-  { value: "6", label: "Causes à soutenir" },
+  { value: "75%", label: "Déduction fiscale" },
 ];
 
 const reassurance = [
-  { icon: Award, label: "Association déclarée loi 1901" },
-  { icon: Clock, label: "Colis livré en 24 à 48h" },
-  { icon: Receipt, label: "Reçu fiscal envoyé automatiquement" },
+  { icon: HeartHandshake, label: "Organisme déclaré d'aide aux personnes en difficulté" },
+  { icon: PackageCheck, label: "Envoi d'une preuve de réception" },
+  { icon: Receipt, label: "Reçu fiscal automatique" },
 ];
 
 const Index = () => {
@@ -44,8 +52,7 @@ const Index = () => {
       {/* 1. Hero rencontre */}
       <HeroBeneficiaries />
 
-      {/* 2. Bandeau trombinoscope */}
-      <BeneficiaryStrip />
+
 
       {/* 3. Trois étapes simples — incarnées */}
       <section className="py-20 bg-card">
