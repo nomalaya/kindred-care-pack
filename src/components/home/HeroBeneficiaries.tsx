@@ -78,7 +78,7 @@ const HeroBeneficiaries = () => {
           className="w-full h-full object-cover"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/85 to-background/60" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/88 to-background/75" />
       </div>
 
       <div className="container mx-auto px-4 relative">
