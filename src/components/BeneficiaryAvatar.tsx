@@ -11,7 +11,10 @@ interface AvatarProps {
   ageRange?: string;
   skinTone?: string;
   hairType?: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "hero";
+  /** Conteneur sans fond (ni image importée, ni blanc) : le portrait détouré
+   *  se pose directement sur l'arrière-plan de la page. */
+  transparent?: boolean;
   name: string;
   avatarUrl?: string | null;
   previewUrl?: string | null;
