@@ -18,6 +18,7 @@ import { readFramingFromRow } from "@/lib/avatarFraming";
 import { AlertTriangle, Loader2, Sparkles, CheckCircle2, RefreshCw, Wand2, ShieldCheck, Eye } from "lucide-react";
 import { AVATAR_VOCAB, STATUS_LABEL, STATUS_COLOR, AvatarStatus } from "@/lib/avatarTraits";
 import AvatarBackgroundsPanel from "@/features/avatar-studio/AvatarBackgroundsPanel";
+import BeneficiaryBadgesAdmin from "@/features/beneficiary-badges/BeneficiaryBadgesAdmin";
 
 const TARGET_MODEL = "google/gemini-3-pro-image-preview";
 
@@ -170,6 +171,7 @@ const Admin = () => {
             <TabsTrigger value="portraits">Portraits v2</TabsTrigger>
             <TabsTrigger value="backgrounds">Fonds</TabsTrigger>
             <TabsTrigger value="products">Produits ({products.length})</TabsTrigger>
+            <TabsTrigger value="badges">Badges</TabsTrigger>
           </TabsList>
 
 
@@ -342,6 +344,10 @@ const Admin = () => {
 
           <TabsContent value="backgrounds">
             <AvatarBackgroundsPanel />
+          </TabsContent>
+
+          <TabsContent value="badges">
+            <BeneficiaryBadgesAdmin beneficiaries={beneficiaries} />
           </TabsContent>
 
           <TabsContent value="products">
