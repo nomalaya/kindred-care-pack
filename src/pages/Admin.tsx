@@ -15,9 +15,10 @@ import { DELIVERY_STATUSES } from "@/lib/constants";
 import { toast } from "sonner";
 import BeneficiaryAvatar from "@/components/BeneficiaryAvatar";
 import { readFramingFromRow } from "@/lib/avatarFraming";
-import { AlertTriangle, Loader2, Sparkles, CheckCircle2, RefreshCw, Wand2, ShieldCheck, Eye } from "lucide-react";
+import { AlertTriangle, Loader2, Sparkles, CheckCircle2, RefreshCw, Wand2, ShieldCheck, Eye, LayoutDashboard, Users, HandHeart, Package, Tags, Image, Search } from "lucide-react";
 import { AVATAR_VOCAB, STATUS_LABEL, STATUS_COLOR, AvatarStatus } from "@/lib/avatarTraits";
 import AvatarBackgroundsPanel from "@/features/avatar-studio/AvatarBackgroundsPanel";
+import BeneficiaryBadgesAdmin from "@/features/beneficiary-badges/BeneficiaryBadgesAdmin";
 
 const TARGET_MODEL = "google/gemini-3-pro-image-preview";
 
@@ -29,6 +30,9 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Record<string, string | null>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [adminSection, setAdminSection] = useState("overview");
+  const [beneficiarySearch, setBeneficiarySearch] = useState("");
+  const [donationFilter, setDonationFilter] = useState("all");
 
   // Batch state
   const [batchSize, setBatchSize] = useState(10);
@@ -130,6 +134,10 @@ const Admin = () => {
   }, [beneficiaries, batchFilter]);
 
   const migratedCount = beneficiaries.filter(b => b.avatar_model_used === TARGET_MODEL).length;
+  const filteredBeneficiaries = beneficiaries.filter(b => [b.alias_first_name, b.region, b.real_first_name, b.real_last_name].some(v => String(v || "").toLocaleLowerCase("fr").includes(beneficiarySearch.toLocaleLowerCase("fr"))));
+  const filteredDonations = donations.filter(d => donationFilter === "all" || d.delivery_status === donationFilter);
+  const lowStockCount = products.filter(p => Number(p.stock_quantity) <= 5).length;
+  const avatarIssues = beneficiaries.filter(b => b.avatar_status === "failed").length;
 
   const launchBatch = async () => {
     const ids = candidateIds.slice(0, batchSize);
@@ -163,22 +171,55 @@ const Admin = () => {
         <h1 className="text-3xl font-bold text-foreground mb-2">Tableau de bord admin</h1>
         <p className="text-muted-foreground mb-8">Gérez les bénéficiaires, produits et statuts de livraison.</p>
 
-        <Tabs defaultValue="donations">
-          <TabsList className="mb-6">
-            <TabsTrigger value="donations">Dons ({donations.length})</TabsTrigger>
-            <TabsTrigger value="beneficiaries">Bénéficiaires ({beneficiaries.length})</TabsTrigger>
-            <TabsTrigger value="portraits">Portraits v2</TabsTrigger>
-            <TabsTrigger value="backgrounds">Fonds</TabsTrigger>
-            <TabsTrigger value="products">Produits ({products.length})</TabsTrigger>
-          </TabsList>
-
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-6 items-start">
+          <nav aria-label="Navigation administration" className="rounded-xl border bg-card p-3 flex lg:flex-col gap-1 overflow-x-auto">
+            {([
+              ["overview", "Vue d'ensemble", LayoutDashboard],
+              ["beneficiaries", "Bénéficiaires", Users],
+              ["donations", "Dons", HandHeart],
+              ["products", "Produits", Package],
+              ["badges", "Badges", Tags],
+              ["portraits", "Studio IA", Image],
+            ] as const).map(([key, label, Icon]) => (
+              <Button key={key} variant={adminSection === key ? "secondary" : "ghost"} className="justify-start shrink-0" onClick={() => setAdminSection(key)} aria-current={adminSection === key ? "page" : undefined}>
+                <Icon className="h-4 w-4 mr-2" />{label}
+              </Button>
+            ))}
+          </nav>
+          <div className="min-w-0">
+          <Tabs value={adminSection} onValueChange={setAdminSection}>
+            <TabsContent value="overview" className="mt-0 space-y-5">
+              <h2 className="text-xl font-semibold">Vue d'ensemble</h2>
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                {[
+                  ["Bénéficiaires", beneficiaries.length, "beneficiaries"],
+                  ["Dons à suivre", donations.filter(d => !["delivered", "completed"].includes(d.delivery_status)).length, "donations"],
+                  ["Stock faible (≤ 5)", lowStockCount, "products"],
+                  ["Portraits en échec", avatarIssues, "portraits"],
+                ].map(([label, count, target]) => (
+                  <button key={String(label)} type="button" className="rounded-xl border bg-card p-4 text-left hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setAdminSection(String(target))}>
+                    <p className="text-sm text-muted-foreground">{label}</p>
+                    <p className="text-2xl font-semibold mt-1">{loading ? "…" : count}</p>
+                  </button>
+                ))}
+              </div>
+              <div className="rounded-xl border bg-card p-5 space-y-3">
+                <h3 className="font-semibold">Actions rapides</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => setAdminSection("beneficiaries")}>Consulter les bénéficiaires</Button>
+                  <Button variant="outline" onClick={() => setAdminSection("donations")}>Suivre les dons</Button>
+                  <Button variant="outline" onClick={() => setAdminSection("badges")}>Gérer les badges</Button>
+                </div>
+              </div>
+            </TabsContent>
 
           <TabsContent value="donations">
             {loading ? (
               <div className="animate-pulse bg-card rounded-2xl h-48" />
             ) : (
               <div className="space-y-3">
-                {donations.map(d => (
+                <div className="flex items-center gap-3 mb-4"><Label htmlFor="donation-status-filter">Statut</Label><Select value={donationFilter} onValueChange={setDonationFilter}><SelectTrigger id="donation-status-filter" className="w-64"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tous les dons</SelectItem>{DELIVERY_STATUSES.map(s => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent></Select></div>
+                {filteredDonations.map(d => (
                   <div key={d.id} className="bg-card rounded-xl p-4 border flex items-center gap-4">
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{d.beneficiaries?.alias_first_name} – {d.beneficiaries?.region}</p>
@@ -201,7 +242,9 @@ const Admin = () => {
               <div className="animate-pulse bg-card rounded-2xl h-48" />
             ) : (
               <div className="space-y-3">
-                {beneficiaries.map(b => {
+                <div className="relative mb-4"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input aria-label="Rechercher un bénéficiaire" placeholder="Rechercher par prénom, nom ou région" className="pl-9" value={beneficiarySearch} onChange={e => setBeneficiarySearch(e.target.value)} /></div>
+                {filteredBeneficiaries.length === 0 && <p className="text-sm text-muted-foreground">Aucun bénéficiaire trouvé.</p>}
+                {filteredBeneficiaries.map(b => {
                   const status = (b.avatar_status as AvatarStatus) || "pending";
                   const isOpen = expanded === b.id;
                   return (
@@ -344,6 +387,10 @@ const Admin = () => {
             <AvatarBackgroundsPanel />
           </TabsContent>
 
+          <TabsContent value="badges">
+            <BeneficiaryBadgesAdmin beneficiaries={beneficiaries} />
+          </TabsContent>
+
           <TabsContent value="products">
             {loading ? (
               <div className="animate-pulse bg-card rounded-2xl h-48" />
@@ -367,6 +414,8 @@ const Admin = () => {
             )}
           </TabsContent>
         </Tabs>
+          </div>
+        </div>
       </div>
     </Layout>
   );
